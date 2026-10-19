@@ -1,0 +1,15 @@
+Placeholder food models, cleaned up for the game (rescaled to real-world size, origin at the bottom centre, parts and
+materials renamed, made non-metallic, heavy scans reduced to about 5,000 triangles or fewer).
+They stand in until our own models in Park_Food_Model_List.docx are made.
+
+Every model below is CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/): credit the author in the game's credits.
+All are from Sketchfab, downloaded through the Objaverse dataset (https://huggingface.co/datasets/allenai/objaverse).
+
+  Burrito    "Burrito" by ngasbarro1                               https://sketchfab.com/3d-models/e6a3647022fd4907b7d2364112d8188c
+  Coffee     "Paper Cup (Unperfect)" by RoboHoloclone12           https://sketchfab.com/3d-models/1903f3873e2b44d2b71d37c2fa19f43a
+  IceCream   "Ice Cream Cone Photogrammetry" by HeartOfLines      https://sketchfab.com/3d-models/b8cebe4d2d154bffa37ecd7a11b0d12c
+  Gyro       "Kebab - midpoly" by Pierre.Bourdon                   https://sketchfab.com/3d-models/9e56cc9656ae4016b96cb4bb56fe3a43
+  Pizza      "Plain Pizza Slice" by inciprocal.com                 https://sketchfab.com/3d-models/486238438ec64c3cb64d607a30d1a9e6
+  Bagel      "Bagel" by cyro (the whole bagel only)                https://sketchfab.com/3d-models/eb3ff9a63a554526bab6318a1ef28706
+  Bread      "Sliced Bread" by meerschaumdigital                   https://sketchfab.com/3d-models/4a13c0429e35454391c9c79a1361caa1
+  Pretzel    "Soft Pretzel" by JeremyGrayson (one of the two)      https://sketchfab.com/3d-models/ec978083c86440279af2f71d7c3151ca

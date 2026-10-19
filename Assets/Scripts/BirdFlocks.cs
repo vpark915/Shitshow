@@ -4,7 +4,8 @@ using UnityEngine;
 using UnityEngine.AI;
 
 // Flocks of ordinary pigeons and seagulls. They peck around a spot on the paving and all take off for another one when
-// startled: by a gunshot, or by anything moving fast through them. One object runs every bird; the spots come from
+// startled: by a gunshot, or by someone the pigeon is riding running through them. The pigeon itself is one of the
+// birds to them, and ordinary walkers step around them. Now and then a flock moves on by itself. One object runs every bird; the spots come from
 // the NPC spawner, so the NPCs object has to be in the scene too.
 public class BirdFlocks : MonoBehaviour
 {
@@ -28,9 +29,11 @@ public class BirdFlocks : MonoBehaviour
     [Header("Startled")]
     [Tooltip("A shot within this many metres sends the flock up")]
     public float gunRadius = 30f;
-    [Tooltip("So does anything moving faster than Scare Speed within this many metres of the middle of the flock")]
+    [Tooltip("So does a ridden person moving faster than Scare Speed within this many metres of the middle of the flock")]
     public float scareRadius = 4f;
     public float scareSpeed = 3f;
+    [Tooltip("Fewest and most seconds a flock stays put before moving on by itself")]
+    public Vector2 restlessness = new Vector2(40f, 120f);
 
     [Header("Flight")]
     public float flySpeed = 6f;
@@ -45,10 +48,14 @@ public class BirdFlocks : MonoBehaviour
     [Tooltip("A startled flock goes at least this far away")]
     public float flyDistance = 30f;
 
+    [Header("Food")]
+    [Tooltip("A flock sent after someone by bread catches up once they're this far from it, in metres")]
+    public float followGap = 3f;
+
     class Flock
     {
         public Vector3 centre;
-        public float landsAt;
+        public float landsAt, movesOnAt;
         public readonly List<Bird> birds = new List<Bird>();
     }
 
@@ -56,6 +63,7 @@ public class BirdFlocks : MonoBehaviour
     {
         public Transform body;
         public Animator animator;
+        public Collider hitbox; // off while flying, so a flock overhead doesn't block shots, jumps or the camera
         public string state;
         public Vector3 from, to, burst;
         public float takeOff, landing, nextStroll, height;
@@ -65,6 +73,9 @@ public class BirdFlocks : MonoBehaviour
     readonly List<Flock> flocks = new List<Flock>();
     NpcSpawner spots;
     float nextScareCheck;
+    Flock led; // following leader (bread) until leadUntil
+    Transform leader;
+    float leadUntil;
 
     IEnumerator Start()
     {
@@ -73,12 +84,12 @@ public class BirdFlocks : MonoBehaviour
         for (int i = 0; i < pigeonFlocks + seagullFlocks; i++)
         {
             bool isPigeon = i < pigeonFlocks;
-            var flock = new Flock { centre = spots.RoamPoint() };
+            var flock = new Flock { centre = spots.RoamPoint(), movesOnAt = Time.time + Random.Range(restlessness.x, restlessness.y) };
             for (int n = Random.Range(flockSize.x, flockSize.y + 1); n > 0; n--)
             {
                 GameObject body = Instantiate(isPigeon ? pigeon : seagull, Spot(flock), Quaternion.Euler(0, Random.Range(0f, 360f), 0), transform);
                 body.transform.localScale *= isPigeon ? pigeonScale : seagullScale;
-                flock.birds.Add(new Bird { body = body.transform, animator = body.GetComponent<Animator>(), to = body.transform.position });
+                flock.birds.Add(new Bird { body = body.transform, animator = body.GetComponent<Animator>(), hitbox = body.GetComponentInChildren<Collider>(), to = body.transform.position });
             }
             flocks.Add(flock);
         }
@@ -103,9 +114,35 @@ public class BirdFlocks : MonoBehaviour
 
     void Startle(Flock flock)
     {
-        if (Time.time < flock.landsAt) return; // already in the air
+        if (Time.time < flock.landsAt || flock == led) return; // already in the air; a flock sent by bread doesn't scare
+        Vector3 away = flock.centre;
+        for (int tries = 0; tries < 10 && Vector3.Distance(away, flock.centre) < flyDistance; tries++) away = spots.RoamPoint();
+        FlyTo(flock, away);
+    }
+
+    // bread (FoodPowers): the flock nearest someone tails them for a while
+    public void Follow(Transform who, float seconds)
+    {
+        leader = who;
+        leadUntil = Time.time + seconds;
+        led = Nearest(who.position);
+    }
+
+    public void StopFollowing() => led = null;
+
+    Flock Nearest(Vector3 p)
+    {
+        Flock best = null;
+        foreach (Flock flock in flocks)
+            if (best == null || Vector3.Distance(p, flock.centre) < Vector3.Distance(p, best.centre)) best = flock;
+        return best;
+    }
+
+    // the whole flock takes off and lands around a new centre
+    void FlyTo(Flock flock, Vector3 centre)
+    {
         Vector3 old = flock.centre;
-        for (int tries = 0; tries < 10 && Vector3.Distance(old, flock.centre) < flyDistance; tries++) flock.centre = spots.RoamPoint();
+        flock.centre = centre;
         foreach (Bird bird in flock.birds)
         {
             bird.from = bird.body.position;
@@ -118,22 +155,35 @@ public class BirdFlocks : MonoBehaviour
             bird.takeOff = Time.time + Random.Range(0f, 0.8f); // not all on the same frame
             bird.landing = bird.takeOff + Vector3.Distance(bird.from, bird.to) / (flySpeed * Random.Range(0.9f, 1.1f));
             bird.flying = true;
+            if (bird.hitbox) bird.hitbox.enabled = false;
             flock.landsAt = Mathf.Max(flock.landsAt, bird.landing);
         }
     }
 
     void Update()
     {
+        if (led != null && (!leader || Time.time >= leadUntil)) led = null;
+        if (led != null && Time.time >= led.landsAt && Vector3.Distance(Flat(leader.position), Flat(led.centre)) > followGap)
+            FlyTo(led, leader.position);
+
         if (Time.time >= nextScareCheck)
         {
             nextScareCheck = Time.time + 0.5f;
             foreach (Flock flock in flocks)
-                foreach (Collider near in Physics.OverlapSphere(flock.centre, scareRadius))
+            {
+                if (Time.time >= flock.movesOnAt)
                 {
-                    float speed = near is CharacterController player ? player.velocity.magnitude
-                        : near.TryGetComponent(out NavMeshAgent person) ? person.velocity.magnitude : 0;
-                    if (speed > scareSpeed) { Startle(flock); break; }
+                    flock.movesOnAt = Time.time + Random.Range(restlessness.x, restlessness.y);
+                    Startle(flock);
+                    continue;
                 }
+                foreach (Collider near in Physics.OverlapSphere(flock.centre, scareRadius))
+                    if (near is CharacterController body && near.TryGetComponent(out Npc person) && person.Ridden && body.velocity.magnitude > scareSpeed)
+                    {
+                        Startle(flock);
+                        break;
+                    }
+            }
         }
 
         foreach (Flock flock in flocks)
@@ -155,7 +205,9 @@ public class BirdFlocks : MonoBehaviour
         Face(bird, next - bird.body.position, 720);
         bird.body.position = next;
         Play(bird, "Fly");
-        if (t >= 1) bird.flying = false;
+        if (t < 1) return;
+        bird.flying = false;
+        if (bird.hitbox) bird.hitbox.enabled = true;
     }
 
     // peck, and now and then stroll to another spot in the patch
@@ -172,6 +224,8 @@ public class BirdFlocks : MonoBehaviour
         bird.body.position = Vector3.MoveTowards(bird.body.position, bird.to, walkSpeed * Time.deltaTime);
         Play(bird, "Walk");
     }
+
+    static Vector3 Flat(Vector3 v) => new Vector3(v.x, 0, v.z);
 
     static void Face(Bird bird, Vector3 direction, float degreesPerSecond)
     {

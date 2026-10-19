@@ -52,8 +52,10 @@ public class NpcSpawner : MonoBehaviour
     public float policeGunScale = 0.22f;
     [Tooltip("Officers within this many metres of a shot go after whoever fired it")]
     public float policeHearing = 60f;
-    [Tooltip("They close to this distance, with a clear line, before shooting")]
+    [Tooltip("They start shooting once they have a clear line inside this distance")]
     public float policeRange = 25f;
+    [Tooltip("They keep closing in while shooting until they're this close, then stand their ground")]
+    public float policeShootingDistance = 10f;
     [Tooltip("Seconds after the last shot they heard before they holster and go back to work")]
     public float policeAttention = 12f;
     public float policeFireInterval = 0.7f;
@@ -62,6 +64,10 @@ public class NpcSpawner : MonoBehaviour
     public float policeDamage = 10f;
     [Tooltip("How fast their aim follows a moving target, in m/s. Move faster than this and the shots land behind you")]
     public float policeAimSpeed = 3f;
+    [Tooltip("Left floating where an officer dies; the player collects it for an extra reload")]
+    public GameObject magazineDrop;
+    [Tooltip("Left floating where a civilian dies")]
+    public GameObject walletDrop;
 
     [Header("Chatting")]
     [Tooltip("Every this many seconds a walker somewhere calls over the walkers near them for a chat")]
@@ -73,7 +79,18 @@ public class NpcSpawner : MonoBehaviour
     [Tooltip("Shortest and longest chat, in seconds, counted from when they set off to meet")]
     public Vector2 chatTime = new Vector2(20, 50);
 
+    [Header("Chess tables")]
+    [Tooltip("Parent of the tables people sit at to talk; each has a bench along both long sides")]
+    public Transform tables;
+    [Tooltip("Chance a chat is two people sitting across a free table instead of a group standing")]
+    [Range(0, 1)] public float sitChance = 0.5f;
+    [Tooltip("Walkers come to a table from up to this many metres away")]
+    public float tableReach = 30f;
+    [Tooltip("Metres from the middle of the table out to where someone sits on the bench")]
+    public float seatOut = 0.62f;
+
     float nextChat;
+    float[] tableBusyUntil;
     readonly List<Vector3> roamPoints = new List<Vector3>();
     Vector3 anchor;
 
@@ -108,6 +125,7 @@ public class NpcSpawner : MonoBehaviour
     {
         if (Time.time < nextChat || transform.childCount == 0) return;
         nextChat = Time.time + chatEvery;
+        if (tables && tables.childCount > 0 && Random.value < sitChance && SitAtTable()) return;
         // ponytail: looks around one person picked at random and gives up if fewer than two walkers there are free
         var group = new List<Npc>();
         int size = Random.Range(chatSize.x, chatSize.y + 1);
@@ -125,6 +143,26 @@ public class NpcSpawner : MonoBehaviour
         }
     }
 
+    // two free walkers near a free table sit down across it from each other
+    bool SitAtTable()
+    {
+        if (tableBusyUntil == null || tableBusyUntil.Length != tables.childCount) tableBusyUntil = new float[tables.childCount];
+        int i = Random.Range(0, tables.childCount);
+        if (Time.time < tableBusyUntil[i]) return false;
+        Transform table = tables.GetChild(i);
+        var pair = new List<Npc>();
+        foreach (Collider near in Physics.OverlapSphere(table.position, tableReach))
+            if (pair.Count < 2 && near.TryGetComponent(out Npc npc) && npc.CanChat) pair.Add(npc);
+        if (pair.Count < 2) return false;
+
+        float seconds = Random.Range(chatTime.x, chatTime.y);
+        // ponytail: the table stays booked for the whole chat even if they're scared off early
+        tableBusyUntil[i] = Time.time + seconds;
+        for (int side = 0; side < 2; side++)
+            pair[side].Chat(table.position + table.forward * (side == 0 ? seatOut : -seatOut), table.position, seconds, true);
+        return true;
+    }
+
     Npc Spawn(Npc.Kind kind, GameObject[] models, Vector3 position, float speed)
     {
         GameObject person = Instantiate(models[Random.Range(0, models.Length)], position, Quaternion.Euler(0, Random.Range(0f, 360f), 0), transform);
@@ -132,6 +170,7 @@ public class NpcSpawner : MonoBehaviour
         animator.runtimeAnimatorController = controller;
         animator.applyRootMotion = false;
         animator.fireEvents = false; // the Starter Assets run clip calls OnFootstep, which only the player handles
+        animator.cullingMode = AnimatorCullingMode.CullUpdateTransforms; // nobody off-screen needs posing; a crowd of 500 makes this a few ms
 
         // solid to the player and to bullets
         var body = person.AddComponent<CapsuleCollider>();

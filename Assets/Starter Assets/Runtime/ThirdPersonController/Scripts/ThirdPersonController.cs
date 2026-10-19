@@ -95,6 +95,11 @@ namespace StarterAssets
         // set by HeadRide while perched on a person: the body is carried, only the camera look stays live
         [HideInInspector] public bool Riding;
 
+        // hook for food abilities (FoodPowers): every jump, ground or air
+        public event System.Action Jumped;
+        // extra velocity on top of walking, e.g. a lunge; fades out, fast on the ground
+        [HideInInspector] public Vector3 Push;
+
         // cinemachine
         private float _cinemachineTargetYaw;
         private float _cinemachineTargetPitch;
@@ -281,7 +286,8 @@ namespace StarterAssets
             if (_input.move == Vector2.zero) targetSpeed = 0.0f;
 
             // a reference to the players current horizontal velocity
-            float currentHorizontalSpeed = new Vector3(_controller.velocity.x, 0.0f, _controller.velocity.z).magnitude;
+            // leaving out the Push, or walking speed picks the push up and carries it on top of itself
+            float currentHorizontalSpeed = new Vector3(_controller.velocity.x - Push.x, 0.0f, _controller.velocity.z - Push.z).magnitude;
 
             float speedOffset = 0.1f;
             float inputMagnitude = _input.analogMovement ? _input.move.magnitude : 1f;
@@ -325,8 +331,9 @@ namespace StarterAssets
             Vector3 targetDirection = Quaternion.Euler(0.0f, _targetRotation, 0.0f) * Vector3.forward;
 
             // move the player
-            _controller.Move(targetDirection.normalized * (_speed * Time.deltaTime) +
+            _controller.Move(targetDirection.normalized * (_speed * Time.deltaTime) + Push * Time.deltaTime +
                              new Vector3(0.0f, _verticalVelocity, 0.0f) * Time.deltaTime);
+            Push = Vector3.MoveTowards(Push, Vector3.zero, (Grounded ? 30f : 4f) * Time.deltaTime);
 
             // update animator if using character
             if (_hasAnimator)
@@ -364,6 +371,7 @@ namespace StarterAssets
                     _verticalVelocity = Mathf.Sqrt(JumpHeight * -2f * Gravity);
                     // consume the press so it isn't still set on the first airborne frame and spent as an extra jump
                     _input.jump = false;
+                    Jumped?.Invoke();
 
                     // update animator if using character
                     if (_hasAnimator)
@@ -402,6 +410,7 @@ namespace StarterAssets
                 {
                     ExtraJumpsLeft--;
                     _verticalVelocity = Mathf.Sqrt(JumpHeight * -2f * Gravity);
+                    Jumped?.Invoke();
                 }
                 _input.jump = false;
             }
@@ -414,7 +423,17 @@ namespace StarterAssets
         }
 
         // leave the ground now, whatever the jump timeout says (HeadRide hopping off a head)
-        public void Jump() => _verticalVelocity = Mathf.Sqrt(JumpHeight * -2f * Gravity);
+        public void Jump() => Launch(JumpHeight);
+
+        // straight up to this many metres above here
+        public void Launch(float height) => _verticalVelocity = Mathf.Sqrt(height * -2f * Gravity);
+
+        // landing on top of a Bouncer (a cart umbrella) throws you up
+        private void OnControllerColliderHit(ControllerColliderHit hit)
+        {
+            if (_verticalVelocity <= 0f && hit.normal.y > 0.5f && hit.collider.TryGetComponent(out Bouncer bouncer))
+                Launch(bouncer.height);
+        }
 
         private static float ClampAngle(float lfAngle, float lfMin, float lfMax)
         {

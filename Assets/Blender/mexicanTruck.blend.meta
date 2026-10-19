@@ -1,0 +1,345 @@
+fileFormatVersion: 2
+guid: 9c7c414c38bb04371ab82eed90cf0e37
+ModelImporter:
+  serializedVersion: 24200
+  internalIDToNameTable: []
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: TR_al_pastor
+    second: {fileID: 2100000, guid: 6e031a583fc224de186eef04609f26cf, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: TR_al_pastor_seared
+    second: {fileID: 2100000, guid: 5f69aa67c663e4485acb35b7ccf561e9, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: TR_amber
+    second: {fileID: 2100000, guid: 954d89332495744c19b0899bd3d3b7b3, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: TR_art_0
+    second: {fileID: 2100000, guid: cd2c84608395a46dcb13b833923f8513, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: TR_art_1
+    second: {fileID: 2100000, guid: 9e52b6fac88ff4e3591e6e0e005040b4, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: TR_art_2
+    second: {fileID: 2100000, guid: 3cbcccc6158a6437e94987f8031f3dbd, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: TR_art_3
+    second: {fileID: 2100000, guid: b94f3900c50824750bcf70749f357ea7, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: TR_art_4
+    second: {fileID: 2100000, guid: 126759de776eb4a2cbb90063ded41897, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: TR_art_5
+    second: {fileID: 2100000, guid: d7e287914c429463f976269f858c0697, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: TR_art_6
+    second: {fileID: 2100000, guid: 8bc8019c6affc4c68861d9f724718085, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: TR_art_7
+    second: {fileID: 2100000, guid: 2cf23f109d2b14cb49fef54e1c99a61b, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: TR_cap_metal
+    second: {fileID: 2100000, guid: 89c547f01564146179c4f1e1caf2b40f, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: TR_chrome
+    second: {fileID: 2100000, guid: b3048f25dcc1a427898d0496ce1450bc, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: TR_cilantro
+    second: {fileID: 2100000, guid: 92b7cfe71bddd456da566bc48a3fe6e8, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: TR_frame_black
+    second: {fileID: 2100000, guid: 3147d12c79ae6460e972664a6d1f4978, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: TR_glass
+    second: {fileID: 2100000, guid: ce3c46069210848edbc157e5de952983, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: TR_griddle
+    second: {fileID: 2100000, guid: 145808ff6868542efaea285b0ea2e177, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: TR_handle_black
+    second: {fileID: 2100000, guid: 6d26b741eddc5446d98603e6f09b9f24, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: TR_headlight
+    second: {fileID: 2100000, guid: 7bef7b63cf15647c195b38a91d7cf98d, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: TR_hot_sauce
+    second: {fileID: 2100000, guid: 8c442c8e16d86449cbcaabb3932202ca, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: TR_label_yellow
+    second: {fileID: 2100000, guid: 6d483c07aba9f45aea061eef037d5878, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: TR_led_blue
+    second: {fileID: 2100000, guid: 6cc4c1165d8fe4bc7919f4f650003a49, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: TR_lime
+    second: {fileID: 2100000, guid: 5adcc0fb4bd264516bfede0719f2976e, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: TR_lime_flesh
+    second: {fileID: 2100000, guid: c9d6dc4fd74f04514ac53606f94b4918, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: TR_menu_board
+    second: {fileID: 2100000, guid: 87d42596d515f4681aebd55e55d37ae3, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: TR_onion
+    second: {fileID: 2100000, guid: a492698927b214011bd5ad9c53f6fab0, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: TR_paint_black
+    second: {fileID: 2100000, guid: 308f7ed5f7970407ebc34396f46add03, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: TR_paper_red
+    second: {fileID: 2100000, guid: 2e4e65e0ad9aa48718df715d9ad9f622, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: TR_pico_tomato
+    second: {fileID: 2100000, guid: 41a264687b241452bb4cb9eb4bc6c5df, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: TR_pineapple
+    second: {fileID: 2100000, guid: 96fdc8cd1f25240d2b506564b16cb531, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: TR_pineapple_leaf
+    second: {fileID: 2100000, guid: fe269fc01997e45c296a8d5aef573f71, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: TR_plastic_black
+    second: {fileID: 2100000, guid: d8ccd830ae9e2476e9e967221065771c, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: TR_rim_white
+    second: {fileID: 2100000, guid: c6bc2448b34f9418ab5f38108e69b354, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: TR_salsa_green
+    second: {fileID: 2100000, guid: f4d7fab4c050243a1ad3c6245d364e7c, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: TR_salsa_red
+    second: {fileID: 2100000, guid: 292d6d04b89e54c45ae8121079a7d845, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: TR_soda_0
+    second: {fileID: 2100000, guid: 5c221b6bfe34547d28f259c9bebc7c10, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: TR_soda_1
+    second: {fileID: 2100000, guid: 071200b608965468ebf850b9ceb5b174, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: TR_soda_2
+    second: {fileID: 2100000, guid: 648aa90f6aad7474ab41991088991431, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: TR_soda_3
+    second: {fileID: 2100000, guid: f28754b11804e4d84a99a4daf78168f4, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: TR_soda_4
+    second: {fileID: 2100000, guid: 98f6827a165f4473196dca9b475852ad, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: TR_steel
+    second: {fileID: 2100000, guid: 59fdcfcd39f534dddb3519dc9ffd4881, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: TR_taillight
+    second: {fileID: 2100000, guid: 1a6db362e2510409a90416ac8a955a50, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: TR_terracotta
+    second: {fileID: 2100000, guid: ae99c7ec338524bda9c16d22141da151, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: TR_tire
+    second: {fileID: 2100000, guid: a70ba1132bf8742fea01219d93b61caa, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: TR_tortilla
+    second: {fileID: 2100000, guid: 986e712d5e42f44218c812e54139cf3f, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: TR_white
+    second: {fileID: 2100000, guid: 273c65c525f2f469192d92f73aa90d19, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: TR_wrap_green
+    second: {fileID: 2100000, guid: c6c2cfc12352d44d6b727c36cbcc3299, type: 2}
+  materials:
+    materialImportMode: 1
+    materialName: 0
+    materialSearch: 1
+    materialLocation: 1
+  animations:
+    legacyGenerateAnimations: 4
+    bakeSimulation: 0
+    resampleCurves: 1
+    optimizeGameObjects: 0
+    removeConstantScaleCurves: 0
+    motionNodeName: 
+    animationImportErrors: 
+    animationImportWarnings: 
+    animationRetargetingWarnings: 
+    animationDoRetargetingWarnings: 0
+    importAnimatedCustomProperties: 0
+    importConstraints: 0
+    animationCompression: 1
+    animationRotationError: 0.5
+    animationPositionError: 0.5
+    animationScaleError: 0.5
+    animationWrapMode: 0
+    extraExposedTransformPaths: []
+    extraUserProperties: []
+    clipAnimations: []
+    isReadable: 0
+  meshes:
+    lODScreenPercentages: []
+    globalScale: 1
+    meshCompression: 0
+    addColliders: 1
+    useSRGBMaterialColor: 1
+    sortHierarchyByName: 1
+    importPhysicalCameras: 1
+    importVisibility: 1
+    importBlendShapes: 1
+    importCameras: 1
+    importLights: 1
+    nodeNameCollisionStrategy: 1
+    fileIdsGeneration: 2
+    swapUVChannels: 0
+    generateSecondaryUV: 0
+    useFileUnits: 1
+    keepQuads: 0
+    weldVertices: 1
+    bakeAxisConversion: 0
+    preserveHierarchy: 0
+    skinWeightsMode: 0
+    maxBonesPerVertex: 4
+    minBoneWeight: 0.001
+    optimizeBones: 1
+    generateMeshLods: 0
+    meshLodGenerationFlags: 0
+    maximumMeshLod: -1
+    meshOptimizationFlags: -1
+    indexFormat: 0
+    secondaryUVAngleDistortion: 8
+    secondaryUVAreaDistortion: 15.000001
+    secondaryUVHardAngle: 88
+    secondaryUVMarginMethod: 1
+    secondaryUVMinLightmapResolution: 40
+    secondaryUVMinObjectScale: 1
+    secondaryUVPackMargin: 4
+    useFileScale: 1
+    strictVertexDataChecks: 0
+  tangentSpace:
+    normalSmoothAngle: 60
+    normalImportMode: 0
+    tangentImportMode: 3
+    normalCalculationMode: 4
+    legacyComputeAllNormalsFromSmoothingGroupsWhenMeshHasBlendShapes: 0
+    blendShapeNormalImportMode: 1
+    normalSmoothingSource: 0
+  referencedClips: []
+  importAnimation: 1
+  humanDescription:
+    serializedVersion: 3
+    human: []
+    skeleton: []
+    armTwist: 0.5
+    foreArmTwist: 0.5
+    upperLegTwist: 0.5
+    legTwist: 0.5
+    armStretch: 0.05
+    legStretch: 0.05
+    feetSpacing: 0
+    globalScale: 1
+    rootMotionBoneName: 
+    hasTranslationDoF: 0
+    hasExtraRoot: 0
+    skeletonHasParents: 1
+  lastHumanDescriptionAvatarSource: {instanceID: 0}
+  autoGenerateAvatarMappingIfUnspecified: 1
+  animationType: 2
+  humanoidOversampling: 1
+  avatarSetup: 0
+  addHumanoidExtraRootOnlyWhenUsingAvatar: 1
+  importBlendShapeDeformPercent: 1
+  remapMaterialsIfMaterialImportModeIsNone: 0
+  additionalBone: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

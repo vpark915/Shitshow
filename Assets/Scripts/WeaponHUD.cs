@@ -14,6 +14,7 @@ public class WeaponHUD : MonoBehaviour
     [Tooltip("Shown only while riding a person")]
     public Text rideText;
     public Text healthText;
+    public Text moneyText;
 
     int shownJumps = -1;
     Health health;
@@ -47,5 +48,6 @@ public class WeaponHUD : MonoBehaviour
         ammoText.color = weapon.Ammo == 0 || weapon.IsReloading ? Color.red : Color.white;
         reloadsText.text = "Reloads: " + weapon.reloadsLeft;
         reloadsText.color = weapon.reloadsLeft == 0 ? Color.red : Color.white;
+        if (moneyText) moneyText.text = "$" + weapon.Money;
     }
 }

@@ -1,7 +1,14 @@
 fileFormatVersion: 2
 guid: 7e62ee3e2681d4f4ba9ef08037589d71
+AssetOrigin:
+  serializedVersion: 1
+  productId: 247085
+  packageName: Seagull - Quirky Series
+  packageVersion: 1.5
+  assetPath: Assets/Quirky Series/Ultimate Pack Vol.1/Mega Pack Vol.4/Sea Vol.2/Models/Seagull_LOD1.fbx
+  uploadId: 881834
 ModelImporter:
-  serializedVersion: 22200
+  serializedVersion: 24200
   internalIDToNameTable: []
   externalObjects:
   - first:
@@ -21,8 +28,6 @@ ModelImporter:
     optimizeGameObjects: 1
     removeConstantScaleCurves: 0
     motionNodeName: 
-    rigImportErrors: 
-    rigImportWarnings: 
     animationImportErrors: 
     animationImportWarnings: 
     animationRetargetingWarnings: 
@@ -37,7 +42,7 @@ ModelImporter:
     extraExposedTransformPaths: []
     extraUserProperties: []
     clipAnimations: []
-    isReadable: 0
+    isReadable: 1
   meshes:
     lODScreenPercentages: []
     globalScale: 1
@@ -63,6 +68,9 @@ ModelImporter:
     maxBonesPerVertex: 4
     minBoneWeight: 0.001
     optimizeBones: 1
+    generateMeshLods: 0
+    meshLodGenerationFlags: 0
+    maximumMeshLod: -1
     meshOptimizationFlags: -1
     indexFormat: 0
     secondaryUVAngleDistortion: 8
@@ -100,8 +108,7 @@ ModelImporter:
     hasTranslationDoF: 0
     hasExtraRoot: 0
     skeletonHasParents: 1
-  lastHumanDescriptionAvatarSource: {fileID: 9000000, guid: 641d59fff81b14a448943b61fd783b6b,
-    type: 3}
+  lastHumanDescriptionAvatarSource: {fileID: 9000000, guid: 641d59fff81b14a448943b61fd783b6b, type: 3}
   autoGenerateAvatarMappingIfUnspecified: 1
   animationType: 2
   humanoidOversampling: 1
@@ -113,10 +120,3 @@ ModelImporter:
   userData: 
   assetBundleName: 
   assetBundleVariant: 
-AssetOrigin:
-  serializedVersion: 1
-  productId: 247085
-  packageName: Seagull - Quirky Series
-  packageVersion: 1.5
-  assetPath: Assets/Quirky Series/Ultimate Pack Vol.1/Mega Pack Vol.4/Sea Vol.2/Models/Seagull_LOD1.fbx
-  uploadId: 881834
