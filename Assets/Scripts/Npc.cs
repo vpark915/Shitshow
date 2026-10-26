@@ -31,6 +31,9 @@ public class Npc : MonoBehaviour
     bool aiming;
     Vector3 aimPoint;
     Transform arm, hand, gun;
+    Vector3 push; // the hit from a bike or car, for the ragdoll
+    bool down; // knocked over by one, and still a ragdoll
+    bool rejoining; // officers after a chase: walking back to the nearest path before keeping to paths again
 
     void Awake()
     {
@@ -50,6 +53,18 @@ public class Npc : MonoBehaviour
         if (kind != Kind.Idler) Next();
     }
 
+    static readonly RaycastHit[] under = new RaycastHit[8];
+
+    // the highest bit of solid, still ground (no Rigidbody) from knee height down to half a metre below the feet
+    bool Floor(out float y)
+    {
+        y = float.MinValue;
+        int n = Physics.RaycastNonAlloc(transform.position + Vector3.up * 0.5f, Vector3.down, under, 1f, ~0, QueryTriggerInteraction.Ignore);
+        for (int i = 0; i < n; i++)
+            if (!under[i].collider.attachedRigidbody) y = Mathf.Max(y, under[i].point.y);
+        return y > float.MinValue;
+    }
+
     void Update()
     {
         Vector3 velocity = Ridden ? Vector3.ProjectOnPlane(body.velocity, Vector3.up) : agent.velocity;
@@ -58,10 +73,20 @@ public class Npc : MonoBehaviour
         animator.SetFloat(Cadence, Mathf.Clamp(animator.GetFloat(Speed) / WalkPace, 0.5f, 1f));
         if (Ridden) return;
         // The NavMesh floats a few centimetres over the real ground (up to 20 on slopes and kerbs), so stand on what's under the feet.
-        // ponytail: the ray starts at knee height and takes whatever it meets first, so a pigeon walking between someone's feet lifts them briefly
-        if (!seated && Physics.Raycast(transform.position + Vector3.up * 0.5f, Vector3.down, out RaycastHit floor, 1f, ~0, QueryTriggerInteraction.Ignore))
-            agent.baseOffset = Mathf.MoveTowards(agent.baseOffset, agent.baseOffset + floor.point.y - transform.position.y, Time.deltaTime);
+        // Only the ground counts: anything with a Rigidbody is skipped, above all their own ragdoll's leg colliders, which
+        // the ray down the middle of the body crosses every step (it lifted them each stride, so the legs looked to spasm).
+        // ponytail: a pigeon walking between someone's feet (no Rigidbody) still lifts them briefly
+        if (!seated && Floor(out float floorY))
+            agent.baseOffset = Mathf.MoveTowards(agent.baseOffset, agent.baseOffset + floorY - transform.position.y, Time.deltaTime);
         if (suspect) { Pursue(); return; }
+        if (rejoining)
+        {
+            if (agent.pathPending || agent.remainingDistance > 0.5f) return;
+            rejoining = false;
+            agent.areaMask = NpcSpawner.PathsOnly;
+            Next();
+            return;
+        }
         if (fleeUntil > 0)
         {
             animator.SetBool(Hangout, false);
@@ -142,33 +167,106 @@ public class Npc : MonoBehaviour
         Vector3 away = Vector3.ProjectOnPlane(transform.position - shooter.transform.position, Vector3.up);
         if (officer)
         {
-            if (away.magnitude > spawner.policeHearing) return;
-            if (!suspect)
-            {
-                calmSpeed = agent.speed;
-                agent.speed = spawner.jogSpeed;
-                nextAct = Time.time + Random.Range(0.6f, 1.2f); // time to react and draw
-                if (!gun)
-                {
-                    arm = animator.GetBoneTransform(HumanBodyBones.RightUpperArm);
-                    hand = animator.GetBoneTransform(HumanBodyBones.RightHand);
-                    gun = Instantiate(spawner.policeGun, hand).transform;
-                    gun.localPosition = Vector3.zero;
-                    gun.localScale = Vector3.one * spawner.policeGunScale / hand.lossyScale.x;
-                }
-                gun.gameObject.SetActive(true);
-            }
-            suspect = shooter;
-            calmAt = Time.time + spawner.policeAttention;
+            if (away.magnitude <= spawner.policeHearing) Chase(shooter);
             return;
         }
         if (away.magnitude > spawner.panicRadius) return;
         if (fleeUntil == 0) calmSpeed = agent.speed;
         fleeUntil = Time.time + spawner.panicTime * Random.Range(0.8f, 1.2f);
         agent.speed = spawner.fleeSpeed * Random.Range(0.85f, 1.15f);
-        // anywhere will do in a panic, lawns and the road included
-        if (NavMesh.SamplePosition(transform.position + away.normalized * spawner.panicRadius * 1.5f, out NavMeshHit hit, 10f, NavMesh.AllAreas))
+        // anywhere along the paths away from it (people keep to paths and pavements even in a panic)
+        if (NavMesh.SamplePosition(transform.position + away.normalized * spawner.panicRadius * 1.5f, out NavMeshHit hit, 10f, NpcSpawner.PathsOnly))
             agent.SetDestination(hit.position);
+    }
+
+    // officers: draw and go after them
+    void Chase(Weapon culprit)
+    {
+        if (!suspect)
+        {
+            calmSpeed = agent.speed;
+            agent.speed = spawner.jogSpeed;
+            agent.areaMask = NavMesh.AllAreas; // a chase cuts across the grass and the road
+            rejoining = false;
+            nextAct = Time.time + Random.Range(0.6f, 1.2f); // time to react and draw
+            if (!gun)
+            {
+                arm = animator.GetBoneTransform(HumanBodyBones.RightUpperArm);
+                hand = animator.GetBoneTransform(HumanBodyBones.RightHand);
+                gun = Instantiate(spawner.policeGun, hand).transform;
+                gun.localPosition = Vector3.zero;
+                gun.localScale = Vector3.one * spawner.policeGunScale / hand.lossyScale.x;
+            }
+            gun.gameObject.SetActive(true);
+        }
+        suspect = culprit;
+        calmAt = Time.time + spawner.policeAttention;
+    }
+
+    // Vehicle: hit by a bike or car. They take the damage and go flying, then get back up (unless it killed them), and
+    // police within copRadius come after the driver. Returns whether the vehicle drives on: yes, through anyone already
+    // down; no for someone a pigeon is riding, who stops it like a wall.
+    public bool RunOver(Vector3 push, float damage, Vector3 from, Weapon driver, float copRadius)
+    {
+        if (Ridden) return false;
+        if (!enabled) return true; // down already, or dead
+        if (driver) Report(driver, transform.position, copRadius, this);
+        this.push = push;
+        Weapon.Done(driver, "run over", "run over " + Weapon.Kind(this));
+        if (TryGetComponent(out Health health)) { health.TakeDamage(damage, from); Weapon.Killed(driver, health, true, "roadkill"); }
+        if (enabled) StartCoroutine(KnockedDown());
+        return true;
+    }
+
+    // Wanted: who the police are hunting and until when. While it lasts, officers after them don't give up when they
+    // lose them; it ends early if they die or go unseen (soft pretzel). The HUD shows it (WeaponHUD).
+    public static Weapon Wanted { get; private set; }
+    public static float WantedUntil { get; private set; }
+    public static bool IsWanted(Weapon who) => who && Wanted == who && Time.time < WantedUntil;
+    public static void Pardon() { Wanted = null; WantedUntil = 0; }
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    static void Fresh() => Pardon(); // nobody's wanted from the last play
+
+    // police within radius of at (bar `not`, who was just run over) go after culprit, unless food has them unnoticed;
+    // wantedFor makes the culprit wanted for that many seconds from now
+    public static void Report(Weapon culprit, Vector3 at, float radius, Npc not = null, float wantedFor = 0)
+    {
+        if (culprit.unseen) return;
+        if (wantedFor > 0)
+        {
+            if (!IsWanted(culprit)) Weapon.Done(culprit, "wanted");
+            if (Wanted != culprit) WantedUntil = 0;
+            Wanted = culprit;
+            WantedUntil = Mathf.Max(WantedUntil, Time.time + wantedFor);
+        }
+        foreach (Collider near in Physics.OverlapSphere(at, radius, ~0, QueryTriggerInteraction.Ignore))
+            if (near.TryGetComponent(out Npc cop) && cop.officer && cop.enabled && cop != not) cop.Chase(culprit);
+    }
+
+    // ponytail: they pop back up on the spot, no get-up animation; add one (and blend from the ragdoll) if it shows
+    System.Collections.IEnumerator KnockedDown()
+    {
+        StandUp();
+        enabled = agent.enabled = animator.enabled = false;
+        foreach (Collider whole in GetComponents<Collider>()) whole.enabled = false;
+        Limp(push);
+        down = true;
+        yield return new WaitForSeconds(3f);
+        if (TryGetComponent(out Health health) && health.IsDead) yield break; // shot while down: Die left them limp
+        down = false;
+        push = Vector3.zero;
+        Vector3 hips = animator.GetBoneTransform(HumanBodyBones.Hips).position;
+        foreach (CharacterJoint joint in GetComponentsInChildren<CharacterJoint>()) DestroyImmediate(joint);
+        foreach (Transform bone in GetComponentsInChildren<Transform>())
+        {
+            if (bone == transform) continue; // the root's own body and capsule stay
+            if (bone.TryGetComponent(out Rigidbody limb)) DestroyImmediate(limb);
+            if (bone.TryGetComponent(out CapsuleCollider part)) Destroy(part);
+        }
+        if (NavMesh.SamplePosition(hips, out NavMeshHit ground, 5f, agent.areaMask)) transform.position = ground.position; // up on the nearest bit they may walk
+        GetComponent<CapsuleCollider>().enabled = agent.enabled = animator.enabled = enabled = true;
+        agent.Warp(transform.position);
+        if (!suspect) Next();
     }
 
     // An officer with a suspect: chase them, firing whenever there's a clear shot inside range, and only stand still
@@ -178,14 +276,17 @@ public class Npc : MonoBehaviour
         bool wasAiming = aiming;
         aiming = false;
         suspect.TryGetComponent(out Health prey);
-        if (Time.time > calmAt || (prey && prey.IsDead) || suspect.unseen)
+        if ((Time.time > calmAt && !IsWanted(suspect)) || (prey && prey.IsDead) || suspect.unseen)
         {
+            if (Wanted == suspect && ((prey && prey.IsDead) || suspect.unseen)) Pardon();
             suspect = null;
             gun.gameObject.SetActive(false);
             agent.speed = calmSpeed;
             agent.isStopped = false;
             agent.updateRotation = true;
-            Next();
+            // the chase may have ended out on the grass or in the road: back to the nearest path first (Update)
+            rejoining = NavMesh.SamplePosition(transform.position, out NavMeshHit path, 50f, NpcSpawner.PathsOnly) && agent.SetDestination(path.position);
+            if (!rejoining) { agent.areaMask = NpcSpawner.PathsOnly; Next(); }
             return;
         }
 
@@ -226,7 +327,7 @@ public class Npc : MonoBehaviour
             end = hit.point;
             Health struck = hit.collider.GetComponentInParent<Health>();
             if (struck && !struck.IsDead) suspect.Bleed(hit.point, hit.normal);
-            if (struck) struck.TakeDamage(spawner.policeDamage);
+            if (struck) struck.TakeDamage(spawner.policeDamage * (struck.Headshot(new Ray(eye, shot)) ? struck.headshotMultiplier : 1), eye);
         }
         suspect.DrawTracer(gun.position, end);
     }
@@ -261,7 +362,7 @@ public class Npc : MonoBehaviour
             body.stepOffset = 0.4f;
         }
         // ponytail: hopping off somewhere people can't walk (a bench, a roof) drops them to the nearest spot they can
-        if (!on && NavMesh.SamplePosition(transform.position, out NavMeshHit ground, 100f, NavMesh.AllAreas)) transform.position = ground.position;
+        if (!on && NavMesh.SamplePosition(transform.position, out NavMeshHit ground, 100f, agent.areaMask)) transform.position = ground.position;
         GetComponent<CapsuleCollider>().enabled = agent.enabled = !on;
         body.enabled = on;
         fallSpeed = 0;
@@ -312,12 +413,28 @@ public class Npc : MonoBehaviour
     // ponytail: bodies stay where they fall and nobody replaces them; fade them out and respawn if rounds run long
     void Die()
     {
-        Vector3 velocity = Ridden ? body.velocity : agent.velocity;
+        Vector3 velocity = push != Vector3.zero ? push : Ridden ? body.velocity : agent.velocity;
+        bool limp = down; // knocked down already, so already a ragdoll
+        down = false;
         enabled = agent.enabled = animator.enabled = false;
         GameObject drop = officer ? spawner.magazineDrop : spawner.walletDrop;
         if (drop) Instantiate(drop, transform.position, Quaternion.identity);
+        if (spawner.foodDrops != null && spawner.foodDrops.Length > 0 && Random.value < spawner.foodDropChance)
+        {
+            FoodItem food = spawner.foodDrops[Random.Range(0, spawner.foodDrops.Length)];
+            if (food)
+            {
+                Vector3 beside = transform.position + transform.right * 0.6f + Vector3.up * 0.05f; // clear of the wallet
+                Instantiate(food, beside, Quaternion.Euler(0, Random.Range(0f, 360f), 0)).respawn = 0;
+            }
+        }
         foreach (Collider whole in GetComponents<Collider>()) whole.enabled = false;
+        if (!limp) Limp(velocity);
+    }
 
+    // a ragdoll from the animated skeleton, every limb moving at velocity
+    void Limp(Vector3 velocity)
+    {
         var parts = new System.Collections.Generic.List<Collider>();
         foreach ((HumanBodyBones bone, HumanBodyBones end, float radius) in Limbs)
         {

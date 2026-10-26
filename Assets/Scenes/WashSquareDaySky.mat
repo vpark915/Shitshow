@@ -96,7 +96,7 @@ Material:
     - _Overcast: 0
     - _Parallax: 0.02
     - _SkyExposure: 1.38
-    - _SkySaturation: 1.1
+    - _SkySaturation: 0.85
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1
     - _SrcBlend: 1

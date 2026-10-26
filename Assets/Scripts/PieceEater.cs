@@ -31,6 +31,7 @@ public class PieceEater : MonoBehaviour
     Health health;
     FoodPowers powers;
     Weapon wallet; // the money lives on the Weapon
+    HeadRide ride;
     Renderer hover;
     Glow lit; // the food, or the whole cart or truck, glowing because it's looked at
     FoodItem shown; // what the prompt is offering, so a cart keeps offering it while the aim wanders over the cart
@@ -42,6 +43,7 @@ public class PieceEater : MonoBehaviour
         TryGetComponent(out health);
         TryGetComponent(out powers);
         TryGetComponent(out wallet);
+        TryGetComponent(out ride);
         eatKey = eatAction.GetBindingDisplayString();
     }
 
@@ -50,6 +52,8 @@ public class PieceEater : MonoBehaviour
 
     void Update()
     {
+        // the same key kills silently from a head when out of ammo (HeadRide): then it isn't for eating
+        bool eat = eatAction.WasPressedThisFrame() && !(ride && ride.CanAssassinate);
         Transform piece = null;
         FoodItem food = null;
         Camera cam = Camera.main;
@@ -98,10 +102,13 @@ public class PieceEater : MonoBehaviour
                     : afford ? eatKey + ": Buy " + what
                     : what + "  you have $" + (wallet ? wallet.Money : 0);
             }
-            if (eatAction.WasPressedThisFrame() && afford && (price == 0 || wallet.Spend(price)))
+            if (eat && afford && (price == 0 || wallet.Spend(price)))
             {
                 if (!vendor) { lit.steady = Color.black; lit = null; } // gone; a vendor stays lit while still looked at
                 food.Eat();
+                Weapon.Done(wallet, "eat", "eat " + food.label.ToLowerInvariant());
+                if (price > 0) Weapon.Done(wallet, "buy");
+                if (health) health.Heal(food.heal);
                 powers.Give(food.ability, food.seconds, food.label);
             }
         }
@@ -115,11 +122,12 @@ public class PieceEater : MonoBehaviour
             if (hover) { hoverWas = hover.sharedMaterial; hover.sharedMaterial = hoverMaterial ? hoverMaterial : hoverWas; }
         }
         if (prompt && !food) prompt.enabled = piece;
-        if (!piece || !eatAction.WasPressedThisFrame()) return;
+        if (!piece || !eat) return;
 
         hover.sharedMaterial = hoverWas;
         hover = null;
         piece.gameObject.SetActive(false);
+        Weapon.Done(wallet, "eat chess piece");
         if (pieceRespawn > 0) StartCoroutine(PutBack(piece.gameObject));
         if (map) map.Reveal(revealTime);
     }

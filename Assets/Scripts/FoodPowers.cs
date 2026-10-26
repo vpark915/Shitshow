@@ -184,10 +184,11 @@ public class FoodPowers : MonoBehaviour
 
         bool dead = health && health.IsDead;
         glow.steady = Count(Ability.BagelShield) > 0 && !dead ? shieldGlow * (0.35f + 0.65f * (0.5f + 0.5f * Mathf.Sin(Time.time * shieldPulse * Mathf.PI))) : Color.black;
-        if (!dead && eggAction.WasPressedThisFrame() && Take(Ability.EggBomb)) EggBomb();
+        if (!dead && eggAction.WasPressedThisFrame() && Take(Ability.EggBomb)) { EggBomb(); Weapon.Done(weapon, "egg bomb"); }
         if (!dead && flockAction.WasPressedThisFrame() && map && map.target && Count(Ability.SnitchFlock) > 0)
         {
             Take(Ability.SnitchFlock);
+            Weapon.Done(weapon, "snitch flock");
             float s = stockSeconds[Ability.SnitchFlock];
             if (birds) birds.Follow(map.target, s);
             map.Reveal(s);
@@ -252,7 +253,12 @@ public class FoodPowers : MonoBehaviour
         var hit = new HashSet<Health>();
         foreach (Collider c in Physics.OverlapSphere(at, eggRadius, ~0, QueryTriggerInteraction.Ignore))
             if (c.GetComponentInParent<Health>() is Health h && h && h != health && (!spare || h.gameObject != spare.gameObject) && hit.Add(h))
-                h.TakeDamage(eggDamage);
+            {
+                bool alive = !h.IsDead;
+                if (alive) Weapon.Done(weapon, "egg hit", "egg hit " + Weapon.Kind(h));
+                h.TakeDamage(eggDamage, at);
+                Weapon.Killed(weapon, h, alive, "egg kill");
+            }
         if (Physics.Raycast(at + Vector3.up * 0.3f, Vector3.down, out RaycastHit floor, 3f, ~(1 << gameObject.layer), QueryTriggerInteraction.Ignore))
             Splat(floor.point);
     }

@@ -12,7 +12,6 @@ Material:
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords:
-  - _ENABLE_ADDITIONAL_LIGHTS
   - _ENABLE_AMBIENT_LIGHT
   - _ENABLE_MAIN_LIGHT
   - _ENABLE_MAIN_LIGHT_SHADOWS
@@ -133,9 +132,9 @@ Material:
     - _AlphaClip: 0
     - _AlphaToMask: 0
     - _Ambient_Light: 2
-    - _Ambient_Light_Scale: 0.5
-    - _Anisotropy: 0.821
-    - _Anisotropy_Blend: 0.5
+    - _Ambient_Light_Scale: 0.63
+    - _Anisotropy: 0.85
+    - _Anisotropy_Blend: 0.537
     - _Blend: 0
     - _BlendModePreserveSpecular: 1
     - _Blur_Texture_Blend: 1
@@ -146,17 +145,17 @@ Material:
     - _ClearCoatSmoothness: 0
     - _Cull: 2
     - _Cutoff: 0.5
-    - _Density: 0.001
+    - _Density: 0.0003
     - _DetailAlbedoMapScale: 1
     - _DetailNormalMapScale: 1
     - _DstBlend: 0
     - _DstBlendAlpha: 0
-    - _ENABLE_ADDITIONAL_LIGHTS: 1
+    - _ENABLE_ADDITIONAL_LIGHTS: 0
     - _ENABLE_ADDITIONAL_LIGHT_SHADOWS: 0
     - _ENABLE_AMBIENT_LIGHT: 1
     - _ENABLE_MAIN_LIGHT: 1
     - _ENABLE_MAIN_LIGHT_SHADOWS: 1
-    - _Enable_Adaptive_Probe_Volumes: 1
+    - _Enable_Adaptive_Probe_Volumes: 0
     - _Enable_Additional_Light_Self_Shadow: 0
     - _Enable_Additional_Lights_Self_Shadow: 0
     - _Enable_Anisotropy: 1
@@ -166,10 +165,10 @@ Material:
     - _Enable_Height_Gradient_LUT: 0
     - _Enable_Height_Gradient_Texture: 0
     - _Enable_Height_Mask: 0
-    - _Enable_Height_Mask_Texture: 1
-    - _Enable_Main_Light_Self_Shadow: 1
+    - _Enable_Height_Mask_Texture: 0
+    - _Enable_Main_Light_Self_Shadow: 0
     - _Enable_Scattering: 1
-    - _Enable_Self_Shadow: 1
+    - _Enable_Self_Shadow: 0
     - _Enable_Self_Shadow_Curves: 1
     - _Enable_Shadow_Colour: 0
     - _EnvironmentReflections: 1

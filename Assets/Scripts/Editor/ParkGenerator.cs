@@ -5,7 +5,7 @@ using UnityEditor.SceneManagement;
 using UnityEngine;
 
 // Rebuilds the "ParkTerrain" lawn of the Washington Square blockout: hills, ground textures, trees, shrubs and grass.
-// The terrain only exists over the grass and planting-bed polygons of the blockout's WSP_ParkSurfaces mesh (it is cut
+// The terrain only exists over the blockout's lawns and planting beds (WSP_Park_Lawn, WSP_Park_PlantingBeds; it is cut
 // away everywhere else), and nothing is planted on or right next to paths, fences or props.
 // Tools > Wash Square > Regenerate Park. Tweak the numbers below and run it again; the same seed gives the same park.
 public static class ParkGenerator
@@ -25,7 +25,6 @@ public static class ParkGenerator
     // ---- park rectangle; Y0 sits the lawn just above the blockout's flat surface polygons (0.22-0.24)
     const float W = 294f, D = 139f, X0 = -147f, Z0 = -69.5f, Y0 = 0.28f, MaxHeight = 10f;
     const int GX = 2048, GZ = 1024, HR = 2049; // lawn grid cells (0.14 m), heightmap resolution
-    static readonly string[] LawnMaterials = { "WSP_grass", "WSP_planting" };
     const string Pack = "Assets/NatureManufacture Assets/Forest Environment Dynamic Nature/";
     const string DataPath = "Assets/Scenes/WashSquareParkTerrain.asset";
 
@@ -47,7 +46,7 @@ public static class ParkGenerator
         Transform blockout = GameObject.Find("washingtonSquareBlockout").transform;
         Physics.SyncTransforms();
         Collider[] props = blockout.Cast<Transform>().Where(t => t.name.StartsWith("WSP_Prop_")).Select(t => t.GetComponent<Collider>()).ToArray();
-        BuildDistanceField(blockout.Find("WSP_ParkSurfaces"), props);
+        BuildDistanceField(new[] { "WSP_Park_Lawn", "WSP_Park_PlantingBeds" }.Select(n => blockout.Find(n).GetComponent<Collider>()).ToArray(), props);
 
         TerrainData data = AssetDatabase.LoadAssetAtPath<TerrainData>(DataPath);
         if (!data) { data = new TerrainData(); AssetDatabase.CreateAsset(data, DataPath); }
@@ -231,7 +230,8 @@ public static class ParkGenerator
         go.isStatic = true;
         Terrain terrain = go.GetComponent<Terrain>();
         terrain.drawInstanced = true;
-        terrain.treeDistance = 600f;
+        terrain.treeDistance = 300f; // profiled: trees out to 600 m cost ~1,900 draw calls a frame
+        terrain.treeBillboardDistance = 30f; // full trees nearer than this, flat billboards beyond
         terrain.detailObjectDistance = GrassDistance;
         terrain.detailObjectDensity = 1f;
         terrain.heightmapPixelError = 3f;
@@ -247,24 +247,17 @@ public static class ParkGenerator
     }
 
     // rasterises the lawn polygons and the props standing on them into a grid, then spreads distances outwards (two-pass chamfer)
-    static void BuildDistanceField(Transform surfaces, Collider[] props)
+    static void BuildDistanceField(Collider[] lawns, Collider[] props)
     {
         float cx = W / GX, cz = D / GZ, cd = Mathf.Sqrt(cx * cx + cz * cz);
         Ray Down(int x, int z) => new Ray(new Vector3(X0 + (x + 0.5f) * cx, 50f, Z0 + (z + 0.5f) * cz), Vector3.down);
-
-        // which triangles of the surfaces mesh are lawn: the index ranges of the grass and planting submeshes
-        Mesh mesh = surfaces.GetComponent<MeshFilter>().sharedMesh;
-        Material[] materials = surfaces.GetComponent<MeshRenderer>().sharedMaterials;
-        var ranges = Enumerable.Range(0, mesh.subMeshCount).Where(i => LawnMaterials.Contains(materials[i].name)).Select(i => mesh.GetSubMesh(i)).ToArray();
-        Collider surfaceCollider = surfaces.GetComponent<MeshCollider>();
 
         dist = new float[GX, GZ];
         lawn = new bool[GX, GZ];
         for (int x = 0; x < GX; x++)
             for (int z = 0; z < GZ; z++)
             {
-                lawn[x, z] = surfaceCollider.Raycast(Down(x, z), out RaycastHit hit, 60f)
-                    && ranges.Any(r => hit.triangleIndex * 3 >= r.indexStart && hit.triangleIndex * 3 < r.indexStart + r.indexCount);
+                lawn[x, z] = lawns.Any(l => l.Raycast(Down(x, z), out _, 60f));
                 dist[x, z] = lawn[x, z] ? 1e6f : 0f;
             }
         // benches, lamps, statues: the lawn stays under them but nothing is planted there

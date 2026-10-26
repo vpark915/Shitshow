@@ -15,7 +15,7 @@ NavMeshProjectSettings:
     cost: 6
   - name: Lawn
     cost: 3
-  - name: 
+  - name: Path
     cost: 1
   - name: 
     cost: 1

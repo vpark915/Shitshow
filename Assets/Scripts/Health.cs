@@ -12,36 +12,75 @@ public class Health : MonoBehaviour
     public Color hitFlash = new Color(3f, 0.1f, 0.05f);
     public Color blockedFlash = new Color(0.2f, 0.8f, 3f);
     public float flashTime = 0.2f;
+    [Tooltip("Damage times this for a shot through the head")]
+    public float headshotMultiplier = 3f;
+    [Tooltip("Radius of the head, metres; 0 works it out from the body's height (12% of it)")]
+    public float headRadius;
 
     [HideInInspector] public float damageScale = 1f; // under 1 while a food ability (Full belly) softens hits
     [HideInInspector] public int shields; // bagels (FoodPowers): each one soaks up a whole hit
     [HideInInspector] public bool noRestart; // online (HuntMatch): the match revives the player instead of reloading the scene
     // online: this is the other player's bird (NetBird), so hits are sent to their game instead of landing here
-    public Action<float> forward;
+    public Action<float, Vector3> forward;
 
     public float Current => maxHealth - damageTaken;
     public bool IsDead => Current <= 0f;
     public event Action Died;
+    // a hit that did damage, and where it came from (the HUD's DamageIndicator points there)
+    public event Action<Vector3> Hurt;
 
     float damageTaken;
+    Transform head;
 
-    public void TakeDamage(float amount)
+    // whether a shot along `shot` goes through the head (the line of fire, not where it met the body's collider, which
+    // is a rough capsule): a person's humanoid head bone, or the bone named "head" in a bird
+    public bool Headshot(Ray shot)
+    {
+        Transform skull = Head();
+        if (!skull) return false;
+        float radius = headRadius;
+        if (radius <= 0) radius = TryGetComponent(out Collider body) && body.enabled ? body.bounds.size.y * 0.12f : 0.2f;
+        Vector3 to = skull.position + Vector3.up * radius * 0.5f - shot.origin; // the bone sits at the neck; the middle of the head is a little up
+        return Vector3.Dot(to, shot.direction) > 0 && Vector3.Cross(shot.direction.normalized, to).magnitude <= radius;
+    }
+
+    Transform Head()
+    {
+        if (head && head.gameObject.activeInHierarchy) return head; // an online bird swaps models, so check it's the one showing
+        head = null;
+        foreach (Animator look in GetComponentsInChildren<Animator>())
+            if (look.isHuman && look.GetBoneTransform(HumanBodyBones.Head) is Transform bone && bone) return head = bone;
+        foreach (Transform part in GetComponentsInChildren<Transform>())
+            if (string.Equals(part.name, "head", StringComparison.OrdinalIgnoreCase)) return head = part;
+        return null;
+    }
+
+    // from: where the hit came from (the shooter, the blast)
+    public void TakeDamage(float amount, Vector3 from)
     {
         if (IsDead) return;
-        if (forward != null) { Glow.On(this).Flash(hitFlash, flashTime); forward(amount); return; }
+        if (forward != null) { Glow.On(this).Flash(hitFlash, flashTime); forward(amount, from); return; }
         if (shields > 0) { shields--; Glow.On(this).Flash(blockedFlash, flashTime); return; }
         Glow.On(this).Flash(hitFlash, flashTime);
         damageTaken += amount * damageScale;
+        Hurt?.Invoke(from);
         if (!IsDead) return;
         RagdollToggle ragdoll = GetComponentInChildren<RagdollToggle>();
         if (ragdoll) ragdoll.SetRagdoll(true);
         Died?.Invoke();
+        if (TryGetComponent(out Weapon self) && Npc.Wanted == self) Npc.Pardon(); // a new life starts with a clean slate
         if (restartDelay <= 0) return;
         // the player: no more moving or shooting (HeadRide sees the death itself and lets go of its mount)
         foreach (Behaviour part in GetComponents<Behaviour>())
             if (part is Weapon || part is StarterAssets.ThirdPersonController) part.enabled = false;
         if (TryGetComponent(out CharacterController body)) body.enabled = false; // or it shoves its own ragdoll about
         if (!noRestart) Invoke(nameof(Restart), restartDelay);
+    }
+
+    // eating (PieceEater): back up by `amount`, never past full; no help once dead
+    public void Heal(float amount)
+    {
+        if (!IsDead) damageTaken = Mathf.Max(0, damageTaken - amount);
     }
 
     // back to full health and on its feet (online respawn and new rounds; offline the scene just reloads)

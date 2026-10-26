@@ -1,6 +1,8 @@
 ﻿<Solution>
   <Project Path="Unity.RenderPipelines.Universal.Runtime.csproj" />
+  <Project Path="Sinnwrig.FogVolumes.Editor.csproj" />
   <Project Path="Assembly-CSharp.csproj" />
+  <Project Path="Sinnwrig.FogVolumes.csproj" />
   <Project Path="Assembly-CSharp-Editor.csproj" />
   <Project Path="ExternAttributes.Editor.csproj" />
   <Project Path="Unity.StarterAssets.csproj" />

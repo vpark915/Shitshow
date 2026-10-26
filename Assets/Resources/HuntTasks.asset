@@ -1,0 +1,2453 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0d59b236745b54ac89c94a40bcb3299c, type: 3}
+  m_Name: HuntTasks
+  m_EditorClassIdentifier: Assembly-CSharp::HuntTasks
+  perRound: 3
+  sceneTasks: 1
+  tasks:
+  - name: Lamp
+    description: Perch on top of a lamp post
+    goal: 0
+    spot: {fileID: 0}
+    at: WSP_Prop_Lamp
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 4
+    deed: 
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Lamps
+    description: Perch on top of 3 different lamp posts
+    goal: 0
+    spot: {fileID: 0}
+    at: WSP_Prop_Lamp
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 2
+    deed: 
+    within: 0
+    when: 0
+    count: 3
+    inOneGo: 1
+  - name: Bench
+    description: Stand on a bench
+    goal: 0
+    spot: {fileID: 0}
+    at: Benches/|WSP_Prop_Bench
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: 
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Benches
+    description: Stand on 5 different benches
+    goal: 0
+    spot: {fileID: 0}
+    at: Benches/|WSP_Prop_Bench
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 1.5
+    deed: 
+    within: 0
+    when: 0
+    count: 5
+    inOneGo: 1
+  - name: Chess
+    description: 'Ruin a chess game: stand on any chess table'
+    goal: 0
+    spot: {fileID: 0}
+    at: ChessTables/|WSP_Prop_ChessTable
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: 
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Chess tour
+    description: Stand on 3 different chess tables
+    goal: 0
+    spot: {fileID: 0}
+    at: ChessTables/|WSP_Prop_ChessTable
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 2
+    deed: 
+    within: 0
+    when: 0
+    count: 3
+    inOneGo: 1
+  - name: Garibaldi
+    description: Stand on Garibaldi's head (the statue)
+    goal: 0
+    spot: {fileID: 0}
+    at: WSP_Prop_GaribaldiStatue
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 4
+    deed: 
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Holley
+    description: Perch on the Holley bust
+    goal: 0
+    spot: {fileID: 0}
+    at: WSP_Prop_HolleyBust
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 4
+    deed: 
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Flagpole
+    description: Perch on top of the flagpole
+    goal: 0
+    spot: {fileID: 0}
+    at: WSP_Prop_Flagpole
+    onTop: 1
+    radius: 0.5
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: 
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Stage
+    description: 'Perform: stand on the stage for 8 s'
+    goal: 0
+    spot: {fileID: 0}
+    at: WSP_Prop_Stage
+    onTop: 1
+    radius: 0
+    height: {x: -1, y: 2}
+    amount: 8
+    deed: 
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Park house
+    description: Sit on the park house roof
+    goal: 0
+    spot: {fileID: 0}
+    at: WSP_Prop_ParkHouse
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 5
+    deed: 
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Swings
+    description: Sit on the swings frame
+    goal: 0
+    spot: {fileID: 0}
+    at: WSP_Prop_Swings
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: 
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Play big
+    description: Stand on top of the big play structure
+    goal: 0
+    spot: {fileID: 0}
+    at: WSP_Prop_PlayStructure_Large
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 4
+    deed: 
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Play small
+    description: Stand on top of the small play structure
+    goal: 0
+    spot: {fileID: 0}
+    at: WSP_Prop_PlayStructure_Small
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 4
+    deed: 
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Play toddler
+    description: Stand on top of the toddler play structure
+    goal: 0
+    spot: {fileID: 0}
+    at: WSP_Prop_PlayStructure_Toddler
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 4
+    deed: 
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Mound
+    description: 'King of the hill: stand on a mound'
+    goal: 0
+    spot: {fileID: 0}
+    at: WSP_Prop_Mound
+    onTop: 0
+    radius: 0
+    height: {x: 0.3, y: 4}
+    amount: 5
+    deed: 
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Long benches
+    description: Strut along the long benches
+    goal: 0
+    spot: {fileID: 0}
+    at: WSP_Prop_LongBenches
+    onTop: 1
+    radius: 0
+    height: {x: -0.3, y: 2}
+    amount: 4
+    deed: 
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Cart roof
+    description: Stand on a food cart or truck roof
+    goal: 0
+    spot: {fileID: 0}
+    at: FoodVendors/
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 4
+    deed: 
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Vendor tour
+    description: Stand on 3 different food carts or trucks
+    goal: 0
+    spot: {fileID: 0}
+    at: FoodVendors/
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 2
+    deed: 
+    within: 0
+    when: 0
+    count: 3
+    inOneGo: 1
+  - name: Bike dock
+    description: Sit on a Citi Bike docking station
+    goal: 0
+    spot: {fileID: 0}
+    at: CitiBikeStation
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: 
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Fence
+    description: Walk the park fence
+    goal: 0
+    spot: {fileID: 0}
+    at: WSP_ParkFence
+    onTop: 1
+    radius: 0
+    height: {x: -0.3, y: 1.5}
+    amount: 4
+    deed: 
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Fountain dip
+    description: Splash about in the fountain for 10 s
+    goal: 0
+    spot: {fileID: 0}
+    at: WSP_Fountain|Fountain
+    onTop: 0
+    radius: 0
+    height: {x: -1, y: 3}
+    amount: 10
+    deed: 
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Arch side
+    description: 'Cling to the arch: anywhere on it, off the ground'
+    goal: 0
+    spot: {fileID: 0}
+    at: WSP_Arch|Arch
+    onTop: 0
+    radius: 0.5
+    height: {x: 3, y: 30}
+    amount: 6
+    deed: 
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Judson
+    description: Perch on Judson Memorial Church
+    goal: 0
+    spot: {fileID: 0}
+    at: WSP_JudsonChurch
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 4
+    deed: 
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Bobst
+    description: Perch on the roof of Bobst Library
+    goal: 0
+    spot: {fileID: 0}
+    at: WSP_BobstLibrary
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 4
+    deed: 
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Kimmel
+    description: Perch on the Kimmel Center roof
+    goal: 0
+    spot: {fileID: 0}
+    at: WSP_KimmelCenter
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 4
+    deed: 
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Vanderbilt
+    description: Perch on Vanderbilt Hall
+    goal: 0
+    spot: {fileID: 0}
+    at: WSP_VanderbiltHall
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 4
+    deed: 
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Hayden
+    description: Perch on Hayden Hall
+    goal: 0
+    spot: {fileID: 0}
+    at: WSP_HaydenHall
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 4
+    deed: 
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Silver
+    description: Perch on the Silver Center
+    goal: 0
+    spot: {fileID: 0}
+    at: WSP_SilverCenter
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 4
+    deed: 
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Goddard
+    description: Perch on Goddard Hall
+    goal: 0
+    spot: {fileID: 0}
+    at: WSP_GoddardHall
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 4
+    deed: 
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Wash Sq Hotel
+    description: Perch on the Washington Square Hotel
+    goal: 0
+    spot: {fileID: 0}
+    at: WSP_WashSqHotel
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 4
+    deed: 
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: The Row
+    description: Perch on The Row
+    goal: 0
+    spot: {fileID: 0}
+    at: WSP_TheRow|WSP_RowWest
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 4
+    deed: 
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: 1 Fifth
+    description: Perch on top of One Fifth Avenue
+    goal: 0
+    spot: {fileID: 0}
+    at: WSP_1FifthAve
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 4
+    deed: 
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: 2 Fifth
+    description: Perch on Two Fifth Avenue
+    goal: 0
+    spot: {fileID: 0}
+    at: WSP_2FifthAve
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 4
+    deed: 
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Rooftop tour
+    description: Perch on 3 different NYU buildings
+    goal: 0
+    spot: {fileID: 0}
+    at: WSP_BobstLibrary|WSP_KimmelCenter|WSP_VanderbiltHall|WSP_HaydenHall|WSP_SilverCenter|WSP_GoddardHall|WSP_ShimkinHall|WSP_PlessHall|WSP_WilfHall|WSP_EducationBuilding|WSP_KevorkianCenter|WSP_KingJuanCarlosCenter|WSP_GlobalCenterSpiritualLife|WSP_1UniversityPlace
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 2
+    deed: 
+    within: 0
+    when: 0
+    count: 3
+    inOneGo: 1
+  - name: Roof hopper
+    description: Perch on 5 different rooftops round the park
+    goal: 0
+    spot: {fileID: 0}
+    at: WSP_BobstLibrary|WSP_KimmelCenter|WSP_VanderbiltHall|WSP_HaydenHall|WSP_SilverCenter|WSP_GoddardHall|WSP_ShimkinHall|WSP_PlessHall|WSP_WilfHall|WSP_EducationBuilding|WSP_KevorkianCenter|WSP_KingJuanCarlosCenter|WSP_GlobalCenterSpiritualLife|WSP_1UniversityPlace|WSP_JudsonChurch|WSP_WashSqHotel|WSP_TheRow|WSP_RowWest|WSP_1FifthAve|WSP_2FifthAve|WSP_Fill_
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 1.5
+    deed: 
+    within: 0
+    when: 0
+    count: 5
+    inOneGo: 1
+  - name: Lawn
+    description: Trample the grass for 8 s
+    goal: 1
+    spot: {fileID: 0}
+    at: WSP_Park_Lawn|ParkTerrain
+    onTop: 0
+    radius: 3
+    height: {x: -1, y: 2}
+    amount: 8
+    deed: 
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Sandpit
+    description: 'Dust bath: sit in the sandpit for 6 s'
+    goal: 1
+    spot: {fileID: 0}
+    at: WSP_Park_Sand
+    onTop: 0
+    radius: 3
+    height: {x: -1, y: 2}
+    amount: 6
+    deed: 
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Dog run
+    description: Visit the dog run for 6 s
+    goal: 1
+    spot: {fileID: 0}
+    at: WSP_Park_DogRun
+    onTop: 0
+    radius: 3
+    height: {x: -1, y: 2}
+    amount: 6
+    deed: 
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Gravel
+    description: Peck about on the gravel for 6 s
+    goal: 1
+    spot: {fileID: 0}
+    at: WSP_Park_Gravel
+    onTop: 0
+    radius: 3
+    height: {x: -1, y: 2}
+    amount: 6
+    deed: 
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Playground
+    description: Hang out in the playground for 8 s
+    goal: 1
+    spot: {fileID: 0}
+    at: WSP_Park_Playground
+    onTop: 0
+    radius: 3
+    height: {x: -1, y: 2}
+    amount: 8
+    deed: 
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Flower beds
+    description: Wreck the planting beds for 5 s
+    goal: 1
+    spot: {fileID: 0}
+    at: WSP_Park_PlantingBeds
+    onTop: 0
+    radius: 3
+    height: {x: -1, y: 2}
+    amount: 5
+    deed: 
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Jaywalk
+    description: Stand in the road for 10 s (it adds up)
+    goal: 1
+    spot: {fileID: 0}
+    at: WSP_Road
+    onTop: 0
+    radius: 3
+    height: {x: -1, y: 2}
+    amount: 10
+    deed: 
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 0
+  - name: Cobbles
+    description: Stroll the cobbled street for 6 s
+    goal: 1
+    spot: {fileID: 0}
+    at: WSP_Road_Cobble
+    onTop: 0
+    radius: 3
+    height: {x: -1, y: 2}
+    amount: 6
+    deed: 
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Eat 3
+    description: Eat 3 things
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: eat
+    within: 0
+    when: 0
+    count: 3
+    inOneGo: 1
+  - name: Eat 6
+    description: 'Pig out: eat 6 things'
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: eat
+    within: 0
+    when: 0
+    count: 6
+    inOneGo: 1
+  - name: Hot dog
+    description: Eat a hot dog
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: eat hot dog
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Coffee
+    description: Drink a coffee
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: eat coffee
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Gyro
+    description: Eat a gyro
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: eat gyro
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Burrito
+    description: Eat a burrito
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: eat burrito
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Ice cream
+    description: Eat an ice cream
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: eat ice cream
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Pretzel
+    description: Eat a soft pretzel
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: eat soft pretzel
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Pizza
+    description: Steal a pizza slice
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: eat pizza slice
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Pizza 2
+    description: Steal 2 pizza slices
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: eat pizza slice
+    within: 0
+    when: 0
+    count: 2
+    inOneGo: 1
+  - name: Bagel
+    description: Eat a bagel
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: eat bagel
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Bread
+    description: Eat some bread
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: eat bread
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Chess piece
+    description: Eat a chess piece
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: eat chess piece
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Chess pieces
+    description: Eat 3 chess pieces
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: eat chess piece
+    within: 0
+    when: 0
+    count: 3
+    inOneGo: 1
+  - name: Customer
+    description: Buy something from a cart or truck
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: buy
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Regular
+    description: Buy 3 things from carts or trucks
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: buy
+    within: 0
+    when: 0
+    count: 3
+    inOneGo: 1
+  - name: Wallet
+    description: Pick up a wallet
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: wallet
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Wallets
+    description: Pick up 3 wallets
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: wallet
+    within: 0
+    when: 0
+    count: 3
+    inOneGo: 1
+  - name: Magazine
+    description: Pick up a police magazine
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: magazine
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Rich
+    description: Hold $50 at once
+    goal: 9
+    spot: {fileID: 0}
+    at: 
+    onTop: 0
+    radius: 3
+    height: {x: -1, y: 2}
+    amount: 50
+    deed: 
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Loaded
+    description: Hold $150 at once
+    goal: 9
+    spot: {fileID: 0}
+    at: 
+    onTop: 0
+    radius: 3
+    height: {x: -1, y: 2}
+    amount: 150
+    deed: 
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Kill
+    description: Kill someone
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: kill
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Kill 5
+    description: Kill 5 people
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: kill
+    within: 0
+    when: 0
+    count: 5
+    inOneGo: 1
+  - name: Massacre
+    description: Kill 10 people
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: kill
+    within: 0
+    when: 0
+    count: 10
+    inOneGo: 1
+  - name: Cop killer
+    description: Kill a police officer
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: kill officer
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Cop killer 3
+    description: Kill 3 police officers
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: kill officer
+    within: 0
+    when: 0
+    count: 3
+    inOneGo: 1
+  - name: Guard
+    description: Kill a security guard
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: kill guard
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Headshot
+    description: Land 3 headshots
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: headshot
+    within: 0
+    when: 0
+    count: 3
+    inOneGo: 1
+  - name: Headshot kill
+    description: Kill someone with a headshot
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: headshot kill
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Headshot kills
+    description: Kill 3 people with headshots
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: headshot kill
+    within: 0
+    when: 0
+    count: 3
+    inOneGo: 1
+  - name: Silent
+    description: Silently kill someone from their head (needs an empty gun)
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: assassinate
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Silent cop
+    description: Silently kill a police officer from their head
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: assassinate officer
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Egg kill
+    description: Kill someone with an egg bomb
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: egg kill
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Egg 3
+    description: Hit 3 people with egg bombs
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: egg hit
+    within: 0
+    when: 0
+    count: 3
+    inOneGo: 1
+  - name: Egg bomb
+    description: Set off an egg bomb
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: egg bomb
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Snitch
+    description: Send a snitch flock after the Pigeon
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: snitch flock
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Ride
+    description: Land on someone's head and ride them
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: ride person
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Ride cop
+    description: Ride a police officer
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: ride officer
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Ride guard
+    description: Ride a security guard
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: ride guard
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Joyride
+    description: Ride people for 20 s
+    goal: 3
+    spot: {fileID: 0}
+    at: 
+    onTop: 0
+    radius: 3
+    height: {x: -1, y: 2}
+    amount: 20
+    deed: 
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 0
+  - name: Long ride
+    description: Ride one person for 15 s in one go
+    goal: 3
+    spot: {fileID: 0}
+    at: 
+    onTop: 0
+    radius: 3
+    height: {x: -1, y: 2}
+    amount: 15
+    deed: 
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Drive
+    description: Drive a car
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: drive car
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Bike
+    description: Ride a Citi Bike
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: ride bike
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Hijack
+    description: Take over a car driving round the park
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: hijack
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Road trip
+    description: Drive 300 m in a car
+    goal: 4
+    spot: {fileID: 0}
+    at: 
+    onTop: 0
+    radius: 3
+    height: {x: -1, y: 2}
+    amount: 300
+    deed: 
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Lap
+    description: Drive 800 m in a car (about a lap of the park)
+    goal: 4
+    spot: {fileID: 0}
+    at: 
+    onTop: 0
+    radius: 3
+    height: {x: -1, y: 2}
+    amount: 800
+    deed: 
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Bike ride
+    description: Cycle 200 m on a Citi Bike
+    goal: 5
+    spot: {fileID: 0}
+    at: 
+    onTop: 0
+    radius: 3
+    height: {x: -1, y: 2}
+    amount: 200
+    deed: 
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Run over
+    description: Run someone over
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: run over
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Run over 5
+    description: Run over 5 people
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: run over
+    within: 0
+    when: 0
+    count: 5
+    inOneGo: 1
+  - name: Run over cop
+    description: Run over a police officer
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: run over officer
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Roadkill
+    description: Kill someone with a vehicle
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: roadkill
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Wanted
+    description: Get wanted by the police (drive off the road)
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: wanted
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Fugitive
+    description: Survive 20 s while wanted
+    goal: 8
+    spot: {fileID: 0}
+    at: 
+    onTop: 0
+    radius: 3
+    height: {x: -1, y: 2}
+    amount: 20
+    deed: 
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Most wanted
+    description: Survive 45 s while wanted (it adds up)
+    goal: 8
+    spot: {fileID: 0}
+    at: 
+    onTop: 0
+    radius: 3
+    height: {x: -1, y: 2}
+    amount: 45
+    deed: 
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 0
+  - name: Hit cop
+    description: Shoot 3 police officers
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: hit officer
+    within: 0
+    when: 0
+    count: 3
+    inOneGo: 1
+  - name: Wing it
+    description: Shoot the Pigeon
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: hit bird
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Pest control
+    description: Shoot the Pigeon 5 times
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: hit bird
+    within: 0
+    when: 0
+    count: 5
+    inOneGo: 1
+  - name: Jogger
+    description: 'Stop a jogger mid-run: kill one'
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: kill jogger
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Joggers
+    description: 'Cardio is murder: kill 3 joggers'
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: kill jogger
+    within: 0
+    when: 0
+    count: 3
+    inOneGo: 1
+  - name: Loiterer
+    description: Kill someone just standing around
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: kill idler
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Commuters
+    description: 'Ruin 3 commutes: kill 3 people walking by'
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: kill walker
+    within: 0
+    when: 0
+    count: 3
+    inOneGo: 1
+  - name: Double kill
+    description: 'Double kill: two kills under 3 s apart'
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: double kill
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Triple kill
+    description: 'Triple kill: three kills, each under 3 s after the last'
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: triple kill
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Sniper
+    description: 'Sniper: kill someone from 40 m or more'
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: long shot kill
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Sniper 3
+    description: 'Marksman: 3 kills from 40 m or more'
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: long shot kill
+    within: 0
+    when: 0
+    count: 3
+    inOneGo: 1
+  - name: Point blank
+    description: 'Point blank: kill someone from 3 m or less'
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: point blank kill
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Spree
+    description: 'Killing spree: 3 kills within 15 s'
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: kill
+    within: 15
+    when: 0
+    count: 3
+    inOneGo: 1
+  - name: Bloodbath
+    description: 'Bloodbath: 6 kills within 30 s'
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: kill
+    within: 30
+    when: 0
+    count: 6
+    inOneGo: 1
+  - name: Cop spree
+    description: 'Bad day for the force: 2 officers within 20 s'
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: kill officer
+    within: 20
+    when: 0
+    count: 2
+    inOneGo: 1
+  - name: Headhunter
+    description: 'Headhunter: 3 headshot kills within 30 s'
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: headshot kill
+    within: 30
+    when: 0
+    count: 3
+    inOneGo: 1
+  - name: From above
+    description: 'Death from above: kill someone while in the air'
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: kill
+    within: 0
+    when: 1
+    count: 1
+    inOneGo: 1
+  - name: Air headshot
+    description: Headshot someone while in the air
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: headshot
+    within: 0
+    when: 1
+    count: 1
+    inOneGo: 1
+  - name: Puppet master
+    description: 'Puppet master: kill someone while riding someone else'
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: kill
+    within: 0
+    when: 3
+    count: 1
+    inOneGo: 1
+  - name: Trick shot
+    description: 'Trick shot: a headshot kill while riding someone'
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: headshot kill
+    within: 0
+    when: 3
+    count: 1
+    inOneGo: 1
+  - name: Outlaw
+    description: 'Outlaw: kill 2 people while wanted'
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: kill
+    within: 0
+    when: 5
+    count: 2
+    inOneGo: 1
+  - name: Cop while wanted
+    description: 'Resisting arrest: kill an officer while wanted'
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: kill officer
+    within: 0
+    when: 5
+    count: 1
+    inOneGo: 1
+  - name: Last stand
+    description: 'Last stand: kill someone while badly hurt'
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: kill
+    within: 0
+    when: 6
+    count: 1
+    inOneGo: 1
+  - name: Ghost
+    description: 'Ghost: kill someone while hidden (eat a soft pretzel first)'
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: kill
+    within: 0
+    when: 7
+    count: 1
+    inOneGo: 1
+  - name: Silent 3
+    description: 'Silent but deadly: 3 silent kills from heads'
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: assassinate
+    within: 0
+    when: 0
+    count: 3
+    inOneGo: 1
+  - name: Silent guard
+    description: 'Inside job: silently kill a security guard'
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: assassinate guard
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Rooftop sniper
+    description: 'Rooftop sniper: kill someone while perched on a rooftop'
+    goal: 2
+    spot: {fileID: 0}
+    at: WSP_BobstLibrary|WSP_KimmelCenter|WSP_VanderbiltHall|WSP_HaydenHall|WSP_SilverCenter|WSP_GoddardHall|WSP_ShimkinHall|WSP_PlessHall|WSP_WilfHall|WSP_EducationBuilding|WSP_KevorkianCenter|WSP_KingJuanCarlosCenter|WSP_GlobalCenterSpiritualLife|WSP_1UniversityPlace|WSP_JudsonChurch|WSP_WashSqHotel|WSP_TheRow|WSP_RowWest|WSP_1FifthAve|WSP_2FifthAve|WSP_Fill_
+    onTop: 1
+    radius: 0
+    height: {x: -1, y: 3}
+    amount: 3
+    deed: kill
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Arch nemesis
+    description: 'Arch nemesis: kill someone from the top of the arch'
+    goal: 2
+    spot: {fileID: 0}
+    at: WSP_Arch|Arch
+    onTop: 1
+    radius: 0
+    height: {x: -1, y: 4}
+    amount: 3
+    deed: kill
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Fountain of blood
+    description: Kill someone while standing in the fountain
+    goal: 2
+    spot: {fileID: 0}
+    at: WSP_Fountain|Fountain
+    onTop: 0
+    radius: 0
+    height: {x: -1, y: 3}
+    amount: 3
+    deed: kill
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Checkmate
+    description: 'Checkmate: kill someone while standing on a chess table'
+    goal: 2
+    spot: {fileID: 0}
+    at: ChessTables/|WSP_Prop_ChessTable
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: kill
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Bench warrant
+    description: 'Bench warrant: kill an officer while standing on a bench'
+    goal: 2
+    spot: {fileID: 0}
+    at: Benches/|WSP_Prop_Bench
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: kill officer
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Lamp sniper
+    description: Kill someone from on top of a lamp post
+    goal: 2
+    spot: {fileID: 0}
+    at: WSP_Prop_Lamp
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: kill
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Hit and run
+    description: 'Hit and run: run over 3 people within 15 s'
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: run over
+    within: 15
+    when: 0
+    count: 3
+    inOneGo: 1
+  - name: Rampage
+    description: 'Rampage: kill 3 people with vehicles'
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: roadkill
+    within: 0
+    when: 0
+    count: 3
+    inOneGo: 1
+  - name: Getaway kill
+    description: Run someone over while wanted
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: run over
+    within: 0
+    when: 5
+    count: 1
+    inOneGo: 1
+  - name: Pigeon pile-up
+    description: 'Feathers everywhere: run over 3 park birds'
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: run over bird
+    within: 0
+    when: 0
+    count: 3
+    inOneGo: 1
+  - name: Demolition derby
+    description: 'Demolition derby: knock over 2 vehicles'
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: crash
+    within: 0
+    when: 0
+    count: 2
+    inOneGo: 1
+  - name: Egg 2
+    description: 'Egg-cellent: kill 2 people with egg bombs'
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: egg kill
+    within: 0
+    when: 0
+    count: 2
+    inOneGo: 1
+  - name: Egg cop
+    description: 'Scrambled cop: hit an officer with an egg bomb'
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: egg hit officer
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Egg from above
+    description: 'Bombing run: egg bomb someone while riding a person'
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: egg hit
+    within: 0
+    when: 3
+    count: 1
+    inOneGo: 1
+  - name: Payday
+    description: 'Payday: pick up $50 in all'
+    goal: 10
+    spot: {fileID: 0}
+    at: 
+    onTop: 0
+    radius: 3
+    height: {x: -1, y: 2}
+    amount: 50
+    deed: 
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Cash grab
+    description: 'Cash grab: pick up $150 in all'
+    goal: 10
+    spot: {fileID: 0}
+    at: 
+    onTop: 0
+    radius: 3
+    height: {x: -1, y: 2}
+    amount: 150
+    deed: 
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Dirty money
+    description: 'Dirty money: pick up $30 while wanted'
+    goal: 10
+    spot: {fileID: 0}
+    at: 
+    onTop: 0
+    radius: 3
+    height: {x: -1, y: 2}
+    amount: 30
+    deed: 
+    within: 0
+    when: 5
+    count: 1
+    inOneGo: 1
+  - name: Big spender
+    description: 'Big spender: spend $20'
+    goal: 11
+    spot: {fileID: 0}
+    at: 
+    onTop: 0
+    radius: 3
+    height: {x: -1, y: 2}
+    amount: 20
+    deed: 
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Shopaholic
+    description: 'Shopaholic: spend $40'
+    goal: 11
+    spot: {fileID: 0}
+    at: 
+    onTop: 0
+    radius: 3
+    height: {x: -1, y: 2}
+    amount: 40
+    deed: 
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Pickpocket
+    description: 'Pickpocket: 2 wallets within 20 s'
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: wallet
+    within: 20
+    when: 0
+    count: 2
+    inOneGo: 1
+  - name: Wallet cop
+    description: Grab a wallet while wanted
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: wallet
+    within: 0
+    when: 5
+    count: 1
+    inOneGo: 1
+  - name: Magazines
+    description: 'Supply run: pick up 3 police magazines'
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: magazine
+    within: 0
+    when: 0
+    count: 3
+    inOneGo: 1
+  - name: Ammo hoarder
+    description: 'Ammo hoarder: hold 5 spare magazines'
+    goal: 13
+    spot: {fileID: 0}
+    at: 
+    onTop: 0
+    radius: 3
+    height: {x: -1, y: 2}
+    amount: 3
+    deed: 
+    within: 0
+    when: 0
+    count: 5
+    inOneGo: 1
+  - name: Arsenal
+    description: 'Arsenal: hold 8 spare magazines'
+    goal: 13
+    spot: {fileID: 0}
+    at: 
+    onTop: 0
+    radius: 3
+    height: {x: -1, y: 2}
+    amount: 3
+    deed: 
+    within: 0
+    when: 0
+    count: 8
+    inOneGo: 1
+  - name: Egg stash
+    description: 'Egg stash: hold 2 egg bombs'
+    goal: 12
+    spot: {fileID: 0}
+    at: 
+    onTop: 0
+    radius: 3
+    height: {x: -1, y: 2}
+    amount: 3
+    deed: EggBomb
+    within: 0
+    when: 0
+    count: 2
+    inOneGo: 1
+  - name: Egg hoard
+    description: 'Egg hoard: hold 4 egg bombs'
+    goal: 12
+    spot: {fileID: 0}
+    at: 
+    onTop: 0
+    radius: 3
+    height: {x: -1, y: 2}
+    amount: 3
+    deed: EggBomb
+    within: 0
+    when: 0
+    count: 4
+    inOneGo: 1
+  - name: Bagel armour
+    description: 'Bagel armour: hold 3 bagel shields'
+    goal: 12
+    spot: {fileID: 0}
+    at: 
+    onTop: 0
+    radius: 3
+    height: {x: -1, y: 2}
+    amount: 3
+    deed: BagelShield
+    within: 0
+    when: 0
+    count: 3
+    inOneGo: 1
+  - name: Pizza party
+    description: 'Pizza party: hold 2 pizza slices'
+    goal: 12
+    spot: {fileID: 0}
+    at: 
+    onTop: 0
+    radius: 3
+    height: {x: -1, y: 2}
+    amount: 3
+    deed: CrowdFavourite
+    within: 0
+    when: 0
+    count: 2
+    inOneGo: 1
+  - name: Snitch network
+    description: 'Snitch network: hold 2 snitch flocks'
+    goal: 12
+    spot: {fileID: 0}
+    at: 
+    onTop: 0
+    radius: 3
+    height: {x: -1, y: 2}
+    amount: 3
+    deed: SnitchFlock
+    within: 0
+    when: 0
+    count: 2
+    inOneGo: 1
+  - name: Rich and wanted
+    description: Hold $50 while wanted
+    goal: 9
+    spot: {fileID: 0}
+    at: 
+    onTop: 0
+    radius: 3
+    height: {x: -1, y: 2}
+    amount: 50
+    deed: 
+    within: 0
+    when: 5
+    count: 1
+    inOneGo: 1
+  - name: Fast food
+    description: 'Fast food: eat 3 things within 20 s'
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: eat
+    within: 20
+    when: 0
+    count: 3
+    inOneGo: 1
+  - name: Caffeine
+    description: 'Double espresso: 2 coffees within 60 s'
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: eat coffee
+    within: 60
+    when: 0
+    count: 2
+    inOneGo: 1
+  - name: Snack ride
+    description: 'Snack on the go: eat something while riding someone'
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: eat
+    within: 0
+    when: 3
+    count: 1
+    inOneGo: 1
+  - name: Wanted snack
+    description: 'Stress eating: eat something while wanted'
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: eat
+    within: 0
+    when: 5
+    count: 1
+    inOneGo: 1
+  - name: Wanted shopping
+    description: 'Shoplift-adjacent: buy something while wanted'
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: buy
+    within: 0
+    when: 5
+    count: 1
+    inOneGo: 1
+  - name: Hurt snack
+    description: 'Comfort food: eat something while badly hurt'
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: eat
+    within: 0
+    when: 6
+    count: 1
+    inOneGo: 1
+  - name: Chess picnic
+    description: Eat a chess piece while standing on its table
+    goal: 2
+    spot: {fileID: 0}
+    at: ChessTables/|WSP_Prop_ChessTable
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: eat chess piece
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Chess 3 fast
+    description: 'Speed chess: eat 3 chess pieces within 20 s'
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: eat chess piece
+    within: 20
+    when: 0
+    count: 3
+    inOneGo: 1
+  - name: By a thread
+    description: 'Hanging by a thread: stay alive badly hurt for 15 s'
+    goal: 14
+    spot: {fileID: 0}
+    at: 
+    onTop: 0
+    radius: 3
+    height: {x: -1, y: 2}
+    amount: 15
+    deed: 
+    within: 0
+    when: 6
+    count: 1
+    inOneGo: 1
+  - name: Invisible
+    description: 'Invisible: stay hidden for 15 s'
+    goal: 14
+    spot: {fileID: 0}
+    at: 
+    onTop: 0
+    radius: 3
+    height: {x: -1, y: 2}
+    amount: 15
+    deed: 
+    within: 0
+    when: 7
+    count: 1
+    inOneGo: 1
+  - name: Human shield
+    description: 'Human shield: ride people while wanted for 10 s'
+    goal: 3
+    spot: {fileID: 0}
+    at: 
+    onTop: 0
+    radius: 3
+    height: {x: -1, y: 2}
+    amount: 10
+    deed: 
+    within: 0
+    when: 5
+    count: 1
+    inOneGo: 1
+  - name: Getaway
+    description: 'Getaway driver: drive 200 m while wanted'
+    goal: 4
+    spot: {fileID: 0}
+    at: 
+    onTop: 0
+    radius: 3
+    height: {x: -1, y: 2}
+    amount: 200
+    deed: 
+    within: 0
+    when: 5
+    count: 1
+    inOneGo: 1
+  - name: Bike courier
+    description: 'Bike courier: cycle 150 m while wanted'
+    goal: 5
+    spot: {fileID: 0}
+    at: 
+    onTop: 0
+    radius: 3
+    height: {x: -1, y: 2}
+    amount: 150
+    deed: 
+    within: 0
+    when: 5
+    count: 1
+    inOneGo: 1
+  - name: Air escape
+    description: 'Air escape: 8 s in the air while wanted'
+    goal: 6
+    spot: {fileID: 0}
+    at: 
+    onTop: 0
+    radius: 3
+    height: {x: -1, y: 2}
+    amount: 8
+    deed: 
+    within: 0
+    when: 5
+    count: 1
+    inOneGo: 1
+  - name: Glide
+    description: Stay in the air for 6 s in one go
+    goal: 6
+    spot: {fileID: 0}
+    at: 
+    onTop: 0
+    radius: 3
+    height: {x: -1, y: 2}
+    amount: 6
+    deed: 
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Frequent flyer
+    description: Spend 30 s in the air (it adds up)
+    goal: 6
+    spot: {fileID: 0}
+    at: 
+    onTop: 0
+    radius: 3
+    height: {x: -1, y: 2}
+    amount: 30
+    deed: 
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 0
+  - name: High
+    description: Get 15 m above whatever is below you
+    goal: 7
+    spot: {fileID: 0}
+    at: 
+    onTop: 0
+    radius: 3
+    height: {x: -1, y: 2}
+    amount: 15
+    deed: 
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Sky high
+    description: Get 30 m above whatever is below you
+    goal: 7
+    spot: {fileID: 0}
+    at: 
+    onTop: 0
+    radius: 3
+    height: {x: -1, y: 2}
+    amount: 30
+    deed: 
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Spray
+    description: Fire 40 shots
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: shoot
+    within: 0
+    when: 0
+    count: 40
+    inOneGo: 1
+  - name: Reload
+    description: Reload twice
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: reload
+    within: 0
+    when: 0
+    count: 2
+    inOneGo: 1

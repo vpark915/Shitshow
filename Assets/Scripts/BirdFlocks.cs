@@ -32,6 +32,8 @@ public class BirdFlocks : MonoBehaviour
     [Tooltip("So does a ridden person moving faster than Scare Speed within this many metres of the middle of the flock")]
     public float scareRadius = 4f;
     public float scareSpeed = 3f;
+    [Tooltip("A bike or car faster than Scare Speed sends it up this many seconds before it would reach the flock")]
+    public float vehicleWarning = 1.5f;
     [Tooltip("Fewest and most seconds a flock stays put before moving on by itself")]
     public Vector2 restlessness = new Vector2(40f, 120f);
 
@@ -65,7 +67,8 @@ public class BirdFlocks : MonoBehaviour
         public Animator animator;
         public Collider hitbox; // off while flying, so a flock overhead doesn't block shots, jumps or the camera
         public string state;
-        public Vector3 from, to, burst;
+        public Vector3 from, to, burst, hitFrom;
+        public Health health;
         public float takeOff, landing, nextStroll, height;
         public bool flying;
     }
@@ -89,7 +92,13 @@ public class BirdFlocks : MonoBehaviour
             {
                 GameObject body = Instantiate(isPigeon ? pigeon : seagull, Spot(flock), Quaternion.Euler(0, Random.Range(0f, 360f), 0), transform);
                 body.transform.localScale *= isPigeon ? pigeonScale : seagullScale;
-                flock.birds.Add(new Bird { body = body.transform, animator = body.GetComponent<Animator>(), hitbox = body.GetComponentInChildren<Collider>(), to = body.transform.position });
+                var bird = new Bird { body = body.transform, animator = body.GetComponent<Animator>(), hitbox = body.GetComponentInChildren<Collider>(), to = body.transform.position };
+                // shootable (and egg-blastable, and headshots go by its "head" bone): one hit and it's down
+                bird.health = body.AddComponent<Health>();
+                bird.health.maxHealth = 1;
+                bird.health.Hurt += from => bird.hitFrom = from;
+                bird.health.Died += () => Limp(bird, (Flat(bird.body.position - bird.hitFrom).normalized * 4 + Vector3.up * 2) * Random.Range(0.8f, 1.2f));
+                flock.birds.Add(bird);
             }
             flocks.Add(flock);
         }
@@ -102,6 +111,60 @@ public class BirdFlocks : MonoBehaviour
     {
         foreach (Flock flock in flocks)
             if (Vector3.Distance(shooter.transform.position, flock.centre) < gunRadius) Startle(flock);
+    }
+
+    // Vehicle: a bike or car hit a bird too slow to get out of the way. Returns whether hitbox was one of the birds
+    public bool RunOver(Collider hitbox, Vector3 push)
+    {
+        foreach (Flock flock in flocks)
+            foreach (Bird bird in flock.birds)
+                if (bird.hitbox == hitbox)
+                {
+                    Limp(bird, push);
+                    return true;
+                }
+        return false;
+    }
+
+    // (bone, sphere radius as a share of the bird's capsule radius); each joins the body
+    static readonly (string bone, float radius)[] Parts = { ("body", 0.9f), ("head", 0.5f), ("wing.L", 0.4f), ("wing.R", 0.4f), ("tail.01", 0.35f) };
+
+    // Dead (shot, blown up, run over): out of its flock and a ragdoll of spheres on its bones, all moving at velocity.
+    // Built only now, so the living flocks don't pay for one each.
+    // ponytail: bodies stay where they fall and flocks aren't topped up; fade and respawn if rounds run long
+    void Limp(Bird bird, Vector3 velocity)
+    {
+        foreach (Flock flock in flocks) flock.birds.Remove(bird);
+        bird.animator.enabled = false;
+        if (bird.health) Destroy(bird.health); // the body takes no more hits as a living bird (a kill counts once)
+        var capsule = bird.hitbox as CapsuleCollider;
+        float size = capsule ? capsule.radius * capsule.transform.lossyScale.x : 0.07f; // world metres
+        Vector3 middle = capsule ? capsule.transform.TransformPoint(capsule.center) : bird.body.position;
+        if (bird.hitbox) bird.hitbox.enabled = false;
+
+        Rigidbody chest = null;
+        var made = new List<Collider>();
+        foreach ((string name, float share) in Parts)
+        {
+            Transform bone = null;
+            foreach (Transform t in bird.body.GetComponentsInChildren<Transform>()) if (t.name == name) { bone = t; break; }
+            if (!bone) continue;
+            float radius = size * share;
+            Vector3 at = name == "body" ? middle : name == "head" ? bone.position + Vector3.up * radius * 0.6f : bone.position; // the head bone is at the neck
+            var ball = bone.gameObject.AddComponent<SphereCollider>();
+            ball.center = bone.InverseTransformPoint(at);
+            ball.radius = radius / bone.lossyScale.x;
+            foreach (Collider other in made) Physics.IgnoreCollision(ball, other); // they overlap
+            made.Add(ball);
+
+            var part = bone.gameObject.AddComponent<Rigidbody>();
+            part.mass = name == "body" ? 0.3f : 0.03f;
+            part.interpolation = RigidbodyInterpolation.Interpolate;
+            part.linearVelocity = velocity;
+            part.angularVelocity = Random.insideUnitSphere * 10f;
+            if (chest) bone.gameObject.AddComponent<CharacterJoint>().connectedBody = chest;
+            else chest = part; // "body" comes first
+        }
     }
 
     // somewhere on the ground within the flock's patch
@@ -177,8 +240,12 @@ public class BirdFlocks : MonoBehaviour
                     Startle(flock);
                     continue;
                 }
-                foreach (Collider near in Physics.OverlapSphere(flock.centre, scareRadius))
-                    if (near is CharacterController body && near.TryGetComponent(out Npc person) && person.Ridden && body.velocity.magnitude > scareSpeed)
+                // a bike or car is checked further out the faster it goes, so the flock is up before it arrives
+                foreach (Collider near in Physics.OverlapSphere(flock.centre, scareRadius + vehicleWarning * 20f))
+                    if ((near is CharacterController body && near.TryGetComponent(out Npc person) && person.Ridden && body.velocity.magnitude > scareSpeed
+                            && Vector3.Distance(near.transform.position, flock.centre) < scareRadius)
+                        || (near.TryGetComponent(out Vehicle ride) && Mathf.Abs(ride.Speed) > scareSpeed
+                            && Vector3.Distance(near.transform.position, flock.centre) < scareRadius + Mathf.Abs(ride.Speed) * vehicleWarning))
                     {
                         Startle(flock);
                         break;

@@ -5028,6 +5028,7 @@ GameObject:
   - component: {fileID: 205940189}
   - component: {fileID: 205940188}
   - component: {fileID: 205940192}
+  - component: {fileID: 205940193}
   m_Layer: 5
   m_Name: HUD
   m_TagString: Untagged
@@ -5157,6 +5158,23 @@ MonoBehaviour:
   targetRadius: 25
   targetColor: {r: 1, g: 0.55, b: 0, a: 0.4}
   revealColor: {r: 1, g: 0.2, b: 0.1, a: 1}
+--- !u!114 &205940193
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 205940187}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 05649019a7da24c87a94995fe1b2b25c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DamageIndicator
+  player: {fileID: 5651517856232688676}
+  color: {r: 0.85, g: 0, b: 0, a: 0.55}
+  fade: 1.2
+  arrowDistance: 170
+  arrowSize: 56
 --- !u!1001 &212823968
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -6799,8 +6817,8 @@ Terrain:
   m_Enabled: 1
   serializedVersion: 6
   m_TerrainData: {fileID: 15600000, guid: e8fb7a68b35e541798f057cf97ce0077, type: 2}
-  m_TreeDistance: 600
-  m_TreeBillboardDistance: 50
+  m_TreeDistance: 300
+  m_TreeBillboardDistance: 30
   m_TreeCrossFadeLength: 5
   m_TreeMaximumFullLODCount: 50
   m_DetailObjectDistance: 50
@@ -22290,6 +22308,7 @@ MonoBehaviour:
   gunRadius: 30
   scareRadius: 4
   scareSpeed: 3
+  restlessness: {x: 40, y: 120}
   flySpeed: 6
   flyHeight: 6
   takeOffAngle: 55
@@ -49689,9 +49708,15 @@ MonoBehaviour:
   muzzleOffset: {x: 0, y: 0.38527334, z: 0.51266426}
   muzzleFlash: {fileID: 8603315}
   flashTime: 0.05
+  bloodColor: {r: 0.55, g: 0, b: 0.02, a: 1}
+  bloodDroplets: {x: 14, y: 24}
+  bloodSpeed: {x: 5, y: 11}
+  bloodTowardCamera: 0.6
   aimHoldTime: 0.5
   recoilAngle: 15
   recoilRecovery: 0.15
+  shake: 0.12
+  shotZoom: 3
   shootAnimation: {fileID: 7400000, guid: a086d54f3a304df4597e7564ac7879e5, type: 3}
   scopedFov: 30
   scopeSpeed: 12
@@ -49747,6 +49772,7 @@ MonoBehaviour:
       m_Flags: 0
     m_Flags: 0
   unseen: 0
+  startingMoney: 0
 --- !u!114 &5651517856232688675
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -49799,8 +49825,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Health
   maxHealth: 100
   restartDelay: 3
+  hitFlash: {r: 3, g: 0.1, b: 0.05, a: 1}
+  blockedFlash: {r: 0.2, g: 0.8, b: 3, a: 1}
+  flashTime: 0.2
   damageScale: 1
   shields: 0
+  noRestart: 0
 --- !u!114 &5651517856232688677
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -49815,10 +49845,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PieceEater
   reach: 1.5
   foodReach: 2.5
+  vendorReach: 4
   revealTime: 10
   map: {fileID: 205940192}
   prompt: {fileID: 1050337885}
   hoverMaterial: {fileID: 2100000, guid: 04833bec4508d457cb33695d07425f76, type: 2}
+  hoverGlow: {r: 0.9, g: 0.65, b: 0.15, a: 1}
+  aimAssist: 0.3
+  pieceRespawn: 0
   eatAction:
     m_Name: Eat
     m_Type: 0
@@ -49891,8 +49925,14 @@ MonoBehaviour:
   eggRadius: 6
   eggDamage: 15
   eggModel: {fileID: 5106281937462810001, guid: 5f9165bfb59041249a5cec3302d7bf85, type: 3}
+  eggThrow: 18
+  blastHot: {r: 1, g: 0.95, b: 0.6, a: 1}
+  blastCool: {r: 0.9, g: 0.3, b: 0.05, a: 1}
+  shellColor: {r: 1, g: 0.85, b: 0.35, a: 1}
   splatMaterial: {fileID: 2100000, guid: fb971f1768fc345fc98b6a2b3f25854d, type: 2}
   splatLife: 10
+  shieldGlow: {r: 0.1, g: 0.4, b: 1.5, a: 1}
+  shieldPulse: 3
   damageScale: 0.5
   fullJumpScale: 0.7
   rideSpeedMultiplier: 1.6

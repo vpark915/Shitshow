@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bb4d2baf585664c3c81e07931db0489e, type: 3}
+  m_Name: HuntGymSettings
+  m_EditorClassIdentifier: Assembly-CSharp-Editor::HuntGymSettings
+  cover: 21
+  spacing: 8.98
+  seed: 1234
+  lowWalls: 4
+  blocks: 3
+  pillars: 2
+  benches: 1
+  foodCarts: 3
+  coffeeCarts: 2
+  hotdogCarts: 2
+  mexicanTrucks: 3
+  iceCreamTrucks: 2
+  bagels: 4
+  bread: 7
+  burritos: 13
+  coffee: 9
+  gyros: 6
+  hotdogs: 11
+  iceCream: 6
+  pizza: 2
+  pretzels: 8
+  pigeonFlocks: 2
+  seagullFlocks: 1
+  flockMin: 8
+  flockMax: 16
+  walkers: 27
+  joggers: 5
+  idlers: 6
+  officers: 2
+  guards: 2

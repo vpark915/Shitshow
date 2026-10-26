@@ -1,0 +1,24 @@
+{
+  "name": "com.sinnwrig.fogvolumes",
+  "version": "0.3.0",
+  "displayName": "Fog Volumes",
+  "description": "Raymarched fog volumes for Unity's Universal Render Pipeline. To get started, add the fog render feature and create a new fog volume",
+  "unity": "2020.1",
+  "hideInEditor": false,
+  "author": {
+    "name": "Kai Angulo",
+    "email": "kangriebling@gmail.com",
+    "url": "https://sinnwrig.github.io"
+  },
+  "samples": [
+    {
+      "displayName": "Sample Scenes",
+      "description": "Contains sample scenes demonstrating the use of the fog volume asset",
+      "path": "Samples~/"
+    }
+  ],
+  "dependencies": {
+    "com.unity.render-pipelines.universal": "10.x.x"
+  },
+  "_fingerprint": "e926baaefce6f057533586f8e190efc62e1a7d0d"
+}

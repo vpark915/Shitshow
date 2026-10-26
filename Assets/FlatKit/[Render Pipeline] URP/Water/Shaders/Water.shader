@@ -81,7 +81,7 @@
             #pragma target 4.5
             #pragma multi_compile _ DOTS_INSTANCING_ON
             #else
-            #pragma target 2.0
+            #pragma target 4.5 // was 2.0: line ~128 compiles DOTS_INSTANCING_ON unconditionally, which needs 4.5 (pink under the GPU Resident Drawer)
     	    #endif
 
             #pragma shader_feature_local _COLORMODE_LINEAR _COLORMODE_GRADIENT_TEXTURE

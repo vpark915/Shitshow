@@ -1,7 +1,7 @@
 using UnityEngine;
 
 // A serving of food (design doc section 10, Food). Look at it with the eat prompt up (PieceEater) and press E: it's
-// eaten and the pigeon gets its ability, now or in its stash for later (FoodPowers). It comes back after Respawn seconds, the vendor
+// eaten, the pigeon gets back some health and gets its ability, now or in its stash for later (FoodPowers). It comes back after Respawn seconds, the vendor
 // making the next serving.
 public class FoodItem : MonoBehaviour
 {
@@ -11,6 +11,8 @@ public class FoodItem : MonoBehaviour
     public float seconds = 8f;
     [Tooltip("Dollars it costs at a cart or truck (anything under the minimap's Vendors); food found around the park is free")]
     public int price = 5;
+    [Tooltip("Health it gives back when eaten (the pigeon has 100)")]
+    public float heal = 15f;
     [Tooltip("Seconds until the next serving appears here; 0 for never")]
     public float respawn = 30f;
 

@@ -82,6 +82,44 @@ public class Weapon : MonoBehaviour
     public event Action Changed;
     // every shot from any weapon, with who fired it; park NPCs, police and birds listen for this
     public static event Action<Weapon> Fired;
+    // this weapon's shot just hurt someone: true through the head (WeaponHUD shows a hitmarker, red and HEADSHOT for the head)
+    public event Action<bool> Hit;
+    // something the player did that a Seagull task can count (HuntMatch): "kill officer", "eat hot dog"... The whole
+    // list of deeds is in HuntTasks
+    public static event Action<Weapon, string> Did;
+    public static void Done(Weapon who, params string[] deeds)
+    {
+        if (who) foreach (string deed in deeds) if (deed != "") Did?.Invoke(who, deed);
+    }
+    // what kind of someone this is, for deeds: "officer", "guard", "civilian", "bird", or "" for anything else
+    public static string Kind(Component someone)
+    {
+        Npc npc = someone.GetComponentInParent<Npc>();
+        if (npc) return npc.officer ? "officer" : npc.kind == Npc.Kind.Guard ? "guard" : "civilian";
+        return someone.GetComponentInParent<NetBird>() ? "bird" : "";
+    }
+    // `victim` was alive before `who` hurt it: the kill deeds if it's dead now ("kill", "kill officer", "kill jogger",
+    // plus `how`, e.g. "roadkill"), and "double kill" / "triple kill" for kills under 3 s apart
+    public static void Killed(Weapon who, Health victim, bool wasAlive, params string[] how)
+    {
+        if (!who || !victim || !wasAlive || !victim.IsDead) return;
+        if (victim.GetComponentInParent<BirdFlocks>()) { Done(who, "kill flock bird"); return; } // not a "kill": tasks count people
+        string kind = Kind(victim);
+        Done(who, "kill");
+        if (kind != "") Done(who, "kill " + kind);
+        Npc npc = victim.GetComponentInParent<Npc>();
+        if (npc && !npc.officer && npc.kind != Npc.Kind.Guard) Done(who, "kill " + npc.kind.ToString().ToLowerInvariant()); // walker, jogger, idler
+        Done(who, how);
+        who.streak = Time.time - who.lastKill <= 3f ? who.streak + 1 : 1;
+        who.lastKill = Time.time;
+        if (who.streak == 2) Done(who, "double kill");
+        if (who.streak == 3) Done(who, "triple kill");
+    }
+    int streak;
+    float lastKill = -10;
+    // nothing in the gun and nothing to reload: time for a silent kill from a head (HeadRide)
+    public bool OutOfAmmo => Ammo == 0 && reloadsLeft == 0 && !IsReloading;
+
     [HideInInspector] public bool unseen; // a food ability (Low profile): people and police pay no attention to its shots
 
     Camera cam;
@@ -94,15 +132,17 @@ public class Weapon : MonoBehaviour
     float nextShotTime;
     float aimUntil;
     float recoil; // 1 right after a shot, eases back to 0
+    HeadRide ride; // no shooting while driving a Vehicle
 
     void Awake()
     {
         Money = startingMoney;
         Ammo = magazineSize;
         startReloads = reloadsLeft;
-        if (gun) { gunHome = gun.parent; gunAt = gun.localPosition; gunTurn = gun.localRotation; }
+        if (gun) { gunHome = gun.parent; gunAt = gun.localPosition; gunTurn = gun.localRotation; gunSize = gun.localScale; }
         if (!tracerMaterial) tracerMaterial = new Material(Shader.Find("Sprites/Default"));
         cam = Camera.main;
+        TryGetComponent(out ride);
         animator = GetComponentInChildren<Animator>();
         followCamera = FindFirstObjectByType<CinemachineCamera>();
         if (followCamera)
@@ -123,6 +163,7 @@ public class Weapon : MonoBehaviour
     Transform gunHome, dropped;
     Vector3 gunAt;
     Quaternion gunTurn;
+    Vector3 gunSize;
     int startReloads;
 
     void DropGun()
@@ -150,6 +191,7 @@ public class Weapon : MonoBehaviour
             Destroy(dropped.GetComponent<BoxCollider>());
             dropped.SetParent(gunHome, false);
             dropped.SetLocalPositionAndRotation(gunAt, gunTurn);
+            dropped.localScale = gunSize; // dropping kept its world size as its local scale; under the scaled-down bird it shrank
             gun = dropped;
             dropped = null;
         }
@@ -207,7 +249,7 @@ public class Weapon : MonoBehaviour
 
     public bool TryFire()
     {
-        if (IsReloading || Ammo <= 0 || Time.time < nextShotTime) return false;
+        if (IsReloading || Ammo <= 0 || Time.time < nextShotTime || (ride && ride.Driving)) return false; // hands on the bars
         nextShotTime = Time.time + fireInterval;
         Ammo--;
 
@@ -239,14 +281,28 @@ public class Weapon : MonoBehaviour
         if (hit.collider)
         {
             Health health = hit.collider.GetComponentInParent<Health>();
-            if (health && !health.IsDead) Bleed(hit.point, hit.normal);
-            if (health) health.TakeDamage(damage);
+            float dealt = damage;
+            bool alive = health && !health.IsDead, head = false;
+            if (alive)
+            {
+                Bleed(hit.point, hit.normal);
+                head = health.Headshot(cam.ViewportPointToRay(new Vector3(0.5f, 0.5f)));
+                if (head) dealt *= health.headshotMultiplier;
+                Hit?.Invoke(head);
+                string kind = Kind(health);
+                Done(this, "hit", head ? "headshot" : "body shot");
+                if (kind != "") Done(this, "hit " + kind);
+            }
+            if (health) health.TakeDamage(dealt, origin);
+            float far = Vector3.Distance(transform.position, hit.point);
+            Killed(this, health, alive, head ? "headshot kill" : "shot kill", far >= 40 ? "long shot kill" : far <= 3 ? "point blank kill" : "");
             if (hit.rigidbody) hit.rigidbody.AddForceAtPosition((target - origin).normalized * hitKnockback, hit.point, ForceMode.VelocityChange);
         }
 
         StartCoroutine(Tracer(origin, target));
 
         Fired?.Invoke(this);
+        Done(this, "shoot");
         Changed?.Invoke();
         return true;
     }
@@ -337,6 +393,7 @@ public class Weapon : MonoBehaviour
         if (IsReloading || reloadsLeft <= 0 || Ammo == magazineSize) return;
         IsReloading = true;
         reloadsLeft--;
+        Done(this, "reload");
         Changed?.Invoke();
         Invoke(nameof(FinishReload), reloadTime);
     }
@@ -345,6 +402,7 @@ public class Weapon : MonoBehaviour
     public void AddMagazine(int count)
     {
         reloadsLeft += count;
+        Done(this, "magazine");
         Changed?.Invoke();
     }
 
@@ -357,6 +415,7 @@ public class Weapon : MonoBehaviour
     public void AddMoney(int amount)
     {
         Money += amount;
+        Done(this, "wallet");
         Changed?.Invoke();
     }
 

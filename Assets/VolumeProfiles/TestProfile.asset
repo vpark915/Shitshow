@@ -14,11 +14,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.ColorAdjustments
   active: 1
   postExposure:
-    m_OverrideState: 0
-    m_Value: 0
+    m_OverrideState: 1
+    m_Value: 0.1
   contrast:
     m_OverrideState: 1
-    m_Value: 15
+    m_Value: 20.9
   colorFilter:
     m_OverrideState: 0
     m_Value: {r: 1, g: 1, b: 1, a: 1}
@@ -27,7 +27,7 @@ MonoBehaviour:
     m_Value: 0
   saturation:
     m_OverrideState: 1
-    m_Value: 34
+    m_Value: 11
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -46,6 +46,10 @@ MonoBehaviour:
   - {fileID: 5236646563852013645}
   - {fileID: -5562492165127768362}
   - {fileID: 2460193689464888329}
+  - {fileID: 4012741955327730011}
+  - {fileID: 6043248020707744607}
+  - {fileID: 7391846205718364029}
+  - {fileID: 8852102559942126101}
 --- !u!114 &2041001382734927359
 MonoBehaviour:
   m_ObjectHideFlags: 3
@@ -64,13 +68,13 @@ MonoBehaviour:
     m_Value: 1
   threshold:
     m_OverrideState: 1
-    m_Value: 0.44
+    m_Value: 0.8
   intensity:
     m_OverrideState: 1
-    m_Value: 0.51
+    m_Value: 0.89
   scatter:
     m_OverrideState: 1
-    m_Value: 0.072
+    m_Value: 0.453
   clamp:
     m_OverrideState: 1
     m_Value: 65472
@@ -114,10 +118,10 @@ MonoBehaviour:
     m_Value: 1
   gaussianStart:
     m_OverrideState: 1
-    m_Value: 480
+    m_Value: 0.47
   gaussianEnd:
     m_OverrideState: 1
-    m_Value: 2135.98
+    m_Value: 442.3
   gaussianMaxRadius:
     m_OverrideState: 1
     m_Value: 1
@@ -126,7 +130,7 @@ MonoBehaviour:
     m_Value: 0
   focusDistance:
     m_OverrideState: 1
-    m_Value: 10
+    m_Value: 19.63
   aperture:
     m_OverrideState: 1
     m_Value: 5.6
@@ -141,6 +145,34 @@ MonoBehaviour:
     m_Value: 1
   bladeRotation:
     m_OverrideState: 1
+    m_Value: 0
+--- !u!114 &4012741955327730011
+MonoBehaviour:
+  m_ObjectHideFlags: 3
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 899c54efeace73346a0a16faa3afe726, type: 3}
+  m_Name: Vignette
+  m_EditorClassIdentifier: 
+  active: 0
+  color:
+    m_OverrideState: 0
+    m_Value: {r: 0, g: 0, b: 0, a: 1}
+  center:
+    m_OverrideState: 0
+    m_Value: {x: 0.5, y: 0.5}
+  intensity:
+    m_OverrideState: 1
+    m_Value: 0.22
+  smoothness:
+    m_OverrideState: 1
+    m_Value: 0.45
+  rounded:
+    m_OverrideState: 0
     m_Value: 0
 --- !u!114 &5236646563852013645
 MonoBehaviour:
@@ -164,6 +196,161 @@ MonoBehaviour:
   gain:
     m_OverrideState: 1
     m_Value: {x: 1, y: 1, z: 1, w: 0}
+--- !u!114 &6043248020707744607
+MonoBehaviour:
+  m_ObjectHideFlags: 3
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a074ec59f6e910b4e8c49f57e56cf95a, type: 3}
+  m_Name: VolumetricFogVolumeComponent
+  m_EditorClassIdentifier: com.cqf.urpvolumetricfog.runtime::VolumetricFogVolumeComponent
+  active: 1
+  distance:
+    m_OverrideState: 1
+    m_Value: 80
+  baseHeight:
+    m_OverrideState: 1
+    m_Value: -1
+  maximumHeight:
+    m_OverrideState: 1
+    m_Value: 30
+  enableGround:
+    m_OverrideState: 1
+    m_Value: 0
+  groundHeight:
+    m_OverrideState: 0
+    m_Value: 0
+  density:
+    m_OverrideState: 1
+    m_Value: 0.103
+  attenuationDistance:
+    m_OverrideState: 0
+    m_Value: 128
+  enableAPVContribution:
+    m_OverrideState: 1
+    m_Value: 0
+  APVContributionWeight:
+    m_OverrideState: 0
+    m_Value: 1
+  enableMainLightContribution:
+    m_OverrideState: 1
+    m_Value: 1
+  anisotropy:
+    m_OverrideState: 1
+    m_Value: 0.741
+  scattering:
+    m_OverrideState: 1
+    m_Value: 0.19
+  tint:
+    m_OverrideState: 1
+    m_Value: {r: 1, g: 1, b: 1, a: 1}
+  enableAdditionalLightsContribution:
+    m_OverrideState: 1
+    m_Value: 0
+  maxSteps:
+    m_OverrideState: 1
+    m_Value: 8
+  blurIterations:
+    m_OverrideState: 0
+    m_Value: 2
+  enabled:
+    m_OverrideState: 1
+    m_Value: 1
+  renderPassEvent:
+    m_OverrideState: 0
+    m_Value: 550
+--- !u!114 &7391846205718364029
+MonoBehaviour:
+  m_ObjectHideFlags: 3
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2fd03cbbfa7b7fe4dbc3d7709b42d662, type: 3}
+  m_Name: ScreenSpaceGlobalIlluminationVolume
+  m_EditorClassIdentifier: 
+  active: 0
+  enable:
+    m_OverrideState: 1
+    m_Value: 1
+  thicknessMode:
+    m_OverrideState: 0
+    m_Value: 0
+  depthBufferThickness:
+    m_OverrideState: 0
+    m_Value: 0.1
+  quality:
+    m_OverrideState: 1
+    m_Value: 3
+  fullResolutionSS:
+    m_OverrideState: 0
+    m_Value: 0
+  resolutionScaleSS:
+    m_OverrideState: 1
+    m_Value: 0.377
+  sampleCount:
+    m_OverrideState: 0
+    m_Value: 1
+  maxRaySteps:
+    m_OverrideState: 0
+    m_Value: 24
+  denoiseSS:
+    m_OverrideState: 0
+    m_Value: 1
+  denoiserAlgorithmSS:
+    m_OverrideState: 0
+    m_Value: 1
+  denoiseIntensitySS:
+    m_OverrideState: 0
+    m_Value: 0.95
+  denoiserRadiusSS:
+    m_OverrideState: 0
+    m_Value: 0.6
+  secondDenoiserPassSS:
+    m_OverrideState: 0
+    m_Value: 1
+  rayMiss:
+    m_OverrideState: 0
+    m_Value: 3
+  indirectDiffuseLightingMultiplier:
+    m_OverrideState: 1
+    m_Value: 3.43
+  indirectDiffuseRenderingLayers:
+    m_OverrideState: 0
+    m_Value:
+      serializedVersion: 0
+      m_Bits: 4294967295
+--- !u!114 &8852102559942126101
+MonoBehaviour:
+  m_ObjectHideFlags: 3
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ccf1aba9553839d41ae37dd52e9ebcce, type: 3}
+  m_Name: MotionBlur
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.MotionBlur
+  active: 1
+  mode:
+    m_OverrideState: 1
+    m_Value: 0
+  quality:
+    m_OverrideState: 1
+    m_Value: 0
+  intensity:
+    m_OverrideState: 1
+    m_Value: 0.061
+  clamp:
+    m_OverrideState: 1
+    m_Value: 0.05
 --- !u!114 &9196890049889884588
 MonoBehaviour:
   m_ObjectHideFlags: 3

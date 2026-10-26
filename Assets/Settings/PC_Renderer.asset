@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b00045f12942b46c698459096c89274e, type: 3}
   m_Name: Volumetric Fog
   m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.FullScreenPassRendererFeature
-  m_Active: 1
+  m_Active: 0
   injectionPoint: 550
   fetchColorBuffer: 1
   requirements: 0
@@ -20,6 +20,25 @@ MonoBehaviour:
   passIndex: 0
   bindDepthStencilAttachment: 0
   m_Version: 1
+--- !u!114 &-3820419283749182731
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 175cea8de38556cbf9c2f04c6a06d29f, type: 3}
+  m_Name: Fog Volumes
+  m_EditorClassIdentifier: Sinnwrig.FogVolumes::Sinnwrig.FogVolumes.VolumetricFogFeature
+  m_Active: 0
+  resolution: 1
+  temporalRendering: 0
+  disableBlur: 1
+  beforeTransparents: 0
+  temporalResolution: 3
+  data: {fileID: 11400000, guid: cea71fd1f15cdafae9a40f211eb5be08, type: 2}
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -48,7 +67,12 @@ MonoBehaviour:
   - {fileID: 7833122117494664109}
   - {fileID: -8652487809783254875}
   - {fileID: 7095028761235743110}
-  m_RendererFeatureMap: ad6b866f10d7b46ca5b0780a2e30ec8786e1a238119b7662
+  - {fileID: 5172839406172839415}
+  - {fileID: -3820419283749182731}
+  - {fileID: 3501078370398156476}
+  - {fileID: 5928374615283746191}
+  - {fileID: 4417306204921835521}
+  m_RendererFeatureMap: ad6b866f10d7b46ca5b0780a2e30ec8786e1a238119b7662f71d1375089ec947f5e21323e724fbcabcb662763a5496308f456e7f4dd1455201b07ee8966c4d3d
   m_UseNativeRenderPass: 1
   xrSystemData: {fileID: 0}
   postProcessData: {fileID: 11400000, guid: 41439944d30ece34e96484bdb6645b55, type: 2}
@@ -70,13 +94,89 @@ MonoBehaviour:
     failOperation: 0
     zFailOperation: 0
   m_ShadowTransparentReceive: 1
-  m_RenderingMode: 2
+  m_RenderingMode: 3
   m_DepthPrimingMode: 1
   m_CopyDepthMode: 0
   m_DepthAttachmentFormat: 0
   m_DepthTextureFormat: 0
   m_AccurateGbufferNormals: 0
   m_IntermediateTextureMode: 0
+--- !u!114 &3501078370398156476
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d69a19d29ef66464ea0afc7cd84fd6c2, type: 3}
+  m_Name: VolumetricFogRendererFeature
+  m_EditorClassIdentifier: com.cqf.urpvolumetricfog.runtime::VolumetricFogRendererFeature
+  m_Active: 1
+  downsampleDepthShader: {fileID: 4800000, guid: cffeaeec0396a2c4dad475266cc8dfeb, type: 3}
+  volumetricFogShader: {fileID: 4800000, guid: 08f816187f9af0244a95556ee0cab83f, type: 3}
+--- !u!114 &4417306204921835521
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 343a32aa482041346936d193b3986b51, type: 3}
+  m_Name: GroundTruthAmbientOcclusion
+  m_EditorClassIdentifier: 
+  m_Active: 1
+  m_Shader: {fileID: 4800000, guid: d9d196ed72cf0a547a1a65cf7fc9f895, type: 3}
+  m_Settings:
+    Downsample: 1
+    AfterOpaque: 1
+    Source: 0
+    NormalSamples: 0
+    Intensity: 0.79
+    DirectLightingStrength: 0.268
+    Radius: 5.99
+    SampleCount: 2
+--- !u!114 &5172839406172839415
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6589f404cc28f584494b80a94d9e1e36, type: 3}
+  m_Name: God Rays
+  m_EditorClassIdentifier: Assembly-CSharp::Plugins.VolumetricLightScattering.Runtime.VolumetricLightScattering
+  m_Active: 0
+  Quality:
+    ResolutionScale: 0.5
+    Intensity: 0.5
+    BlurWidth: 0.85
+    SunRadius: 1.6
+  shader: {fileID: 4800000, guid: 82a814139b194907bd485497d7a3bf22, type: 3}
+--- !u!114 &5928374615283746191
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c8826dbbd2f20a84180629a9ae196e22, type: 3}
+  m_Name: ScreenSpaceGlobalIlluminationURP
+  m_EditorClassIdentifier: 
+  m_Active: 0
+  m_Shader: {fileID: 4800000, guid: 052b080a79c052c4993acc96081d70b1, type: 3}
+  m_RenderingDebugger: 1
+  m_ReflectionProbes: 0
+  m_HighQualityUpscaling: 0
+  m_OverrideAmbientLighting: 0
+  m_BackfaceLighting: 0
 --- !u!114 &7095028761235743110
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -89,7 +189,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9cc70a8037c1b70499f4123cdac0f2fa, type: 3}
   m_Name: FullscreenCustomLightingFeature
   m_EditorClassIdentifier: Assembly-CSharp::Mirza.AERO.FullscreenCustomLightingFeature
-  m_Active: 1
+  m_Active: 0
   renderPassEvent: 500
   material: {fileID: 2100000, guid: 99feff69039fb40baa3964aba38fc306, type: 2}
 --- !u!114 &7833122117494664109
@@ -107,14 +207,14 @@ MonoBehaviour:
   m_Active: 1
   m_Settings:
     AOMethod: 1
-    Downsample: 1
-    AfterOpaque: 0
+    Downsample: 0
+    AfterOpaque: 1
     Source: 1
     NormalSamples: 1
-    Intensity: 1.98
-    DirectLightingStrength: 0.404
+    Intensity: 0.39
+    DirectLightingStrength: 0.299
     Radius: 0.7
-    Samples: 1
+    Samples: 0
     BlurQuality: 0
     Falloff: 83.24
     SampleCount: -1

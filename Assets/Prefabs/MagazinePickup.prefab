@@ -48,10 +48,11 @@ MonoBehaviour:
   hoverHeight: 0.5
   bobHeight: 0.1
   spinSpeed: 180
-  magnetRadius: 4
+  magnetRadius: 8.59
   magnetSpeed: 6
-  magazines: 1
+  magazines: 2
   money: {x: 0, y: 0}
+  respawn: 0
 --- !u!1001 &5494890240555030120
 PrefabInstance:
   m_ObjectHideFlags: 0

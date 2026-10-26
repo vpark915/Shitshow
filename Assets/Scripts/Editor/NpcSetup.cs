@@ -96,7 +96,7 @@ static class NpcSetup
         if (spawner.jogRoute.Length == 0)
         {
             // a lap of the pavement that runs round the outside of the park
-            Bounds park = blockout.Find("WSP_Park").GetComponent<Renderer>().bounds;
+            Bounds park = blockout.Find("WSP_Park_Base").GetComponent<Renderer>().bounds;
             park.Expand(2 * JogMargin);
             var route = new GameObject("JogRoute").transform;
             route.SetParent(npcs.transform, false);
@@ -117,23 +117,36 @@ static class NpcSetup
 
     // Run again after the park's layout, props or trees change.
     [MenuItem("Tools/Wash Square/Bake NPC NavMesh")]
-    public static string Bake()
+    public static string Bake() => Bake(NavMeshPath, new Transform[0]);
+
+    // into navMeshPath, with everything under `solid` (a scene's carts and trucks) cut out of the walkable area too
+    public static string Bake(string navMeshPath, Transform[] solid)
     {
         // ponytail: one flat cost for the whole roadway, so people cross anywhere; add crosswalk strips of a cheaper area when cars exist
         SetArea(Street, "Street", 6);
         SetArea(Lawn, "Lawn", 3);
+        SetArea(NpcSpawner.Path, "Path", 1);
 
         Transform blockout = GameObject.Find("washingtonSquareBlockout").transform;
         Terrain terrain = Terrain.activeTerrain;
         // ground level only: building roofs would just add unreachable islands
-        Bounds bounds = blockout.Find("WSP_Streets").GetComponent<Renderer>().bounds;
+        Bounds bounds = blockout.Find("WSP_Road").GetComponent<Renderer>().bounds;
+        bounds.Encapsulate(blockout.Find("WSP_Sidewalk").GetComponent<Renderer>().bounds);
         bounds.SetMinMax(new Vector3(bounds.min.x, -1, bounds.min.z), new Vector3(bounds.max.x, 4, bounds.max.z));
 
         var markups = new List<NavMeshBuildMarkup> { new NavMeshBuildMarkup { root = terrain.transform, overrideArea = true, area = Lawn } };
         var sources = new List<NavMeshBuildSource>();
         NavMeshBuilder.CollectSources(bounds, ~0, NavMeshCollectGeometry.PhysicsColliders, 0, markups, sources);
         // the park itself only, not the player, seagulls or anything else that moves
-        sources.RemoveAll(s => s.component && s.component.transform.root != blockout && s.component.transform.root != terrain.transform);
+        sources.RemoveAll(s => s.component && s.component.transform.root != blockout && s.component.transform.root != terrain.transform
+                               && !solid.Any(s.component.transform.IsChildOf));
+        for (int i = 0; i < sources.Count; i++)
+            if (sources[i].component && solid.Any(sources[i].component.transform.IsChildOf))
+            {
+                NavMeshBuildSource s = sources[i];
+                s.area = 1; // Not Walkable: round it, not over it
+                sources[i] = s;
+            }
 
         // trees and shrubs don't come along with the terrain collider: block a trunk-sized column at each
         TerrainData land = terrain.terrainData;
@@ -144,26 +157,29 @@ static class NpcSetup
                 transform = Matrix4x4.Translate(terrain.transform.position + Vector3.Scale(tree.position, land.size)),
             });
 
-        // the road shares a mesh with the pavements, and the lawns with the gravel: give each material its own area
-        var pieces = new List<Mesh>();
-        foreach (string name in new[] { "WSP_Streets", "WSP_ParkSurfaces" })
+        // each ground piece its area: the road Street, the park's other ground (gravel, sand, the dog run, the
+        // playground) Lawn, the paths and pavements plain walkable. The lawns and beds go: the terrain lies on them and
+        // is Lawn already. So does the park's base slab, which lies under everything (and under a lawn its walkable top
+        // would win over the lawn's)
+        for (int i = sources.Count - 1; i >= 0; i--)
         {
-            Transform part = blockout.Find(name);
-            Mesh mesh = part.GetComponent<MeshFilter>().sharedMesh;
-            Material[] materials = part.GetComponent<Renderer>().sharedMaterials;
-            int at = sources.FindIndex(s => s.sourceObject == mesh);
-            NavMeshBuildSource source = sources[at];
-            sources.RemoveAt(at);
-            for (int i = 0; i < mesh.subMeshCount; i++)
-            {
-                string material = materials[i].name.ToLower();
-                if (material.Contains("grass") || material.Contains("planting")) continue; // the terrain lies on top of these
-                pieces.Add(new Mesh { indexFormat = mesh.indexFormat, vertices = mesh.vertices, triangles = mesh.GetTriangles(i) });
-                source.sourceObject = pieces.Last();
-                source.area = material.Contains("asphalt") ? Street : 0;
-                sources.Add(source);
-            }
+            if (!sources[i].component || sources[i].component.transform.parent != blockout) continue;
+            string name = sources[i].component.name;
+            if (name == "WSP_Park_Base" || name == "WSP_Park_Lawn" || name == "WSP_Park_PlantingBeds") { sources.RemoveAt(i); continue; }
+            NavMeshBuildSource source = sources[i];
+            if (name.StartsWith("WSP_Road")) source.area = Street;
+            else if (name == "WSP_Park_Paths") source.area = NpcSpawner.Path;
+            else if (name.StartsWith("WSP_Park_")) source.area = Lawn;
+            else if (name.StartsWith("WSP_Prop_")) source.area = 1; // statues, the stage, long benches, play structures: round them, not over them
+            else continue;
+            sources[i] = source;
         }
+
+        // paths switched off in the scene (the terrain draws them instead) still say where people may walk, but at the
+        // terrain's height: baked where the hidden mesh lies, people walked in the air wherever it's above the ground
+        foreach (Transform piece in blockout)
+            if (piece.name == "WSP_Park_Paths" && !piece.gameObject.activeInHierarchy && piece.TryGetComponent(out MeshFilter shape))
+                sources.Add(Draped(shape, terrain, NpcSpawner.Path));
 
         NavMeshBuildSettings settings = NavMesh.GetSettingsByID(0);
         settings.agentRadius = NpcSpawner.Radius;
@@ -171,7 +187,6 @@ static class NpcSetup
         settings.agentClimb = 0.4f;
         settings.minRegionArea = 4; // no scraps on bench seats and table tops
         NavMeshData data = NavMeshBuilder.BuildNavMeshData(settings, sources, bounds, Vector3.zero, Quaternion.identity);
-        pieces.ForEach(Object.DestroyImmediate);
         // the surface component only holds and shows the mesh; its own Bake button doesn't know about roads and lawns.
         // It gets its own object, pinned to the origin, because the mesh moves with whatever object holds it.
         GameObject holder = GameObject.Find("NPC NavMesh");
@@ -181,12 +196,30 @@ static class NpcSetup
         // unload the old mesh before its asset is replaced: overwriting one that is still loaded crashes the editor
         surface.RemoveData();
         surface.navMeshData = null;
-        AssetDatabase.CreateAsset(data, NavMeshPath);
+        string folder = System.IO.Path.GetDirectoryName(navMeshPath).Replace('\\', '/');
+        if (!AssetDatabase.IsValidFolder(folder)) AssetDatabase.CreateFolder(System.IO.Path.GetDirectoryName(folder).Replace('\\', '/'), System.IO.Path.GetFileName(folder));
+        AssetDatabase.CreateAsset(data, navMeshPath);
         surface.navMeshData = data;
         surface.AddData();
         EditorUtility.SetDirty(surface);
 
         return "NavMesh: " + sources.Count + " sources, " + NavMesh.CalculateTriangulation().indices.Length / 3 + " triangles";
+    }
+
+    // a piece's shape laid on the terrain, a hair above it
+    // ponytail: straight between the mesh's corners (every 4 m after the import's grid cut), so a sharp dip in between
+    // shows as a little gap or float; cut it finer if that shows
+    static NavMeshBuildSource Draped(MeshFilter piece, Terrain terrain, int area)
+    {
+        Mesh mesh = piece.sharedMesh;
+        Vector3[] corners = mesh.vertices;
+        for (int i = 0; i < corners.Length; i++)
+        {
+            Vector3 w = piece.transform.TransformPoint(corners[i]);
+            corners[i] = new Vector3(w.x, terrain.SampleHeight(w) + terrain.transform.position.y + 0.05f, w.z);
+        }
+        var draped = new Mesh { indexFormat = UnityEngine.Rendering.IndexFormat.UInt32, vertices = corners, triangles = mesh.triangles };
+        return new NavMeshBuildSource { shape = NavMeshBuildSourceShape.Mesh, sourceObject = draped, transform = Matrix4x4.identity, area = area };
     }
 
     static void SetArea(int index, string name, float cost)

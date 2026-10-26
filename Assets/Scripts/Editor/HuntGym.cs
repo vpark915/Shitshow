@@ -48,18 +48,6 @@ static class HuntGym
             Block(arena, "Wall", at, alongX ? new Vector3(Size, WallHeight, 1) : new Vector3(1, WallHeight, Size), grey);
         }
 
-        // cover: a ring of blocks round the middle and scattered pillars, so sight lines break and the three-jump chain
-        // has things to chain off
-        for (int i = 0; i < 8; i++)
-        {
-            float a = i * Mathf.PI / 4;
-            Vector3 at = new Vector3(Mathf.Sin(a) * 22, 0, Size / 2 + Mathf.Cos(a) * 22);
-            Block(arena, "Cover", at + Vector3.up * 1.25f, new Vector3(i % 2 == 0 ? 6 : 2, 2.5f, 2), grey).localRotation = Quaternion.Euler(0, i * 45, 0);
-        }
-        foreach (Vector2 p in new[] { new Vector2(-30, 20), new Vector2(30, 20), new Vector2(-30, 70), new Vector2(30, 70), new Vector2(-8, 12), new Vector2(8, 78), new Vector2(-15, 45), new Vector2(15, 45) })
-            Block(arena, "Pillar", new Vector3(p.x, 2, p.y), new Vector3(1.5f, 4, 1.5f), grey);
-        for (int i = 0; i < 4; i++)
-            Place("Assets/Prefabs/ParkBench.prefab", arena, new Vector3(i < 2 ? -8 : 8, 0, i % 2 == 0 ? 30 : 60), Quaternion.Euler(0, i < 2 ? 90 : -90, 0));
 
         // task spots (stand-ins until the real tasks are built)
         var tasks = new GameObject("Task Spots").transform;
@@ -69,7 +57,9 @@ static class HuntGym
         fountain.SetParent(tasks, false);
         fountain.localPosition = new Vector3(0, 0, Size / 2);
         Shape(PrimitiveType.Cylinder, fountain, "Basin", new Vector3(0, 0.25f, 0), new Vector3(8, 0.25f, 8), grey);
-        Object.DestroyImmediate(Shape(PrimitiveType.Cylinder, fountain, "Water", new Vector3(0, 0.3f, 0), new Vector3(7, 0.26f, 7), null).GetComponent<Collider>()); // wade into it
+        Transform water = Shape(PrimitiveType.Cylinder, fountain, "Water", new Vector3(0, 0.3f, 0), new Vector3(7, 0.26f, 7), null);
+        Object.DestroyImmediate(water.GetComponent<Collider>()); // wade into it
+        water.gameObject.AddComponent<WaterSplashes>().spoutMistRate = 0; // mist where anything wades; no spout here
         // arch: "perch on the arch", against the north wall
         var arch = new GameObject("Arch").transform;
         arch.SetParent(tasks, false);
@@ -81,14 +71,10 @@ static class HuntGym
         Transform chess = GameObject.Find("ChessTables").transform.GetChild(0);
         chess.position = gym.TransformPoint(new Vector3(-25, 0, Size / 2));
 
-        // vendors along the east wall, facing in
+        // MechanicsGym's vendors go; Scatter puts up as many as the settings say
         Transform vendors = gym.Find("Vendors");
-        for (int i = 0; i < vendors.childCount; i++)
-        {
-            Transform v = vendors.GetChild(i);
-            v.localPosition = new Vector3(Size / 2 - 6, 0, 12 + i * 15);
-            v.localRotation = Quaternion.Euler(0, -90, 0);
-        }
+        for (int i = vendors.childCount - 1; i >= 0; i--) Object.DestroyImmediate(vendors.GetChild(i).gameObject);
+        Scatter(gym, grey);
 
         // hunter at the south wall, hunted at the north, face to face across the fountain
         Transform player = Object.FindFirstObjectByType<FoodPowers>().transform;
@@ -98,32 +84,187 @@ static class HuntGym
         seagull.position = gym.TransformPoint(new Vector3(0, 0, Size - 4));
         seagull.rotation = gym.rotation * Quaternion.Euler(0, 180, 0);
 
-        // people: spawned in the south-west quarter, joggers lap just inside the walls (clear of the vendors on the east)
+        // people: spawned in the south-west quarter (Scatter sets the joggers' lap)
         GameObject.Find("NPCs").transform.position = gym.TransformPoint(new Vector3(-12, 0, 12));
-        Transform jog = GameObject.Find("JogRoute").transform;
-        Vector2[] corners = { new Vector2(-38, 6), new Vector2(-38, Size - 6), new Vector2(33, Size - 6), new Vector2(33, 6) };
-        for (int i = 0; i < jog.childCount && i < corners.Length; i++)
-            jog.GetChild(i).position = gym.TransformPoint(new Vector3(corners[i].x, -0.1f, corners[i].y));
 
         // the minimap covers just the arena
         Minimap map = Object.FindFirstObjectByType<Minimap>();
         if (map) map.area = new Bounds(gym.TransformPoint(new Vector3(0, 0, Size / 2)), new Vector3(Size, 10, Size));
 
-        // the people walk on the gym's NavMesh: bake it for the new layout, into this scene's own asset
-        NavMeshSurface walk = Object.FindFirstObjectByType<NavMeshSurface>();
-        if (walk)
-        {
-            walk.BuildNavMesh();
-            if (!AssetDatabase.IsValidFolder("Assets/Scenes/HuntGym")) AssetDatabase.CreateFolder("Assets/Scenes", "HuntGym");
-            AssetDatabase.DeleteAsset("Assets/Scenes/HuntGym/NavMesh.asset");
-            AssetDatabase.CreateAsset(walk.navMeshData, "Assets/Scenes/HuntGym/NavMesh.asset");
-        }
-
+        BakeNavMesh();
         SetUpOnline();
         EditorSceneManager.SaveScene(scene);
         var list = new System.Collections.Generic.List<EditorBuildSettingsScene>(EditorBuildSettings.scenes);
         if (!list.Exists(s => s.path == ScenePath)) { list.Add(new EditorBuildSettingsScene(ScenePath, true)); EditorBuildSettings.scenes = list.ToArray(); }
         Debug.Log("Built " + ScenePath);
+    }
+
+    // new cover, vendors, stray food and people in the Hunt Gym from HuntGymSettings, keeping everything else
+    [MenuItem("Tools/Wash Square/Reshuffle Hunt Gym Cover")]
+    internal static void Reshuffle()
+    {
+        if (EditorSceneManager.GetActiveScene().path != ScenePath)
+        {
+            if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
+            EditorSceneManager.OpenScene(ScenePath);
+        }
+        Transform gym = GameObject.Find("Gym").transform;
+        foreach (string group in new[] { "Arena", "Vendors", "Stray Food" })
+        {
+            Transform things = gym.Find(group);
+            if (!things) continue;
+            for (int i = things.childCount - 1; i >= 0; i--)
+                if (things.GetChild(i).name != "Wall") Object.DestroyImmediate(things.GetChild(i).gameObject);
+        }
+        Scatter(gym, gym.Find("Arena/Wall").GetComponent<Renderer>().sharedMaterial);
+        BakeNavMesh();
+        EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene());
+    }
+
+    // places (gym space, x across, z from the south wall) cover must keep clear of, and how far: the spawns, the task
+    // spots and the joggers' lane inside the walls
+    static readonly (Vector2 at, float clear)[] KeepClear =
+    {
+        (new Vector2(0, 4), 8), (new Vector2(0, Size - 4), 8),               // Pigeon and Seagull spawns
+        (new Vector2(0, Size / 2), 8), (new Vector2(0, Size - 8), 7),        // fountain, arch
+        (new Vector2(-25, Size / 2), 4),                                      // chess table
+    };
+
+    // everything HuntGymSettings says, spread over the whole arena at random spots kept apart (so no clumps and no big
+    // empty patches): carts and trucks (under Gym/Vendors, so their food is bought), then cover (low walls, jump-height
+    // blocks for the three-jump chain, pillars, park benches), then free food lying about (under Gym/Stray Food). Each
+    // thing claims some room round it, and no two things' rooms overlap. Also sets how many people and bird flocks the gym spawns.
+    static void Scatter(Transform gym, Material look)
+    {
+        const float Edge = 10f, VendorRoom = 10f, FoodRoom = 3f; // Edge keeps the joggers' lane by the walls free
+        HuntGymSettings settings = HuntGymSettings.Load();
+        int seed = settings.seed != 0 ? settings.seed : System.Environment.TickCount & 0xFFFF;
+        var random = new System.Random(seed);
+        float Range(float low, float high) => low + (float)random.NextDouble() * (high - low);
+        Quaternion Turn() => Quaternion.Euler(0, Range(0, 360), 0);
+        var placed = new System.Collections.Generic.List<(Vector2 at, float room)>();
+
+        // up to `count` free spots each needing `room` metres (a truck needs more than a bagel), handed to `put`
+        int Fill(int count, float room, float inset, System.Action<Vector2> put)
+        {
+            int made = 0;
+            for (int tries = 0; tries < 50 * count && made < count; tries++)
+            {
+                var p = new Vector2(Range(-Size / 2 + inset, Size / 2 - inset), Range(inset, Size - inset));
+                bool ok = true;
+                foreach (var (at, clear) in KeepClear) ok &= (p - at).magnitude >= clear + room / 2;
+                foreach (var (at, other) in placed) ok &= (p - at).magnitude >= (room + other) / 2;
+                if (!ok) continue;
+                placed.Add((p, room));
+                put(p);
+                made++;
+            }
+            if (made < count) Debug.LogWarning("Hunt Gym: only " + made + " of " + count + " fit; lower the spacing or the other amounts");
+            return made;
+        }
+
+        // every prefab as many times as its slider says, shuffled, so if not all fit it's random which are left out
+        System.Collections.Generic.List<string> Deal((string prefab, int count)[] kinds)
+        {
+            var deck = new System.Collections.Generic.List<string>();
+            foreach (var (prefab, count) in kinds)
+                for (int i = 0; i < count; i++) deck.Add("Assets/Prefabs/" + prefab + ".prefab");
+            for (int i = deck.Count - 1; i > 0; i--) { int j = random.Next(i + 1); (deck[i], deck[j]) = (deck[j], deck[i]); }
+            return deck;
+        }
+
+        Transform vendors = gym.Find("Vendors");
+        var vendorDeck = Deal(settings.Vendors);
+        int vendorsMade = Fill(vendorDeck.Count, VendorRoom, Edge + 4, p =>
+            Place(vendorDeck[vendors.childCount], vendors, new Vector3(p.x, 0, p.y), Turn()));
+
+        Transform arena = gym.Find("Arena");
+        int[] weights = { settings.lowWalls, settings.blocks, settings.pillars, settings.benches };
+        int total = weights[0] + weights[1] + weights[2] + weights[3];
+        int coverMade = total == 0 ? 0 : Fill(settings.cover, settings.spacing, Edge, p =>
+        {
+            int kind = 0;
+            for (int roll = random.Next(total); roll >= weights[kind]; kind++) roll -= weights[kind];
+            if (kind == 0) Block(arena, "Cover", new Vector3(p.x, 1.25f, p.y), new Vector3(Range(4, 7), 2.5f, 1), look).localRotation = Turn();
+            else if (kind == 1) Block(arena, "Cover", new Vector3(p.x, 1.25f, p.y), new Vector3(2, 2.5f, 2), look).localRotation = Turn();
+            else if (kind == 2) Block(arena, "Pillar", new Vector3(p.x, 2, p.y), new Vector3(1.5f, 4, 1.5f), look);
+            else Place("Assets/Prefabs/ParkBench.prefab", arena, new Vector3(p.x, 0, p.y), Turn());
+        });
+
+        var carDeck = Deal(settings.Cars);
+        int carsMade = 0;
+        Fill(carDeck.Count, 7, Edge, p => Place(carDeck[carsMade++], arena, new Vector3(p.x, 0, p.y), Turn()));
+        int bikesMade = Fill(settings.citiBikes, 3, Edge, p => Place("Assets/Prefabs/CitiBike.prefab", arena, new Vector3(p.x, 0, p.y), Turn()));
+        // a station is a row of docks with room for the bikes in front of them, so it needs its length plus a bike's
+        float stationRoom = settings.docksPerStation * CitiBikePrefab.DockSpacing + 3;
+        int stationsMade = Fill(settings.bikeStations, stationRoom, Edge, p =>
+            CitiBikePrefab.Station(arena, arena.TransformPoint(new Vector3(p.x, 0, p.y)), arena.rotation * Turn(), settings.docksPerStation, settings.dockedBikes, random));
+
+        Transform strays = gym.Find("Stray Food");
+        if (!strays) { strays = new GameObject("Stray Food").transform; strays.SetParent(gym, false); }
+        var foodDeck = Deal(settings.Food);
+        int foodMade = Fill(foodDeck.Count, FoodRoom, Edge, p =>
+        {
+            Transform food = Place(foodDeck[strays.childCount], strays, new Vector3(p.x, 0, p.y), Turn());
+            Renderer[] looks = food ? food.GetComponentsInChildren<Renderer>() : new Renderer[0];
+            if (looks.Length == 0) return;
+            Bounds b = looks[0].bounds;
+            foreach (Renderer r in looks) b.Encapsulate(r.bounds);
+            food.position += Vector3.up * (gym.position.y - b.min.y + 0.01f); // sitting on the floor, not in it
+        });
+
+        Debug.Log("Hunt Gym: " + vendorsMade + " vendors, " + coverMade + " cover, " + carsMade + " cars, " + bikesMade + " bikes, " + stationsMade + " bike stations, " + foodMade + " stray food, seed " + seed +
+                  " (put it in HuntGymSettings to keep this layout)");
+
+        // joggers lap 6 m inside the walls, in the lane Edge keeps free
+        Transform jog = GameObject.Find("JogRoute").transform;
+        Vector2[] corners = { new Vector2(-Size / 2 + 6, 6), new Vector2(-Size / 2 + 6, Size - 6), new Vector2(Size / 2 - 6, Size - 6), new Vector2(Size / 2 - 6, 6) };
+        for (int i = 0; i < jog.childCount && i < corners.Length; i++)
+            jog.GetChild(i).position = gym.TransformPoint(new Vector3(corners[i].x, -0.1f, corners[i].y));
+
+        BirdFlocks flocks = Object.FindFirstObjectByType<BirdFlocks>();
+        if (flocks)
+        {
+            flocks.pigeonFlocks = settings.pigeonFlocks;
+            flocks.seagullFlocks = settings.seagullFlocks;
+            flocks.flockSize = new Vector2Int(settings.flockMin, Mathf.Max(settings.flockMin, settings.flockMax));
+            EditorUtility.SetDirty(flocks);
+        }
+
+        NpcSpawner people = Object.FindFirstObjectByType<NpcSpawner>();
+        if (!people) return;
+        people.walkers = settings.walkers;
+        people.joggers = settings.joggers;
+        people.idlers = settings.idlers;
+        people.officers = settings.officers;
+        people.guards = settings.guards;
+        people.foodDropChance = settings.foodDropChance;
+        EditorUtility.SetDirty(people);
+    }
+
+    // the people walk on the scene's NavMesh: bake it for the layout, into this scene's own asset (Scenes/<scene>/NavMesh)
+    internal static void BakeNavMesh(string scene = "HuntGym")
+    {
+        NavMeshSurface walk = Object.FindFirstObjectByType<NavMeshSurface>();
+        if (!walk) return;
+        walk.BuildNavMesh();
+        string Path = "Assets/Scenes/" + scene + "/NavMesh.asset";
+        var saved = AssetDatabase.LoadAssetAtPath<UnityEngine.AI.NavMeshData>(Path);
+        if (!saved)
+        {
+            if (!AssetDatabase.IsValidFolder("Assets/Scenes/" + scene)) AssetDatabase.CreateFolder("Assets/Scenes", scene);
+            AssetDatabase.CreateAsset(walk.navMeshData, Path);
+            return;
+        }
+        // Unity won't create an asset over the old bake, so the new bake is copied into it
+        EditorUtility.CopySerialized(walk.navMeshData, saved);
+        saved.name = "NavMesh";
+        walk.RemoveData();
+        walk.navMeshData = saved;
+        walk.AddData();
+        EditorUtility.SetDirty(saved);
+        EditorUtility.SetDirty(walk);
+        AssetDatabase.SaveAssetIfDirty(saved);
     }
 
     // the online match (HuntMatch) in the open Hunt Gym: the NetBird player prefab, a NetworkManager on Unity Transport
@@ -178,9 +319,9 @@ static class HuntGym
         Transform tasks = gym.Find("Task Spots");
         match.tasks = new[]
         {
-            new HuntMatch.Task { name = "Bath", description = "Take a bath: stand in the fountain", spot = tasks.Find("Fountain"), radius = 3.5f, height = new Vector2(-1, 1.5f), seconds = 5 },
-            new HuntMatch.Task { name = "Chess", description = "Ruin a chess game: stand on the chess table", spot = GameObject.Find("ChessTables").transform.GetChild(0), radius = 1.5f, height = new Vector2(0.5f, 2), seconds = 3 },
-            new HuntMatch.Task { name = "Arch", description = "Perch on top of the arch", spot = tasks.Find("Arch"), radius = 5, height = new Vector2(9.5f, 13), seconds = 3 },
+            new HuntMatch.Task { name = "Bath", description = "Take a bath: stand in the fountain", spot = tasks.Find("Fountain"), radius = 3.5f, height = new Vector2(-1, 1.5f), amount = 5 },
+            new HuntMatch.Task { name = "Chess", description = "Ruin a chess game: stand on the chess table", spot = GameObject.Find("ChessTables").transform.GetChild(0), radius = 1.5f, height = new Vector2(0.5f, 2), amount = 3 },
+            new HuntMatch.Task { name = "Arch", description = "Perch on top of the arch", spot = tasks.Find("Arch"), radius = 5, height = new Vector2(9.5f, 13), amount = 3 },
         };
         match.dummySeagull = GameObject.Find("Seagulls").transform.GetChild(0).gameObject;
         EditorUtility.SetDirty(match);
@@ -219,11 +360,12 @@ static class HuntGym
         return g.transform;
     }
 
-    static void Place(string prefab, Transform parent, Vector3 at, Quaternion facing)
+    static Transform Place(string prefab, Transform parent, Vector3 at, Quaternion facing)
     {
         var asset = AssetDatabase.LoadAssetAtPath<GameObject>(prefab);
-        if (!asset) return;
+        if (!asset) { Debug.LogWarning("Hunt Gym: no " + prefab); return null; }
         var g = (GameObject)PrefabUtility.InstantiatePrefab(asset, parent);
         g.transform.SetLocalPositionAndRotation(at, facing);
+        return g.transform;
     }
 }

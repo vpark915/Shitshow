@@ -1,12 +1,15 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
 using UnityEngine.UI;
 
 // The Pigeon's minimap (design doc, Tracking and Information). A top-down picture of the park, taken once at start,
 // centred on the player and turned with the camera so up is the way you're looking. Police are red dots, food carts and trucks yellow squares. The target
 // (the Seagull) is never a dot: it's a circle of Target Radius with them somewhere inside, and the circle only moves
-// once they leave it, so the map says roughly where they are but never exactly. Put this on the HUD canvas.
+// once they leave it, so the map says roughly where they are but never exactly. When it's off the map, an arrow on the
+// map's edge points to it. Put this on the HUD canvas.
 public class Minimap : MonoBehaviour
 {
     [Header("Map")]
@@ -37,15 +40,25 @@ public class Minimap : MonoBehaviour
     public Color targetColor = new Color(1f, 0.55f, 0f, 0.4f);
     [Tooltip("While revealed (a chess piece eaten), the target's exact dot on the map and their outline through walls")]
     public Color revealColor = new Color(1f, 0.2f, 0.1f);
+    [Tooltip("The arrow on the map's edge pointing to the target when it's off the map")]
+    public Color offMapColor = Color.red;
+
+    [Header("Seagull tasks")]
+    [Tooltip("Where the Seagull's tasks are (set by HuntMatch); a diamond each until done")]
+    public Transform[] taskSpots = { };
+    [Tooltip("Bit i set: task i is done, its diamond goes")]
+    public int tasksDone;
+    public Color taskColor = new Color(0.2f, 0.9f, 1f);
 
     Texture picture;
     Sprite circle;
     float scale; // canvas pixels per metre
-    RectTransform pivot, world, zone, exact;
+    RectTransform pivot, world, zone, exact, offMap;
     float revealUntil;
     Outline glow;
     Vector3 zoneCentre;
     bool zonePlaced;
+    readonly List<RectTransform> taskMarks = new List<RectTransform>();
     readonly List<(Npc cop, RectTransform dot)> police = new List<(Npc, RectTransform)>();
 
     // before anyone's Start, so the crowd and the birds aren't in the picture
@@ -69,6 +82,7 @@ public class Minimap : MonoBehaviour
         zone = Make("Target", world, Vector2.one * targetRadius * 2 * scale, targetColor, circle);
         exact = Make("Target Exact", world, Vector2.one * dotSize * 1.6f, revealColor, circle);
         Make("You", frame, Vector2.one * dotSize, Color.white, circle);
+        offMap = Make("Target Off Map", frame, new Vector2(2.4f, 1.6f) * dotSize, offMapColor, DamageIndicator.MakeArrow());
 
         yield return null; // the NPC spawner fills the park in its own Start
         foreach (Npc npc in FindObjectsByType<Npc>(FindObjectsSortMode.None))
@@ -81,6 +95,19 @@ public class Minimap : MonoBehaviour
         // map up = camera forward: turn the map by the camera's heading, and slide it so the player is in the middle
         pivot.localEulerAngles = new Vector3(0, 0, Camera.main.transform.eulerAngles.y);
         world.anchoredPosition = -OnMap(player.position);
+
+        while (taskMarks.Count < taskSpots.Length)
+        {
+            RectTransform mark = Make("Task", world, Vector2.one * dotSize * 1.4f, taskColor, null);
+            mark.localEulerAngles = new Vector3(0, 0, 45);
+            taskMarks.Add(mark);
+        }
+        for (int i = 0; i < taskMarks.Count; i++)
+        {
+            bool show = i < taskSpots.Length && taskSpots[i] && (tasksDone & (1 << i)) == 0;
+            taskMarks[i].gameObject.SetActive(show);
+            if (show) taskMarks[i].anchoredPosition = OnMap(taskSpots[i].position);
+        }
 
         foreach ((Npc cop, RectTransform dot) in police)
         {
@@ -95,6 +122,7 @@ public class Minimap : MonoBehaviour
         if (revealed && !glow) AddOutline();
         if (glow) glow.enabled = revealed;
         zone.gameObject.SetActive(target && !revealed);
+        offMap.gameObject.SetActive(false);
         if (!target) return;
         if (revealed) exact.anchoredPosition = OnMap(target.position);
         // keep the circle still until the target walks out of it, then drop a new one somewhere around them
@@ -105,6 +133,14 @@ public class Minimap : MonoBehaviour
             zonePlaced = true;
         }
         zone.anchoredPosition = OnMap(zoneCentre);
+
+        // off the map: an arrow on the map's edge, in the target's direction
+        Vector2 shown = pivot.localRotation * (world.anchoredPosition + (revealed ? exact : zone).anchoredPosition);
+        float half = size / 2, far = Mathf.Max(Mathf.Abs(shown.x), Mathf.Abs(shown.y));
+        if (far <= half) return;
+        offMap.gameObject.SetActive(true);
+        offMap.anchoredPosition = shown * (half - dotSize) / far;
+        offMap.localEulerAngles = new Vector3(0, 0, Vector2.SignedAngle(Vector2.up, shown));
     }
 
     // for a while, show exactly where the target is: a dot on the map instead of the circle, and an outline through walls
@@ -143,6 +179,15 @@ public class Minimap : MonoBehaviour
         cam.farClipPlane = 400;
         cam.clearFlags = CameraClearFlags.SolidColor;
         cam.backgroundColor = new Color(0.2f, 0.2f, 0.2f);
+        // bare minimum: PC_RPAsset's second renderer (Minimap_Renderer: Forward+, no SSGI, GTAO or fog), no shadows,
+        // post-processing, depth or colour copies
+        UniversalAdditionalCameraData bare = cam.GetUniversalAdditionalCameraData();
+        bare.SetRenderer(1);
+        bare.renderShadows = false;
+        bare.renderPostProcessing = false;
+        bare.antialiasing = AntialiasingMode.None;
+        bare.requiresDepthOption = CameraOverrideOption.Off;
+        bare.requiresColorOption = CameraOverrideOption.Off;
         var shot = new RenderTexture(resolution, Mathf.RoundToInt(resolution * area.size.z / area.size.x), 24);
         cam.targetTexture = shot;
         cam.Render();

@@ -7,7 +7,10 @@ using UnityEngine.AI;
 public class NpcSpawner : MonoBehaviour
 {
     public const float Radius = 0.3f, Height = 1.8f;
-    const int PathsOnly = 1; // the built-in Walkable area: paving and pavements, not lawns or the road
+    // the park's paths get an area of their own, numbered above Lawn and Street: where the paths lie on the lawn the
+    // higher area wins, so they aren't swallowed by it (NpcSetup)
+    public const int Path = 5;
+    public const int PathsOnly = 1 | 1 << Path; // the built-in Walkable area (pavements) and Path: not lawns or the road (people keep to it)
 
     [Header("Who")]
     public GameObject[] civilians = { };
@@ -68,6 +71,10 @@ public class NpcSpawner : MonoBehaviour
     public GameObject magazineDrop;
     [Tooltip("Left floating where a civilian dies")]
     public GameObject walletDrop;
+    [Tooltip("Chance that someone who dies also drops something to eat (free, and gone once eaten)")]
+    [Range(0, 1)] public float foodDropChance = 0.3f;
+    [Tooltip("What they might drop: one of these at random")]
+    public FoodItem[] foodDrops;
 
     [Header("Chatting")]
     [Tooltip("Every this many seconds a walker somewhere calls over the walkers near them for a chat")]
@@ -139,7 +146,7 @@ public class NpcSpawner : MonoBehaviour
         for (int i = 0; i < group.Count; i++)
         {
             Vector3 spot = centre + Quaternion.Euler(0, 360f * i / group.Count, 0) * Vector3.forward * 0.7f;
-            group[i].Chat(NavMesh.SamplePosition(spot, out NavMeshHit hit, 1f, NavMesh.AllAreas) ? hit.position : centre, centre, seconds);
+            group[i].Chat(NavMesh.SamplePosition(spot, out NavMeshHit hit, 1f, PathsOnly) ? hit.position : centre, centre, seconds);
         }
     }
 
@@ -185,6 +192,7 @@ public class NpcSpawner : MonoBehaviour
         agent.speed = speed * Random.Range(0.85f, 1.15f);
         agent.angularSpeed = 240;
         agent.obstacleAvoidanceType = ObstacleAvoidanceType.LowQualityObstacleAvoidance;
+        agent.areaMask = PathsOnly; // paths and pavements only: off the grass and out of the road
         agent.avoidancePriority = Random.Range(20, 80);
 
         person.AddComponent<Health>().maxHealth = health;
@@ -219,7 +227,7 @@ public class NpcSpawner : MonoBehaviour
         p.y = anchor.y;
         var path = new NavMeshPath();
         if (!NavMesh.SamplePosition(p, out NavMeshHit hit, 2f, PathsOnly)) return false;
-        if (!NavMesh.CalculatePath(anchor, hit.position, NavMesh.AllAreas, path) || path.status != NavMeshPathStatus.PathComplete) return false;
+        if (!NavMesh.CalculatePath(anchor, hit.position, PathsOnly, path) || path.status != NavMeshPathStatus.PathComplete) return false;
         p = hit.position;
         return true;
     }
