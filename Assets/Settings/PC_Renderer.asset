@@ -20,7 +20,7 @@ MonoBehaviour:
   passIndex: 0
   bindDepthStencilAttachment: 0
   m_Version: 1
---- !u!114 &-3820419283749182731
+--- !u!114 &-5892571760887733824
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -29,16 +29,18 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 175cea8de38556cbf9c2f04c6a06d29f, type: 3}
-  m_Name: Fog Volumes
-  m_EditorClassIdentifier: Sinnwrig.FogVolumes::Sinnwrig.FogVolumes.VolumetricFogFeature
-  m_Active: 0
-  resolution: 1
-  temporalRendering: 0
-  disableBlur: 1
-  beforeTransparents: 0
-  temporalResolution: 3
-  data: {fileID: 11400000, guid: cea71fd1f15cdafae9a40f211eb5be08, type: 2}
+  m_Script: {fileID: 11500000, guid: a1614fc811f8f184697d9bee70ab9fe5, type: 3}
+  m_Name: Decal
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.DecalRendererFeature
+  m_Active: 1
+  m_Settings:
+    technique: 2
+    maxDrawDistance: 60
+    decalLayers: 0
+    dBufferSettings:
+      surfaceData: 2
+    screenSpaceSettings:
+      normalBlend: 0
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -68,11 +70,11 @@ MonoBehaviour:
   - {fileID: -8652487809783254875}
   - {fileID: 7095028761235743110}
   - {fileID: 5172839406172839415}
-  - {fileID: -3820419283749182731}
   - {fileID: 3501078370398156476}
   - {fileID: 5928374615283746191}
   - {fileID: 4417306204921835521}
-  m_RendererFeatureMap: ad6b866f10d7b46ca5b0780a2e30ec8786e1a238119b7662f71d1375089ec947f5e21323e724fbcabcb662763a5496308f456e7f4dd1455201b07ee8966c4d3d
+  - {fileID: -5892571760887733824}
+  m_RendererFeatureMap: ad6b866f10d7b46ca5b0780a2e30ec8786e1a238119b7662f71d1375089ec947bcb662763a5496308f456e7f4dd1455201b07ee8966c4d3dc0e1c922346139ae
   m_UseNativeRenderPass: 1
   xrSystemData: {fileID: 0}
   postProcessData: {fileID: 11400000, guid: 41439944d30ece34e96484bdb6645b55, type: 2}
@@ -128,16 +130,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 343a32aa482041346936d193b3986b51, type: 3}
   m_Name: GroundTruthAmbientOcclusion
   m_EditorClassIdentifier: 
-  m_Active: 1
+  m_Active: 0
   m_Shader: {fileID: 4800000, guid: d9d196ed72cf0a547a1a65cf7fc9f895, type: 3}
   m_Settings:
     Downsample: 1
     AfterOpaque: 1
     Source: 0
     NormalSamples: 0
-    Intensity: 0.79
-    DirectLightingStrength: 0.268
-    Radius: 5.99
+    Intensity: 1.18
+    DirectLightingStrength: 0.592
+    Radius: 2.68
     SampleCount: 2
 --- !u!114 &5172839406172839415
 MonoBehaviour:
@@ -204,17 +206,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f62c9c65cf3354c93be831c8bc075510, type: 3}
   m_Name: ScreenSpaceAmbientOcclusion
   m_EditorClassIdentifier: 
-  m_Active: 1
+  m_Active: 0
   m_Settings:
     AOMethod: 1
     Downsample: 0
     AfterOpaque: 1
     Source: 1
     NormalSamples: 1
-    Intensity: 0.39
-    DirectLightingStrength: 0.299
-    Radius: 0.7
+    Intensity: 1
+    DirectLightingStrength: 0.411
+    Radius: 0.64
     Samples: 0
     BlurQuality: 0
-    Falloff: 83.24
+    Falloff: 3.16
     SampleCount: -1

@@ -33,6 +33,7 @@ class BlockoutPostprocessor : AssetPostprocessor
     {
         if (!assetPath.EndsWith("washingtonSquareBlockout.blend")) return;
 
+        var unwrapped = new HashSet<Mesh>();
         foreach (Transform child in root.transform.Cast<Transform>().ToArray())
         {
             // Blender's default cube and the empty camera / light nodes
@@ -49,8 +50,20 @@ class BlockoutPostprocessor : AssetPostprocessor
                 BoxUVs(child.GetComponent<MeshFilter>().sharedMesh, child, Flat.Contains(child.name));
             if (Ground.Contains(child.name)) GridCut(child.GetComponent<MeshFilter>().sharedMesh, child);
             // lightmap UVs, last (the rewrites above split vertices): the .blend has one UV set, and without a second the
-            // bake falls back to the box UVs above, which tile every few metres, so every tile shared the same lightmap texels
-            Unwrapping.GenerateSecondaryUVSet(child.GetComponent<MeshFilter>().sharedMesh);
+            // bake falls back to the box UVs above, which tile every few metres, so every tile shared the same lightmap texels.
+            // Once per mesh (the lamps, benches and trees share one each), and not for what the bake doesn't need: the hidden
+            // paths and the fountain's water and spray (lit by probes instead). Unity's unwrapper hung on this import twice
+            // (2026-10-25/26: UnwrapCL at 100% for 25+ min); the big ones are logged first so the next hang names its mesh.
+            // ponytail: the probe-lit list is by hand plus a 100k-vertex cap; add to it if a hang names another mesh
+            Mesh shape = child.GetComponent<MeshFilter>().sharedMesh;
+            // (the hang was WSP_ParkFence_Beds: 669k vertices of thin bars; WSP_ParkFence is 298k)
+            if (Ground.Contains(child.name) || child.name.StartsWith("WSP_Fountain_Water") || child.name.StartsWith("WSP_Fountain_Spray") || shape.vertexCount > 100000)
+                child.GetComponent<MeshRenderer>().receiveGI = ReceiveGI.LightProbes;
+            else if (unwrapped.Add(shape))
+            {
+                if (shape.vertexCount > 10000) Debug.Log("BlockoutPostprocessor: lightmap UVs for " + child.name + " (" + shape.vertexCount + " vertices)");
+                Unwrapping.GenerateSecondaryUVSet(shape);
+            }
             if (MeshShaped.Any(child.name.StartsWith)) child.gameObject.AddComponent<MeshCollider>();
             else child.gameObject.AddComponent<BoxCollider>();
         }
@@ -141,7 +154,7 @@ class BlockoutPostprocessor : AssetPostprocessor
     // made in Blender), picked so the average lands on a dry, weathered outdoor value (the comment), since ambientCG's
     // maps run glossy (grass 0.74, polished granite 0.97); without one, the value itself. metallic only for bare metal
     // (it takes constants: a map would override it). Too even a smoothness everywhere was the plastic look.
-    const string Textures = "Assets/Blender/Textures/WashingtonSquareTextures/";
+    internal const string Textures = "Assets/Blender/Textures/WashingtonSquareTextures/";
     internal static readonly Dictionary<string, (string color, string set, float metres, float smoothness, float metallic, float relief)> Surfaces =
         new Dictionary<string, (string, string, float, float, float, float)>
     {
@@ -162,10 +175,10 @@ class BlockoutPostprocessor : AssetPostprocessor
         ["WSP_grass"] = (null, "Grass004", 2f, 0.34f, 0, 0.03f),                             // ~0.25
         ["WSP_turf"] = ("WSP_turf_Color", "Grass004", 2f, 0.4f, 0, 0.02f),                   // ~0.3: artificial
         ["WSP_planting"] = (null, "Ground078", 2f, 0.28f, 0, 0.025f),                         // ~0.12: soil
-        ["WSP_wood"] = ("WSP_bench_wood_Color", "Wood051", 1.5f, 0.54f, 0, 0.003f),           // ~0.25: weathered slats
-        ["WSP_iron"] = ("WSP_iron_Color", "PaintedMetal004", 1f, 0.47f, 0, 0),           // ~0.4: painted, so not metal
-        ["WSP_dark"] = ("WSP_dark_Color", "PaintedMetal004", 1f, 0.47f, 0, 0),
-        ["WSP_bronze"] = ("WSP_bronze_Color", "PaintedMetal004", 1f, 0.35f, 0.7f, 0),    // patinated bronze
+        ["WSP_wood"] = ("WSP_bench_wood_Color", "Wood051", 1.5f, 0.54f, 0, 0.012f),           // ~0.25: weathered slats, grain cut deep
+        ["WSP_iron"] = ("WSP_iron_Color", "PaintedMetal004", 1f, 0.47f, 0, 0.002f),           // ~0.4: painted, so not metal; chips sunk 2 mm
+        ["WSP_dark"] = ("WSP_dark_Color", "PaintedMetal004", 1f, 0.47f, 0, 0.002f),
+        ["WSP_bronze"] = ("WSP_bronze_Color", "PaintedMetal004", 1f, 0.35f, 0.7f, 0.002f),    // patinated bronze
         ["WSP_roof"] = (null, "RoofingTiles013A", 2f, 0.6f, 0, 0.02f),                       // ~0.3
         ["WSP_play_surface"] = ("WSP_rubber_surface_Color", null, 2f, 0.1f, 0, 0),       // rubber
         ["WSP_play_equipment"] = ("WSP_play_yellow_Color", null, 1f, 0.45f, 0, 0),       // powder-coated steel
@@ -174,20 +187,25 @@ class BlockoutPostprocessor : AssetPostprocessor
 
     // relief: metres of depth by parallax occlusion (Shitshow/Parallax Lit, from the set's <set>_Displacement.jpg):
     // the pebbles, mortar lines and grass get real-looking depth on flat meshes, for a few samples per pixel on screen.
-    // 0 where it's under a millimetre (painted metal, plastic, rubber): all cost, nothing seen.
+    // 0 for plastic and rubber (nothing to sink); painted metal gets 2 mm so its chips read.
     // Each set's height map black and white points (2nd/98th percentiles, measured in Blender) stretch it to the full depth.
-    static readonly Dictionary<string, (float black, float white)> HeightRange = new Dictionary<string, (float, float)>
+    internal static readonly Dictionary<string, (float black, float white)> HeightRange = new Dictionary<string, (float, float)>
     {
         ["Bricks109A"] = (0.16f, 0.73f), ["Granite003A"] = (0.49f, 0.51f), ["Concrete034"] = (0.39f, 0.85f), ["Grass004"] = (0.15f, 0.62f), ["Gravel023"] = (0.15f, 0.74f),
         ["Ground054"] = (0.40f, 0.85f), ["Ground078"] = (0.24f, 0.68f), ["Marble012"] = (0.64f, 0.98f), ["PavingStones046"] = (0.53f, 0.82f),
         ["RoofingTiles013A"] = (0.27f, 0.91f), ["Wood051"] = (0.32f, 0.65f),
+        ["PaintedMetal004"] = (0.55f, 0.92f), // no height map in the set: its roughness map inverted (ffmpeg negate), so the chips and scratches sink
     };
-    const string ParallaxShader = "Assets/Parallax/ParallaxLit.shader";
+    internal const string ParallaxShader = "Assets/Parallax/ParallaxLit.shader";
 
     // Weathering on every listed material: URP Lit's detail map as a large, slightly warm grime layer (x2 detail: 0.5 = no
     // change, darker = dust and soot), from ambientCG's SurfaceImperfections013 stains (made in Blender). Tiled at
     // WeatheringMetres, out of step with the surface textures, so it also hides their repeats.
-    const float WeatheringMetres = 7f;
+    internal const float WeatheringMetres = 7f;
+
+    // turned up across every listed material for a rougher, more worn look: normal maps deeper, smoothness down (the
+    // table's values times this), metallic up (only the bronze has any), the grime layer heavier (1 = the map as made)
+    internal const float NormalStrength = 1.8f, SmoothnessScale = 0.8f, MetallicScale = 1.3f, WeatheringStrength = 1.5f, ParallaxStrength = 2.5f; // ParallaxStrength: times the relief column
 
     bool Surface(Material material)
     {
@@ -197,7 +215,7 @@ class BlockoutPostprocessor : AssetPostprocessor
         if (set != null)
         {
             material.SetTexture("_BumpMap", Load(set + "NormalGL"));
-            material.SetFloat("_BumpScale", 1f);
+            material.SetFloat("_BumpScale", NormalStrength);
             material.EnableKeyword("_NORMALMAP");
             Texture2D occlusion = Load(set + "AmbientOcclusion"); // not every set has one
             if (occlusion)
@@ -217,9 +235,9 @@ class BlockoutPostprocessor : AssetPostprocessor
         material.SetTexture("_MetallicGlossMap", smoothness);
         if (smoothness) material.EnableKeyword("_METALLICSPECGLOSSMAP");
         else material.DisableKeyword("_METALLICSPECGLOSSMAP");
-        material.SetFloat("_Smoothness", surface.smoothness);
-        material.SetFloat("_Glossiness", surface.smoothness); // URP's MaterialPostprocessor copies this over _Smoothness after import
-        material.SetFloat("_Metallic", surface.metallic);
+        material.SetFloat("_Smoothness", surface.smoothness * SmoothnessScale);
+        material.SetFloat("_Glossiness", surface.smoothness * SmoothnessScale); // URP's MaterialPostprocessor copies this over _Smoothness after import
+        material.SetFloat("_Metallic", Mathf.Clamp01(surface.metallic * MetallicScale));
         material.SetFloat("_SmoothnessTextureChannel", 0); // from the metallic map's alpha, not the colour map's
 
         Texture2D heights;
@@ -230,7 +248,7 @@ class BlockoutPostprocessor : AssetPostprocessor
             Shader parallax = AssetDatabase.LoadAssetAtPath<Shader>(ParallaxShader);
             if (parallax) material.shader = parallax; // still Lit (one-step parallax) if the shader isn't there yet
             material.SetTexture("_ParallaxMap", heights);
-            material.SetFloat("_Parallax", surface.relief / surface.metres); // depth in texture repeats
+            material.SetFloat("_Parallax", surface.relief * ParallaxStrength / surface.metres); // depth in texture repeats
             material.SetFloat("_ParallaxMin", range.black);
             material.SetFloat("_ParallaxMax", range.white);
             material.EnableKeyword("_PARALLAXMAP");
@@ -238,7 +256,7 @@ class BlockoutPostprocessor : AssetPostprocessor
 
         material.SetTexture("_DetailAlbedoMap", Load("WSP_Weathering_DetailX2", ".png"));
         material.SetTextureScale("_DetailAlbedoMap", Vector2.one * PavingTile / WeatheringMetres); // the UVs are PavingTile metres
-        material.SetFloat("_DetailAlbedoMapScale", 1f);
+        material.SetFloat("_DetailAlbedoMapScale", WeatheringStrength);
         material.EnableKeyword("_DETAIL_MULX2");
         return true;
     }

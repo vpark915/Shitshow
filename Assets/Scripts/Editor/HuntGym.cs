@@ -59,7 +59,8 @@ static class HuntGym
         Shape(PrimitiveType.Cylinder, fountain, "Basin", new Vector3(0, 0.25f, 0), new Vector3(8, 0.25f, 8), grey);
         Transform water = Shape(PrimitiveType.Cylinder, fountain, "Water", new Vector3(0, 0.3f, 0), new Vector3(7, 0.26f, 7), null);
         Object.DestroyImmediate(water.GetComponent<Collider>()); // wade into it
-        water.gameObject.AddComponent<WaterSplashes>().spoutMistRate = 0; // mist where anything wades; no spout here
+        WaterSplashes splashes = water.gameObject.AddComponent<WaterSplashes>(); // mist where anything wades
+        splashes.spoutMistRate = splashes.plumeRate = 0; // no spout here
         // arch: "perch on the arch", against the north wall
         var arch = new GameObject("Arch").transform;
         arch.SetParent(tasks, false);
@@ -132,7 +133,8 @@ static class HuntGym
 
     // everything HuntGymSettings says, spread over the whole arena at random spots kept apart (so no clumps and no big
     // empty patches): carts and trucks (under Gym/Vendors, so their food is bought), then cover (low walls, jump-height
-    // blocks for the three-jump chain, pillars, park benches), then free food lying about (under Gym/Stray Food). Each
+    // blocks for the three-jump chain, pillars, park benches), then free food lying about (under Gym/Stray Food) and trash
+    // cans (under Gym/Arena, so a reshuffle replaces them). Each
     // thing claims some room round it, and no two things' rooms overlap. Also sets how many people and bird flocks the gym spawns.
     static void Scatter(Transform gym, Material look)
     {
@@ -213,7 +215,9 @@ static class HuntGym
             food.position += Vector3.up * (gym.position.y - b.min.y + 0.01f); // sitting on the floor, not in it
         });
 
-        Debug.Log("Hunt Gym: " + vendorsMade + " vendors, " + coverMade + " cover, " + carsMade + " cars, " + bikesMade + " bikes, " + stationsMade + " bike stations, " + foodMade + " stray food, seed " + seed +
+        int cansMade = Fill(settings.trashCans, FoodRoom, Edge, p => Place("Assets/Prefabs/TrashCan.prefab", arena, new Vector3(p.x, 0, p.y), Turn()));
+
+        Debug.Log("Hunt Gym: " + vendorsMade + " vendors, " + coverMade + " cover, " + carsMade + " cars, " + bikesMade + " bikes, " + stationsMade + " bike stations, " + foodMade + " stray food, " + cansMade + " trash cans, seed " + seed +
                   " (put it in HuntGymSettings to keep this layout)");
 
         // joggers lap 6 m inside the walls, in the lane Edge keeps free

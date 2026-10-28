@@ -2,7 +2,7 @@ using UnityEditor;
 using UnityEngine;
 
 // How much stuff Scenes/WashSquareHunt has: Tools > Wash Square > Wash Square Hunt Settings, move the sliders, press
-// Apply. Applying re-places every cart, truck, car, Citi Bike and piece of park food, each only where its kind belongs
+// Apply. Applying re-places every cart, truck, car, Citi Bike, piece of park food and trash can, each only where its kind belongs
 // (WashSquareHunt.Reshuffle says where), sets the people and flocks, re-bakes the walkable area and saves the scene.
 public class WashSquareHuntSettings : ScriptableObject
 {
@@ -49,6 +49,9 @@ public class WashSquareHuntSettings : ScriptableObject
     [Range(0, 40)] public int bread = 10;
     [Tooltip("Chance that a person who dies drops a random food")]
     [Range(0, 1)] public float foodDropChance = 0.3f;
+
+    [Header("Trash cans (at bench ends; E to search, a random food, cash or magazine, restocked each round)")]
+    [Range(0, 60)] public int trashCans = 24;
 
     [Header("Bird flocks")]
     [Range(0, 15)] public int pigeonFlocks = 5;

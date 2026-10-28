@@ -24,12 +24,14 @@ public class WaterSplashes : MonoBehaviour
     public float jetMistRate = 2;
     [Tooltip("Splashes and mist round the centre spout, where its sheet falls into the water (0 per second for none)")]
     public float spoutMistRadius = 1.5f, spoutMistRate = 6;
+    [Tooltip("Mist hanging round the centre spout from the water up to its cap (puffs per second; 0 for none)")]
+    public float plumeRate = 8;
     public Material splashMaterial; // the 4x4 flipbook; empty, Resources/WaterSplash.mat
     public Material mistMaterial; // soft puff, additive; empty, Resources/WaterMist.mat
 
     ParticleSystem splashes, mist;
     Vector3 centre;
-    float surface, reach;
+    float surface, reach, spoutTop, plumeDue;
     float[] jetNext;
     float jetMistDue, spoutMistDue;
     readonly Collider[] near = new Collider[64];
@@ -41,6 +43,9 @@ public class WaterSplashes : MonoBehaviour
         centre = pool.center;
         surface = pool.max.y;
         reach = Mathf.Max(pool.extents.x, pool.extents.z);
+        // the spout's cap: the top of the fountain's spray (the sibling the park's import names), else 2 m up
+        Transform spray = transform.parent ? transform.parent.Find("WSP_Fountain_Spray") : null;
+        spoutTop = spray && spray.TryGetComponent(out Renderer sprayLook) ? sprayLook.bounds.max.y : surface + 2;
         // loaded here, not set by the park's import: an import that depends on other new assets looped (Unity gave up
         // half way and the park vanished)
         splashes = Rings(splashMaterial ? splashMaterial : Resources.Load<Material>("WaterSplash"));
@@ -71,6 +76,20 @@ public class WaterSplashes : MonoBehaviour
             Vector3 at = centre + outward * r + Vector3.up * (surface - centre.y + 4 * jetArcHeight * t * (1 - t));
             Vector3 along = -outward * (jetNozzleRadius - jetRadius) + Vector3.up * 4 * jetArcHeight * (1 - 2 * t); // the arc's direction, per unit t
             mist.Emit(new ParticleSystem.EmitParams { position = at, velocity = along * 0.35f + Random.insideUnitSphere * 0.3f, startSize = Random.Range(0.8f, 1.6f) }, 1);
+        }
+
+        // a plume round the centre spout, water to cap, thickest low down, drifting up and out
+        plumeDue += plumeRate * Time.deltaTime;
+        for (; plumeDue >= 1; plumeDue--)
+        {
+            float h = Random.value * Random.value, angle = Random.value * 2 * Mathf.PI; // squared: most near the water
+            var outward = new Vector3(Mathf.Cos(angle), 0, Mathf.Sin(angle));
+            mist.Emit(new ParticleSystem.EmitParams
+            {
+                position = new Vector3(centre.x, Mathf.Lerp(surface + 0.3f, spoutTop, h), centre.z) + outward * Random.Range(0.3f, spoutMistRadius),
+                velocity = outward * Random.Range(0.1f, 0.35f) + Vector3.up * Random.Range(0.1f, 0.4f),
+                startSize = Random.Range(1.5f, 2.6f),
+            }, 1);
         }
 
         // splashes where the centre spout's sheet falls in, mist rolling outward off them

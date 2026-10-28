@@ -199,13 +199,13 @@ half2 SampleClearCoat(float2 uv)
 // Shitshow: parallax occlusion mapping in place of Lit's one-step offset. Walks the view ray down through the height map
 // (Height Map slot, Scale = full depth in texture repeats) until it goes under the surface, then reads every map there:
 // pebbles and grooves get real-looking depth and hide each other, on a flat mesh. Costs a few samples per pixel on
-// screen (8 looking straight down, up to 24 at grazing angles), not per square metre. The black/white points stretch a
+// screen (10 looking straight down, up to 32 at grazing angles), not per square metre. The black/white points stretch a
 // low-contrast map (most of Concrete047A's sits in 0.68-0.72) to the full depth, so the steps aren't wasted.
 void ApplyPerPixelDisplacement(half3 viewDirTS, inout float2 uv)
 {
 #if defined(_PARALLAXMAP)
     float3 view = normalize((float3)viewDirTS);
-    int steps = (int)lerp(24.0, 8.0, saturate(view.z));
+    int steps = (int)lerp(32.0, 10.0, saturate(view.z)); // 24/8 before the relief went 2.5x deeper: fewer showed as layers
     float layer = 1.0 / steps;
     float2 shift = view.xy / max(view.z, 0.15) * _Parallax * layer; // per step, in texture repeats
     float2 dx = ddx(uv), dy = ddy(uv); // the pixel's footprint, so the loop reads the right mips

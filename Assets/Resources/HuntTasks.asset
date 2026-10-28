@@ -855,6 +855,34 @@ MonoBehaviour:
     when: 0
     count: 3
     inOneGo: 1
+  - name: Rummage
+    description: Search a trash can
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: search trash
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+  - name: Dumpster diver
+    description: Search 3 trash cans
+    goal: 2
+    spot: {fileID: 0}
+    at: 
+    onTop: 1
+    radius: 0
+    height: {x: -0.5, y: 2.5}
+    amount: 3
+    deed: search trash
+    within: 0
+    when: 0
+    count: 3
+    inOneGo: 1
   - name: Wallet
     description: Pick up a wallet
     goal: 2

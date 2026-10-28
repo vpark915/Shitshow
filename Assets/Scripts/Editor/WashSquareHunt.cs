@@ -18,13 +18,15 @@ using UnityEngine.Rendering;
 // then lays everything out as Reshuffle does. Running it again starts over from WashSquareGym.
 //
 // Reshuffle (Wash Square Hunt Settings > Apply, or Tools > Wash Square > Reshuffle Wash Square Hunt) throws away every
-// cart, truck, car, Citi Bike and piece of park food and puts up as many as WashSquareHuntSettings says, each only
+// cart, truck, car, Citi Bike, piece of park food and trash can and puts up as many as WashSquareHuntSettings says, each only
 // where its kind belongs:
 // - trucks and Citi Bike stations: in the parking lanes along the park's four sides, every corner on the road
 //   (not the pavement); trucks with their hatch to the park, stations with the bikes standing out into the street
 // - carts: on the park's paving, backs to a path edge, with room to queue in front
 // - loose Citi Bikes: on the park's paving
 // - pizza on chess tables, bagels and bread on bench seats
+// - trash cans (TrashCan): at the end of a bench, on the paving (Tools > Wash Square > Place Wash Square Trash Cans
+//   redoes just them, leaving the rest of the layout; they carve their own way round in the walkable area)
 // - every car as traffic (TrafficCar): driving one way round the park in the outer lane, none parked
 // Nothing goes where it would overlap anything solid (benches, lamps, other vendors...), on a task spot or a spawn.
 // It also sets the people and flocks, then bakes the scene's own walkable area (Scenes/WashSquareHunt/NavMesh) the way
@@ -165,17 +167,12 @@ static class WashSquareHunt
 
     static float Range(float low, float high) => low + (float)random.NextDouble() * (high - low);
 
-    static void Lay()
+    // the layout's random numbers, what counts as ground, and the spots kept clear; the seed it used
+    static int Ready(WashSquareHuntSettings settings)
     {
-        WashSquareHuntSettings settings = WashSquareHuntSettings.Load();
         int seed = settings.seed != 0 ? settings.seed : System.Environment.TickCount & 0xFFFF;
         random = new System.Random(seed);
         refused = new Dictionary<string, int>();
-
-        Transform vendors = GameObject.Find("FoodVendors").transform, food = GameObject.Find("ParkFood").transform, vehicles = GameObject.Find("Vehicles").transform;
-        foreach (Transform group in new[] { vendors, food, vehicles })
-            for (int i = group.childCount - 1; i >= 0; i--) Object.DestroyImmediate(group.GetChild(i).gameObject);
-        Physics.SyncTransforms();
 
         // what's under a spot is whichever ground piece is on top there: paths, lawn, bed, pavement, road...
         Transform blockout = GameObject.Find("washingtonSquareBlockout").transform;
@@ -193,6 +190,19 @@ static class WashSquareHunt
             keepClear.Add((match.huntedSpawn.position, 6));
             foreach (HuntMatch.Task task in match.tasks) keepClear.Add((task.spot.position, task.radius + 2));
         }
+        return seed;
+    }
+
+    static void Lay()
+    {
+        WashSquareHuntSettings settings = WashSquareHuntSettings.Load();
+        Transform vendors = GameObject.Find("FoodVendors").transform, food = GameObject.Find("ParkFood").transform, vehicles = GameObject.Find("Vehicles").transform;
+        foreach (Transform group in new[] { vendors, food, vehicles })
+            for (int i = group.childCount - 1; i >= 0; i--) Object.DestroyImmediate(group.GetChild(i).gameObject);
+        Physics.SyncTransforms();
+        int seed = Ready(settings);
+        Transform blockout = GameObject.Find("washingtonSquareBlockout").transform;
+        HuntMatch match = Object.FindFirstObjectByType<HuntMatch>();
 
         Bounds park = Look(blockout.Find("WSP_Park_Base").gameObject);
         float y = park.min.y;
@@ -291,6 +301,7 @@ static class WashSquareHunt
         foreach (Transform b in GameObject.Find("Benches").transform) benches.Add(b);
         int pizza = OnTop("Pizza", settings.pizza, tables, food, 0.6f);
         int bagels = OnTop("Bagel", settings.bagels, benches, food, 0f), bread = OnTop("Bread", settings.bread, benches, food, 0f);
+        int trash = TrashCans(settings.trashCans);
 
         BirdFlocks flocks = Object.FindFirstObjectByType<BirdFlocks>();
         if (flocks)
@@ -321,7 +332,46 @@ static class WashSquareHunt
                              + string.Join(", ", why.GetRange(0, Mathf.Min(8, why.Count)).ConvertAll(w => w.Key + " x" + w.Value)));
         }
         Debug.Log("Wash Square Hunt: " + carts + " carts, " + trucks + " trucks, " + stations + " bike stations, " + traffic + " traffic cars, " + bikes + " loose bikes, "
-                  + pizza + " pizza, " + bagels + " bagels, " + bread + " bread, seed " + seed + " (put it in Wash Square Hunt Settings to keep this layout)");
+                  + pizza + " pizza, " + bagels + " bagels, " + bread + " bread, " + trash + " trash cans, seed " + seed + " (put it in Wash Square Hunt Settings to keep this layout)");
+    }
+
+    [MenuItem("Tools/Wash Square/Place Wash Square Trash Cans")]
+    static void PlaceTrashCans()
+    {
+        if (EditorSceneManager.GetActiveScene().path != ScenePath) { Debug.LogWarning("Open " + ScenePath + " first"); return; }
+        WithGround(() =>
+        {
+            WashSquareHuntSettings settings = WashSquareHuntSettings.Load();
+            int seed = Ready(settings);
+            Debug.Log("Wash Square Hunt: " + TrashCans(settings.trashCans) + " trash cans, seed " + seed + " (save the scene to keep them)");
+        });
+        EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
+    }
+
+    // up to `count` trash cans (under TrashCans, the old ones thrown away), each at one end of a different bench, on
+    // the paving and clear of everything. How many it put up
+    static int TrashCans(int count)
+    {
+        GameObject group = GameObject.Find("TrashCans");
+        if (!group) group = new GameObject("TrashCans");
+        for (int i = group.transform.childCount - 1; i >= 0; i--) Object.DestroyImmediate(group.transform.GetChild(i).gameObject);
+        Physics.SyncTransforms();
+        var benches = new List<Transform>();
+        foreach (Transform b in GameObject.Find("Benches").transform) benches.Add(b);
+        int made = 0;
+        for (int tries = 0; tries < count * 5 && made < count && benches.Count > 0; tries++)
+        {
+            Transform bench = benches[random.Next(benches.Count)];
+            benches.Remove(bench);
+            Bounds b = Look(bench.gameObject);
+            bool alongX = b.size.x > b.size.z; // its length (benches stand square to the paths, near enough)
+            Vector3 end = (alongX ? Vector3.right * b.extents.x : Vector3.forward * b.extents.z) + (alongX ? Vector3.right : Vector3.forward) * 0.55f;
+            if (!Paved(b.center + (random.Next(2) == 0 ? end : -end), out Vector3 floor)) continue;
+            GameObject can = Put("TrashCan", group.transform, floor, Quaternion.Euler(0, Range(0, 360), 0));
+            if (!Keep(can, Paved)) continue;
+            can.name = "TrashCan_" + (++made).ToString("00");
+        }
+        return made;
     }
 
     // a cart at a random spot on the paving: its back to the nearest path edge (if one is within 4 m), all of it on

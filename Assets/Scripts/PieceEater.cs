@@ -4,7 +4,8 @@ using UnityEngine.UI;
 
 // Put on the pigeon. Look at a chess piece close by and it lights up with a prompt; press the eat key and it's gone,
 // and for a while the minimap shows exactly where the target is and they glow through walls. Food (FoodItem) works the
-// same way: the prompt names it and its ability, and eating it hands the ability to FoodPowers.
+// same way: the prompt names it and its ability, and eating it hands the ability to FoodPowers. A trash can (TrashCan)
+// too: the prompt offers a search, and whatever was in it is the pigeon's (a food as if eaten, cash or a magazine).
 public class PieceEater : MonoBehaviour
 {
     [Tooltip("How close the pigeon has to be to the piece, in metres")]
@@ -35,6 +36,9 @@ public class PieceEater : MonoBehaviour
     Renderer hover;
     Glow lit; // the food, or the whole cart or truck, glowing because it's looked at
     FoodItem shown; // what the prompt is offering, so a cart keeps offering it while the aim wanders over the cart
+    TrashCan foundIn; // the can last searched, and what was in it, said on the prompt for a moment
+    string found;
+    float foundUntil;
     Material hoverWas;
     string eatKey;
 
@@ -56,6 +60,7 @@ public class PieceEater : MonoBehaviour
         bool eat = eatAction.WasPressedThisFrame() && !(ride && ride.CanAssassinate);
         Transform piece = null;
         FoodItem food = null;
+        TrashCan can = null;
         Camera cam = Camera.main;
         if (cam && !(health && health.IsDead))
         {
@@ -72,8 +77,9 @@ public class PieceEater : MonoBehaviour
                 float off = Vector3.Cross(ray.direction, box.center - ray.origin).magnitude;
                 if (off >= best) continue;
                 // ponytail: pieces are told apart by name (Piece_NN in Chessboard_Low.fbx); give them a component if something else needs to find them
-                if (hit.collider.name.StartsWith("Piece_") && distance <= reach) { piece = hit.transform; food = null; best = off; }
-                else if (powers && distance <= (Vendor(hit.collider.transform) ? vendorReach : foodReach) && Food(hit.collider) is FoodItem f && f) { food = f; piece = null; best = off; }
+                if (hit.collider.name.StartsWith("Piece_") && distance <= reach) { piece = hit.transform; food = null; can = null; best = off; }
+                else if (powers && distance <= (Vendor(hit.collider.transform) ? vendorReach : foodReach) && Food(hit.collider) is FoodItem f && f) { food = f; piece = null; can = null; best = off; }
+                else if (distance <= foodReach && hit.collider.GetComponentInParent<TrashCan>() is TrashCan t && t) { can = t; food = null; piece = null; best = off; }
             }
         }
 
@@ -81,7 +87,7 @@ public class PieceEater : MonoBehaviour
 
         // a cart or truck lights up as a whole, servings included; food lying about lights up on its own
         Transform vendor = food ? Vendor(food.transform) : null;
-        Glow look = food ? Glow.On(vendor ? vendor : food.transform) : null;
+        Glow look = food ? Glow.On(vendor ? vendor : food.transform) : can ? Glow.On(can) : null;
         if (lit != look)
         {
             if (lit) lit.steady = Color.black;
@@ -112,6 +118,15 @@ public class PieceEater : MonoBehaviour
                 powers.Give(food.ability, food.seconds, food.label);
             }
         }
+        else if (can)
+        {
+            if (prompt)
+            {
+                prompt.enabled = true;
+                prompt.text = can == foundIn && Time.time < foundUntil ? found : can.Searched ? "Trash can: empty" : eatKey + ": Search trash can";
+            }
+            if (eat && !can.Searched) Search(can);
+        }
         else if (prompt) prompt.text = eatKey + ": Eat";
 
         // QuickOutline draws only scraps of an outline on the decimated pieces, so the piece swaps to a glowing material instead
@@ -121,7 +136,7 @@ public class PieceEater : MonoBehaviour
             hover = piece ? piece.GetComponent<Renderer>() : null;
             if (hover) { hoverWas = hover.sharedMaterial; hover.sharedMaterial = hoverMaterial ? hoverMaterial : hoverWas; }
         }
-        if (prompt && !food) prompt.enabled = piece;
+        if (prompt && !food && !can) prompt.enabled = piece;
         if (!piece || !eat) return;
 
         hover.sharedMaterial = hoverWas;
@@ -130,6 +145,26 @@ public class PieceEater : MonoBehaviour
         Weapon.Done(wallet, "eat chess piece");
         if (pieceRespawn > 0) StartCoroutine(PutBack(piece.gameObject));
         if (map) map.Reveal(revealTime);
+    }
+
+    // everything in the can is the pigeon's: a food as if eaten here, cash, or a spare magazine
+    void Search(TrashCan can)
+    {
+        FoodItem food = can.Food;
+        if (food)
+        {
+            found = "Found: " + food.label + "  (" + FoodPowers.Describe(food) + ")";
+            Weapon.Done(wallet, "eat", "eat " + food.label.ToLowerInvariant());
+            if (health) health.Heal(food.heal);
+            if (powers) powers.Give(food.ability, food.seconds, food.label);
+        }
+        else if (can.Cash > 0) { found = "Found: $" + can.Cash; if (wallet) wallet.AddMoney(can.Cash, ""); }
+        else if (can.Magazines > 0) { found = "Found: a spare magazine"; if (wallet) wallet.AddMagazine(can.Magazines); }
+        else found = "Nothing in it but trash";
+        Weapon.Done(wallet, "search trash");
+        can.Empty();
+        foundIn = can;
+        foundUntil = Time.time + 2.5f;
     }
 
     // the cart or truck (a child of the minimap's Vendors) that this is part of, or null

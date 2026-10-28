@@ -411,11 +411,11 @@ public class Weapon : MonoBehaviour
     public int startingMoney;
     public int Money { get; private set; }
 
-    // picked up a wallet (Pickup)
-    public void AddMoney(int amount)
+    // picked up a wallet (Pickup), or other cash (a trash can's: deed "")
+    public void AddMoney(int amount, string deed = "wallet")
     {
         Money += amount;
-        Done(this, "wallet");
+        Done(this, deed);
         Changed?.Invoke();
     }
 

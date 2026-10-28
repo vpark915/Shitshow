@@ -355,7 +355,7 @@ Material:
     - _BarkAORemapMax: 1
     - _BarkAORemapMin: 0
     - _BarkMetallic: 0
-    - _BarkNormalScale: 1
+    - _BarkNormalScale: 2.5
     - _BarkSmoothnessRemapMax: 0.3
     - _BarkSmoothnessRemapMin: 0
     - _BarkUseUV3: 1
@@ -600,7 +600,7 @@ Material:
     - _TrunkAORemapMax: 1
     - _TrunkAORemapMin: 0
     - _TrunkMetallic: 0
-    - _TrunkNormalScale: 1
+    - _TrunkNormalScale: 2.5
     - _TrunkSmoothnessRemapMax: 0.3
     - _TrunkSmoothnessRemapMin: 0
     - _UVBase: 0

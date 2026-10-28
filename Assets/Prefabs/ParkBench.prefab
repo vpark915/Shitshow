@@ -65,6 +65,18 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 3515863572037190719}
     m_Modifications:
+    - target: {fileID: 65880629820379073, guid: e748625bcde95cf4ebacad44c6b771dd, type: 3}
+      propertyPath: m_CastShadows
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 694278395547256875, guid: e748625bcde95cf4ebacad44c6b771dd, type: 3}
+      propertyPath: m_CastShadows
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3015755889804768335, guid: e748625bcde95cf4ebacad44c6b771dd, type: 3}
+      propertyPath: m_CastShadows
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 3185920997526789362, guid: e748625bcde95cf4ebacad44c6b771dd, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
@@ -105,9 +117,21 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 3259358698638471598, guid: e748625bcde95cf4ebacad44c6b771dd, type: 3}
+      propertyPath: m_CastShadows
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5148494832998172783, guid: e748625bcde95cf4ebacad44c6b771dd, type: 3}
+      propertyPath: m_CastShadows
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 5763486103488035592, guid: e748625bcde95cf4ebacad44c6b771dd, type: 3}
       propertyPath: m_Name
       value: Bench_L_1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6030607363254641293, guid: e748625bcde95cf4ebacad44c6b771dd, type: 3}
+      propertyPath: m_CastShadows
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

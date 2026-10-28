@@ -22,7 +22,8 @@ using Task = HuntMatch.Task;
 //     egg kill, silent kill, run over, run over civilian / officer / guard, run over bird (a park bird),
 //     crash (knock over another vehicle), assassinate, assassinate civilian / officer / guard,
 //     egg bomb, egg hit, egg hit civilian / officer / guard, snitch flock, eat, eat <food> (hot dog, coffee, gyro,
-//     burrito, ice cream, soft pretzel, pizza slice, bagel, bread), eat chess piece, buy, wallet, magazine,
+//     burrito, ice cream, soft pretzel, pizza slice, bagel, bread; a food found in a trash can counts too), eat chess
+//     piece, buy, wallet, magazine, search trash (a trash can, found something or not),
 //     ride person, ride civilian / officer / guard, drive car, ride bike, hijack (take over a car driving round), wanted
 // - RidePerson: ride people for Amount seconds. DriveCar / RideBike: drive Amount metres.
 // - Airborne: stay in the air (not riding) for Amount seconds. Altitude: get Amount metres above whatever is below.
@@ -131,6 +132,8 @@ public class HuntTasks : ScriptableObject
         Do("Chess pieces", "Eat 3 chess pieces", "eat chess piece", 3),
         Do("Customer", "Buy something from a cart or truck", "buy"),
         Do("Regular", "Buy 3 things from carts or trucks", "buy", 3),
+        Do("Rummage", "Search a trash can", "search trash"),
+        Do("Dumpster diver", "Search 3 trash cans", "search trash", 3),
         // ---- money and loot ----
         Do("Wallet", "Pick up a wallet", "wallet"),
         Do("Wallets", "Pick up 3 wallets", "wallet", 3),

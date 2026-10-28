@@ -22,6 +22,8 @@ using UnityEngine.Serialization;
 public class HuntMatch : NetworkBehaviour
 {
     public static HuntMatch Instance { get; private set; }
+    // a round has just begun in this game (trash cans restock)
+    public static event Action RoundBegan;
 
     public enum Phase : byte { Waiting, Playing, Between, Over }
 
@@ -347,6 +349,7 @@ public class HuntMatch : NetworkBehaviour
         foreach (Renderer look in rigLooks)
             if (look) look.enabled = IAmHunter || (weapon && weapon.gun && look.transform.IsChildOf(weapon.gun));
         Draw();
+        RoundBegan?.Invoke();
         respawnAt = -1;
         // both birds see only the other's rough area circle; the Pigeon gets a brief exact ping per finished task
         if (map) map.Hide();
@@ -581,6 +584,7 @@ public class HuntMatch : NetworkBehaviour
                 if (deed == "ride bike") return FindAnyObjectByType<CitiBike>();
                 if (deed.StartsWith("run over") || deed == "roadkill") return FindAnyObjectByType<Vehicle>();
                 if (deed == "eat chess piece") return GameObject.Find("ChessTables");
+                if (deed == "search trash") return FindAnyObjectByType<TrashCan>();
                 return true;
             default: return true;
         }

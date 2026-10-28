@@ -2,7 +2,7 @@ using UnityEditor;
 using UnityEngine;
 
 // How much stuff the Hunt Gym has: select Assets/Settings/HuntGymSettings, move the sliders, press Apply to Hunt Gym.
-// Applying scatters new cover, carts, trucks and food (and sets the people and flocks) in Scenes/HuntGym and saves it;
+// Applying scatters new cover, carts, trucks, food and trash cans (and sets the people and flocks) in Scenes/HuntGym and saves it;
 // Build Hunt Gym uses these too.
 public class HuntGymSettings : ScriptableObject
 {
@@ -59,6 +59,9 @@ public class HuntGymSettings : ScriptableObject
 
     [Tooltip("Chance that a person who dies drops a random food")]
     [Range(0, 1)] public float foodDropChance = 0.3f;
+
+    [Header("Trash cans (E to search: a random food, cash or a magazine, restocked each round)")]
+    [Range(0, 15)] public int trashCans = 4;
 
     [Header("Bird flocks")]
     [Range(0, 10)] public int pigeonFlocks = 2;

@@ -206,7 +206,7 @@ static class FrameStats
         log.AppendFormat("main thread {0:F2}  render thread {1:F2}  GPU frame {2:F2}  batches {3}  setpass {4}  tris {5}\n",
             main / Frames, render / Frames, gpu / Frames, batches.LastValue, setPass.LastValue, triangles.LastValue);
         log.AppendLine("-- top CPU --");
-        foreach (var t in totals.OrderByDescending(t => t.Value.cpu).Take(45))
+        foreach (var t in totals.Where(t => !t.Key.Contains("Memory") && !t.Key.Contains("Bytes") && !t.Key.Contains("Count") && !t.Key.StartsWith("GfxResource")).OrderByDescending(t => t.Value.cpu).Take(110))
             log.AppendFormat("{0,8:F3}  {1}\n", t.Value.cpu / Frames, t.Key);
         log.AppendLine("-- top GPU --");
         foreach (var t in totals.Where(t => t.Value.gpu > 0).OrderByDescending(t => t.Value.gpu).Take(35))
