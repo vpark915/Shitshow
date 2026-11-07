@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 8c3e6c541b70b7a488397317e602641e
+ComputeShaderImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 369882
+  packageName: 'HTrace: Ambient Occlusion V2 URP'
+  packageVersion: 2.2.2
+  assetPath: Packages/dev.ipgames.htrace-ao-v2/Runtime/RuntimeResources/Computes/HSpatialFilterGTAO.compute
+  uploadId: 968282

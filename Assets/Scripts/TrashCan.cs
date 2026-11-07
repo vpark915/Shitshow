@@ -18,6 +18,8 @@ public class TrashCan : MonoBehaviour
     public Vector2Int money = new Vector2Int(3, 12);
     [Tooltip("The pile of trash inside, hidden once it's been searched")]
     public GameObject trash;
+    [Tooltip("Seconds until a searched can is restocked; 0 for the next round (the gym uses this so it can be tried again)")]
+    public float refill;
 
     public bool Searched { get; private set; }
     public FoodItem Food { get; private set; }
@@ -48,5 +50,6 @@ public class TrashCan : MonoBehaviour
         Food = null;
         Cash = Magazines = 0;
         if (trash) trash.SetActive(false);
+        if (refill > 0) Invoke(nameof(Restock), refill);
     }
 }

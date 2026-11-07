@@ -1,0 +1,337 @@
+#pragma kernel RenderRTAO
+#pragma require inlineraytracing
+#pragma exclude_renderers metal
+
+#pragma multi_compile _ ADAPTIVE_RESOLUTION DISOCCLUSION_BOOST
+#pragma multi_compile _ SCREEN_SPACE_PRETRACE SCREEN_SPACE_PRETRACE_MASKED
+#pragma multi_compile _ SAMPLE_REBALANCING
+#pragma multi_compile _ VR_COMPATIBILITY
+#pragma multi_compile _ CULL_BACK_FACES
+#pragma multi_compile _ DEBUG_RTAS
+
+#ifdef SCREEN_SPACE_PRETRACE_MASKED
+#define SCREEN_SPACE_PRETRACE 1
+#define RAYMARCH_BEHIND_OBJECTS 1
+#else
+#define RAYMARCH_BEHIND_OBJECTS 0
+#endif
+
+#include "../Headers/HPipelineDefineAO.hlsl"
+#pragma multi_compile _ _GBUFFER_NORMALS_OCT
+#include "UnityRayQuery.cginc"
+#include "../Headers/HCommonAO.hlsl"
+#include "../Headers/HRayMarchingAO.hlsl"
+
+uint _IndexXR;
+uint _IsFinalPass;
+uint _RaySampleCount;
+uint _DebugSceneMismatchRTAS;
+uint _JitterCoordForHalfRes;
+uint _ExcludeReceivingMask;
+uint _EarlyOutExcludedReceivers;
+float _MaxRayBias;
+float _MaxRayDistance;
+
+H_TEXTURE(_RayMarchingDepth);
+H_TEXTURE(_TemporalDataReprojected);
+
+H_RW_TEXTURE(float3, _Debug_Output);
+H_RW_TEXTURE(float3, _Occlusion_Output);
+H_RW_TEXTURE(float3, _OcclusionHalfRate_Output);
+
+StructuredBuffer<uint2> _TracingCoords;
+StructuredBuffer<uint> _DisocclusionCounter;
+StructuredBuffer<uint> _RayCounter;
+
+RaytracingAccelerationStructure _RTAS;
+
+
+// ------------------------ TRACING FUNCTIONS -------------------------
+void UpdateHitVelocity(int2 pixCoord, float2 HitCoord, float HitDistance, float4 OriginMotionDirection, inout float HitVelocity)
+{
+    float4 HitMotionDirection = HBUFFER_MOTION_DIRECTION(HitCoord);
+    
+    float MotionDeltaDivergence = abs(HitMotionDirection.w - OriginMotionDirection.w);
+    float MotionDeltaMagnitude = max(HitMotionDirection.w, OriginMotionDirection.w);
+    float MotionAngleDivergence = dot(OriginMotionDirection.xyz, HitMotionDirection.xyz);
+            
+    // Mark only if the movement difference between origin and hit is more than a threshold
+    if (MotionDeltaDivergence / (MotionDeltaMagnitude + 1e-6) > MOTION_DELTA_THRESHOLD || MotionAngleDivergence < 0.5 || HitMotionDirection.w == 0)
+    {
+        // Simple exponent seems to work better than (1 - OcclusionQuery.CommittedRayT() / _MaxRayDistance));
+        float HitDistanceScale = saturate(exp(-0.6 * HitDistance));
+        float MotionDelta = max(HitMotionDirection.w * g_HTemporalDynamicRejectionAO, OriginMotionDirection.w * g_HTemporalStaticRejectionAO) * 10;
+
+        // If MotionDeltaMagnitude <= 0 it means we couldn't run the motion delta shader for this surface, so we fall back to g_HTemporalDynamicRejectionAO value 
+        float HitMotionDeltaScale = MotionDeltaMagnitude > 0 ? saturate(MotionDelta) : g_HTemporalDynamicRejectionAO; 
+                    
+        HitVelocity = max(HitDistanceScale * HitMotionDeltaScale, HitVelocity);
+    }  
+}
+
+
+[numthreads(8, 8, 1)]
+void RenderRTAO(uint3 pixCoord : SV_DispatchThreadID, uint groupIndex : SV_GroupIndex, uint groupID : SV_GroupID)
+{
+    #if defined(ADAPTIVE_RESOLUTION) || defined(DISOCCLUSION_BOOST)
+    {
+        uint RayCounterOffsetVR = 0;
+        uint IndirectCoordOffsetVR = 0;
+        
+
+        uint RayIndex = groupID * 64 + groupIndex;
+        if (RayIndex >= _RayCounter[1 + RayCounterOffsetVR])
+            return;
+
+        pixCoord.xy = _TracingCoords[RayIndex + IndirectCoordOffsetVR];
+    }
+    #else
+    {
+    }
+    #endif
+    
+    int2 pixCoordUnscaled = GetUnscaledCoords(pixCoord.xy);
+    float2 pixCoordNDC = (pixCoordUnscaled.xy + 0.5f) * _ScreenSize.zw;
+    
+    float Depth = HBUFFER_DEPTH(pixCoordUnscaled.xy);
+
+    bool ExcludedReceiver = false;
+    UNITY_BRANCH
+    if (_EarlyOutExcludedReceivers)
+        ExcludedReceiver = (HBUFFER_RENDER_LAYER_MASK(pixCoordUnscaled.xy) & _ExcludeReceivingMask) != 0;
+
+    UNITY_BRANCH
+    if (ExcludedReceiver)
+    {
+        #if DEBUG_RTAS
+        _Debug_Output[H_COORD(pixCoord.xy)] = 0.0;
+        #else
+        float NeutralOcclusion = _IsFinalPass ? 1.0 : 0.0;
+        _Occlusion_Output[H_COORD(pixCoord.xy)] = float3(NeutralOcclusion, 0.0, 1.0);
+        #if defined(ADAPTIVE_RESOLUTION) || defined(DISOCCLUSION_BOOST)
+        _OcclusionHalfRate_Output[H_COORD(pixCoord.xy / 2)] = float3(NeutralOcclusion, 0.0, 1.0);
+        #endif
+        #endif
+        return;
+    }
+
+    float3 NormalWS = HBUFFER_NORMAL_WS(pixCoordUnscaled.xy);
+    float3 PositionWS = H_COMPUTE_POSITION_WS(pixCoordNDC, Depth, H_MATRIX_I_VP);
+    float3 PositionAbsoluteWS = H_GET_ABSOLUTE_POSITION_WS(PositionWS);
+    float4 OriginMotionDirection = HBUFFER_MOTION_DIRECTION(pixCoordUnscaled.xy);
+    float MovingOrigin = HBUFFER_MOTION_MASK(pixCoordUnscaled.xy);
+
+    #if DEBUG_RTAS
+    {
+        if (Depth <= UNITY_RAW_FAR_CLIP_VALUE)
+        {
+            _Debug_Output[H_COORD(pixCoord.xy)] = 0;
+            return;
+        }
+        
+        RayDesc DebugRay;
+        DebugRay.Origin = H_GET_CAMERA_POSITION_WS();
+        DebugRay.Direction = H_GET_VIEW_VECTOR_WS(pixCoordNDC);
+        DebugRay.TMin = 0;
+        DebugRay.TMax = 1e20f;
+
+        const uint RayFlags = RAY_FLAG_FORCE_OPAQUE | RAY_FLAG_CULL_BACK_FACING_TRIANGLES;
+        
+        UnityRayQuery <RayFlags> DebugQuery;
+        
+        DebugQuery.TraceRayInline(_RTAS, RayFlags , 0xff, DebugRay);
+        DebugQuery.Proceed();
+        
+        float3 DebugColor = 0;
+        if (DebugQuery.CommittedStatus() == COMMITTED_TRIANGLE_HIT)
+        {
+            float HitInstance = DebugQuery.CommittedInstanceIndex() + 1;
+            DebugColor = max(frac(float3(HitInstance * 0.37, HitInstance * 0.59, HitInstance * 0.83)), 0.1);
+            DebugColor = HRgbToHsv(DebugColor);
+            DebugColor.y *= 0.75;
+            DebugColor = HHsvToRgb(DebugColor);
+        }
+
+        if (_DebugSceneMismatchRTAS)
+        {
+            float3 HitPositionWS = DebugRay.Origin + DebugQuery.CommittedRayT() * DebugRay.Direction;
+            float3 HitPositionNDC = H_COMPUTE_NDC_Z(H_GET_RELATIVE_POSITION_WS(HitPositionWS), H_MATRIX_VP).xyz;
+
+            float4 HitDepths;
+            HitDepths = H_GATHER_RED(g_HTraceDepth, H_SAMPLER_POINT_CLAMP, HitPositionNDC.xy * HRenderScale, 0);
+            HitDepths = 1.0 / (_ZBufferParams.zzzz * HitDepths.xyzw + _ZBufferParams.wwww);
+            float HitDepthLinear = H_LINEAR_EYE_DEPTH(HitPositionNDC.z).x;
+            
+            if (all(HitDepths.xyzw > HitDepthLinear.xxxx + 0.0035f) || all(HitDepths.xyzw + 0.0035f < HitDepthLinear.xxxx))
+                DebugColor.xyz = float3(1,0,0);
+        }
+        
+        _Debug_Output[H_COORD(pixCoord.xy)] = DebugColor.xyzz;
+        return;
+    }
+    #endif
+    
+    if (Depth <= UNITY_RAW_FAR_CLIP_VALUE)
+    {
+        _Occlusion_Output[H_COORD(pixCoord.xy)] = 0;
+        return;
+    }
+    
+    #if CULL_BACK_FACES
+    const uint RayFlags = RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH | RAY_FLAG_CULL_BACK_FACING_TRIANGLES;
+    #else
+    const uint RayFlags = RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH ;
+    #endif
+    
+    float Occlusion = 0;
+    float HitVelocity = 0;
+    float HitDistance = 1;
+
+    uint FrameCounter = _FrameCount;
+    #ifdef ADAPTIVE_RESOLUTION
+        FrameCounter = (_FrameCount + 1) / 2;
+    #endif
+
+    int SampleCount = _RaySampleCount;
+    #ifdef DISOCCLUSION_BOOST
+        SampleCount = 4;
+    #endif
+
+    #ifdef SAMPLE_REBALANCING
+        int RayCounterOffsetVR = 2 * _IndexXR;
+        int DisocclusionPixelCount = _DisocclusionCounter[1 + RayCounterOffsetVR];
+        int TotalPixelCount = _RayCounter[1 + RayCounterOffsetVR]; 
+        int AccumulatedPixelCount = TotalPixelCount - DisocclusionPixelCount;
+        
+        float4 TemporalData = UnpackTemporalDataRTAO(asuint(H_LOAD(_TemporalDataReprojected, pixCoord.xy).x));
+        float VelocityReprojected = TemporalData.x;
+        float SampleCountReprojected = TemporalData.z;
+    
+        bool TemporalDisocclusion = SampleCountReprojected < 1;
+        bool MotionRejection = StochasticMotionRejection(VelocityReprojected, pixCoord.xy);
+
+        // Reduce ray count only if this is not the area with rejected temporal history (for the sake of which we are reducing raycount in the first place)
+        if (!MotionRejection && !TemporalDisocclusion)
+        {
+            if (HInterleavedGradientNoise(pixCoord.xy, _FrameCount % 4) < float(DisocclusionPixelCount) / float(AccumulatedPixelCount))
+            {
+                float ReductionRayCount = 4.0f;
+                
+                SampleCount = max(1, floor(float(_RaySampleCount) / ReductionRayCount));   
+            }
+        }  
+    #endif
+    
+    #ifdef SCREEN_SPACE_PRETRACE
+        float3 RayOriginWS = PositionWS;
+        float DepthLinear = H_LINEAR_EYE_DEPTH(Depth);
+        float StepJitter = HInterleavedGradientNoise(pixCoord.xy, _FrameCount % g_HTemporalSamplecountAO);  //saturate(Jitter(pixCoord.xy));
+        float3 RayStartPositionNDC = GetRayStartPositionNDC(pixCoordNDC, Depth, PositionWS, NormalWS, RayOriginWS);
+    #endif
+    
+    float2 BaseBlueNoise;
+    BaseBlueNoise.x = GetBNDSequenceSample(pixCoord.xy, FrameCounter % g_HTemporalSamplecountAO, 0);
+    BaseBlueNoise.y = GetBNDSequenceSample(pixCoord.xy, FrameCounter % g_HTemporalSamplecountAO, 1);
+    CachedBNDSeqeunce BNDCache = InitializeBNDSeqeunce(pixCoord.xy);
+    uint PixelHash = SampleCount % 2 == 0 ? 0 : (pixCoord.x * 1664525u + pixCoord.y * 1013904223u);
+    
+    for (int i = 0; i < SampleCount; i++)
+    {
+        int TemporalOffset = (FrameCounter + (PixelHash % g_HTemporalSamplecountAO)) % g_HTemporalSamplecountAO;
+        int SampleIndex = TemporalOffset * SampleCount + i;
+        
+        float2 RayJitter = GetBNDSequenceSamplesCached(BNDCache, SampleIndex);
+        float3 RayDirectionWS = HSampleHemisphereCosine(RayJitter.x, RayJitter.y, NormalWS);
+
+        float4 PretraceHitData = 0;
+        
+    #ifdef SCREEN_SPACE_PRETRACE
+        float3 RayEndPositionNDC = GetRayEndPositionNDC(DepthLinear, min(_RayMarchingDistance, _MaxRayDistance), RayOriginWS, RayDirectionWS, RayStartPositionNDC);
+        PretraceHitData = RayMarchAO(_RayMarchingDepth, RayStartPositionNDC, RayEndPositionNDC, StepJitter); 
+    #endif
+        
+        if (PretraceHitData.w > 0)
+        {
+    #ifdef SCREEN_SPACE_PRETRACE
+            Occlusion += 1.0f;
+            
+            float MovingHit = HBUFFER_MOTION_MASK(PretraceHitData.xy * _ScreenSize.xy);
+            if (MovingHit || MovingOrigin)
+            {
+                float3 HitPositionWS = H_COMPUTE_POSITION_WS(PretraceHitData.xy, PretraceHitData.z, H_MATRIX_I_VP);
+                float HitDistance = length(HitPositionWS - RayOriginWS);
+                UpdateHitVelocity(pixCoord.xy, PretraceHitData.xy * _ScreenSize.xy, HitDistance, OriginMotionDirection, HitVelocity);
+            }
+    #endif
+        }
+        else if (1)
+        {
+            float MaxDistance = _MaxRayDistance;
+            float3 RayOriginWS = PositionAbsoluteWS + NormalWS * _MaxRayBias;
+            
+    #ifdef SCREEN_SPACE_PRETRACE
+            if (!RAYMARCH_BEHIND_OBJECTS)
+            {
+                float3 HitPosition = H_COMPUTE_POSITION_WS(PretraceHitData.xy, PretraceHitData.z, H_MATRIX_I_VP);
+                MaxDistance = _MaxRayDistance - length(HitPosition - PositionWS);
+                RayOriginWS = H_GET_ABSOLUTE_POSITION_WS(HitPosition);   
+            }
+    #endif
+            UnityRayQuery <RayFlags> OcclusionQuery;
+            
+            RayDesc OcclusionRay;
+            OcclusionRay.Direction = RayDirectionWS;
+            OcclusionRay.Origin = RayOriginWS;
+            OcclusionRay.TMin = 0;
+            OcclusionRay.TMax = MaxDistance;
+               
+            OcclusionQuery.TraceRayInline(_RTAS, RayFlags, 0xff, OcclusionRay);
+            OcclusionQuery.Proceed();
+            
+            if (OcclusionQuery.CommittedStatus() == COMMITTED_TRIANGLE_HIT)
+            {
+                float3 HitPositionWS = OcclusionRay.Origin + OcclusionQuery.CommittedRayT() * OcclusionRay.Direction;
+                float3 HitPositionNDC = H_COMPUTE_NDC_Z(H_GET_RELATIVE_POSITION_WS(HitPositionWS), H_MATRIX_VP).xyz;
+                
+                if (any(HitPositionNDC < 0) || any(HitPositionNDC >= 1))
+                {
+                    HitDistance = min(HitDistance, OcclusionQuery.CommittedRayT());
+                    Occlusion += 1.0f;
+                    continue;
+                }
+                
+                float4 HitDepths;
+                HitDepths = H_GATHER_RED(g_HTraceDepth, H_SAMPLER_POINT_CLAMP, HitPositionNDC.xy * HRenderScale, 0);
+                HitDepths = 1.0 / (_ZBufferParams.zzzz * HitDepths.xyzw + _ZBufferParams.wwww);
+            
+                float MovingHit = HBUFFER_MOTION_MASK(HitPositionNDC * _ScreenSize.xy);
+                float HitDepthLinear = H_LINEAR_EYE_DEPTH(HitPositionNDC.z).x;
+            
+                bool DepthTest = dot(step(abs(HitDepths.xyzw - HitDepthLinear.xxxx), 1), 1) > 3.5;
+                
+                if (DepthTest && (MovingHit || MovingOrigin))
+                {
+                    UpdateHitVelocity(pixCoord.xy, HitPositionNDC * _ScreenSize.xy, OcclusionQuery.CommittedRayT(), OriginMotionDirection, HitVelocity);
+                }
+                
+                if (any(HitDepths.xyzw < HitDepthLinear.xxxx + 0.0035f))
+                {
+                    HitDistance = min(HitDistance, OcclusionQuery.CommittedRayT());
+                    Occlusion += 1.0f;
+                }
+            }   
+        }
+    }
+
+    Occlusion = Occlusion / float(SampleCount);
+    HitVelocity = saturate(HitVelocity);
+    HitDistance = saturate(HitDistance);
+
+    Occlusion = _IsFinalPass ? 1 - Occlusion : Occlusion;
+    
+    _Occlusion_Output[H_COORD(pixCoord.xy)] = float3(Occlusion, HitVelocity, HitDistance); 
+    
+    #if defined(ADAPTIVE_RESOLUTION) || defined(DISOCCLUSION_BOOST)
+        _OcclusionHalfRate_Output[H_COORD(pixCoord.xy / 2)] = float3(Occlusion, HitVelocity, HitDistance);
+    #endif
+}

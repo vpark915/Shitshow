@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: b50357d9ab019da4098c096ac1001ed8
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 112000000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 369882
+  packageName: 'HTrace: Ambient Occlusion V2 URP'
+  packageVersion: 2.2.2
+  assetPath: Packages/dev.ipgames.htrace-ao-v2/Sample Scene/Sample Scene AO URP/Sample
+    Scene AO URP/LightingData.asset
+  uploadId: 968282

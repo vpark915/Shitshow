@@ -1,0 +1,10 @@
+fileFormatVersion: 2
+guid: 17660c22b41f2c8459157baab72b731c
+timeCreated: 1659691524
+AssetOrigin:
+  serializedVersion: 1
+  productId: 369882
+  packageName: 'HTrace: Ambient Occlusion V2 URP'
+  packageVersion: 2.2.2
+  assetPath: Packages/dev.ipgames.htrace-ao-v2/Runtime/Extensions/HExtensions.cs
+  uploadId: 968282

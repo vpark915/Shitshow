@@ -1,0 +1,10 @@
+fileFormatVersion: 2
+guid: b96e2eed00daf9941a8e36dc93f7a210
+timeCreated: 1729006583
+AssetOrigin:
+  serializedVersion: 1
+  productId: 369882
+  packageName: 'HTrace: Ambient Occlusion V2 URP'
+  packageVersion: 2.2.2
+  assetPath: Packages/dev.ipgames.htrace-ao-v2/Runtime/PipelelinesConfigurator/HPipelinesConfigurator.cs
+  uploadId: 968282

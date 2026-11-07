@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: 6651671182b95a04b8c4ddc299ecdb70
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 11400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 369882
+  packageName: 'HTrace: Ambient Occlusion V2 URP'
+  packageVersion: 2.2.2
+  assetPath: Packages/dev.ipgames.htrace-ao-v2/Sample Scene/Sample Scene AO URP/Sample
+    Scene AO URP/Global Volume Profile Sample Scene AO URP.asset
+  uploadId: 968282

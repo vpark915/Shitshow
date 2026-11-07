@@ -18,7 +18,10 @@ using UnityEngine.Serialization;
 // - Match: otherwise the faster kill as Pigeon wins.
 // The server keeps the clock and the score; each game watches its own bird for deaths and tasks and reports them.
 // Each round's Seagull tasks are drawn from HuntTasks (plus this scene's landmark Tasks) with a seed the server picks,
-// so both games draw the same ones; HuntTasks says how each kind of task is done.
+// so both games draw the same ones; HuntTasks says how each kind of task is done. A long task (Chain) is several of
+// them in order: only its current step counts, and it's ticked off when the last step is done.
+// The map is the scene: the host's is told to the joining game, which loads it and joins again if it's on another one.
+// The starting menu also opens the Mechanics Gym, offline practice.
 public class HuntMatch : NetworkBehaviour
 {
     public static HuntMatch Instance { get; private set; }
@@ -28,7 +31,7 @@ public class HuntMatch : NetworkBehaviour
     public enum Phase : byte { Waiting, Playing, Between, Over }
 
     // how a task is done; HuntTasks describes each and the fields it reads
-    public enum Goal { Stay, StandOn, Deed, RidePerson, DriveCar, RideBike, Airborne, Altitude, Wanted, Money, Earn, Spend, Stock, Reloads, Survive }
+    public enum Goal { Stay, StandOn, Deed, RidePerson, DriveCar, RideBike, Airborne, Altitude, Wanted, Money, Earn, Spend, Stock, Reloads, Survive, Chain }
     // what has to be true at the same time for a task to count (a kill while flying, a stay while wanted...)
     public enum When { Any, Flying, OnFoot, Riding, Driving, Wanted, Hurt, Hidden }
 
@@ -63,9 +66,16 @@ public class HuntMatch : NetworkBehaviour
         public int count = 1;
         [Tooltip("Off: the seconds add up over tries instead of starting over")]
         public bool inOneGo = true;
+        [Tooltip("Chain: the names of the tasks to do, in order, separated by >")]
+        public string steps;
     }
 
-    public float roundLength = 180f;
+    // the maps the starting menu offers: scene name, and what it's called
+    const string Gym = "MechanicsGym";
+    // a join code to use again once the host's map has loaded
+    static string rejoin;
+
+    public float roundLength = 300f;
     [Tooltip("Seconds between the two players being in and the first round, and between rounds")]
     public float breather = 5f;
     public float pigeonRespawn = 3f;
@@ -111,9 +121,12 @@ public class HuntMatch : NetworkBehaviour
     bool menu = true, paused, wasOpen;
     string status = "", joinCode = "", typedCode = "";
     ISession session;
-    // this round's tasks, and how far the Seagull is with each
+    // this round's tasks, and how far the Seagull is with each: each task's steps (just itself unless it's a Chain), the
+    // places of each step, and which step it's on
     Task[] active = { };
-    List<(Transform thing, Bounds box)>[] places;
+    Task[][] parts;
+    List<(Transform thing, Bounds box)>[][] partPlaces;
+    int[] step = { };
     float[] progress;
     int[] counts;
     HashSet<Transform>[] visited;
@@ -160,6 +173,8 @@ public class HuntMatch : NetworkBehaviour
 
     void Start()
     {
+        // the joining game switched to the host's map: join again
+        if (rejoin != null) { typedCode = rejoin; rejoin = null; Join(); return; }
         // for testing builds: -hunt-host hosts and -hunt-join CODE joins straight away,
         // and -hunt-round SECONDS shortens the rounds
         string[] args = Environment.GetCommandLineArgs();
@@ -178,7 +193,9 @@ public class HuntMatch : NetworkBehaviour
         try
         {
             await SignIn();
-            session = await MultiplayerService.Instance.CreateSessionAsync(new SessionOptions { MaxPlayers = 2 }.WithRelayNetwork());
+            var options = new SessionOptions { MaxPlayers = 2 }.WithRelayNetwork();
+            options.SessionProperties["map"] = new SessionProperty(gameObject.scene.name, VisibilityPropertyOptions.Member); // the joining game loads it
+            session = await MultiplayerService.Instance.CreateSessionAsync(options);
             // the joining game already has the Hunt Gym open: keep it rather than load it again
             NetworkManager.Singleton.SceneManager.SetClientSynchronizationMode(UnityEngine.SceneManagement.LoadSceneMode.Additive);
             joinCode = session.Code;
@@ -196,6 +213,17 @@ public class HuntMatch : NetworkBehaviour
         {
             await SignIn();
             session = await MultiplayerService.Instance.JoinSessionByCodeAsync(typedCode.Trim().ToUpperInvariant());
+            // the host is on the other map: leave, load it, and join again from there (Start)
+            if (session.Properties.TryGetValue("map", out SessionProperty map) && map.Value != gameObject.scene.name && Application.CanStreamedLevelBeLoaded(map.Value))
+            {
+                status = "Loading the host's map...";
+                await session.LeaveAsync();
+                session = null;
+                if (NetworkManager.Singleton) NetworkManager.Singleton.Shutdown();
+                rejoin = typedCode;
+                UnityEngine.SceneManagement.SceneManager.LoadScene(map.Value);
+                return;
+            }
             joinCode = typedCode;
             status = "";
             Online();
@@ -268,8 +296,14 @@ public class HuntMatch : NetworkBehaviour
         if (IsServer) RunClock();
         if (round.Value != lastRound && phase.Value == Phase.Playing) { lastRound = round.Value; BeginRound(); }
         if (Playing) WatchOwnBird();
-        // both birds see where the Seagull's unfinished tasks are, so the Pigeon knows where to lie in wait
-        if (map) map.tasksDone = Playing ? tasksDone.Value : ~0;
+        // both birds see where the Seagull's unfinished tasks are, so the Pigeon knows where to lie in wait; the Seagull
+        // also gets an arrow on screen to the nearest
+        if (map)
+        {
+            map.tasksDone = Playing ? tasksDone.Value : ~0;
+            map.guide = Playing && !IAmHunter;
+            if (Playing) Marks();
+        }
     }
 
     float nextAt;
@@ -316,6 +350,13 @@ public class HuntMatch : NetworkBehaviour
 
     [Rpc(SendTo.Server)]
     void SeagullDiedRpc() => EndRound(roundLength - timeLeft.Value);
+
+    // the Seagull's game moved a long task on a step: the other game's markers follow it
+    [Rpc(SendTo.NotMe)]
+    void StepRpc(int task, int at)
+    {
+        if (task < step.Length && at < parts[task].Length) step[task] = at;
+    }
 
     [Rpc(SendTo.Server)]
     void TaskDoneRpc(int task)
@@ -390,8 +431,8 @@ public class HuntMatch : NetworkBehaviour
         lastMoney = money;
         for (int i = 0; i < active.Length; i++)
         {
-            Task task = active[i];
             if (Finished(i)) continue;
+            Task task = Now(i);
             bool also = Meets(task.when);
             switch (task.goal)
             {
@@ -430,35 +471,63 @@ public class HuntMatch : NetworkBehaviour
     // ---- this round's tasks ----
 
     bool Finished(int i) => (tasksDone.Value & (1 << i)) != 0;
+    // the step task i is on (the task itself unless it's a Chain), and that step's places
+    Task Now(int i) => parts[i][step[i]];
+    List<(Transform thing, Bounds box)> Here(int i) => partPlaces[i][step[i]];
 
+    // the current step's done: on to the next, or the task's done
     void Finish(int i)
     {
         progress[i] = 0;
-        counts[i] = Mathf.Max(counts[i], active[i].count);
+        counts[i] = 0;
+        stayingAt[i] = null;
+        visited[i].Clear();
+        times[i].Clear();
+        if (step[i] < parts[i].Length - 1) { step[i]++; StepRpc(i, step[i]); return; }
         if (!Finished(i)) TaskDoneRpc(i); // the server ignores a repeat that crosses with its update
+    }
+
+    // each unfinished task's marker on the minimap: the nearest place of its current step not done yet (none if the
+    // step can be done anywhere)
+    void Marks()
+    {
+        if (map.taskSpots.Length != active.Length) map.taskSpots = new Transform[active.Length];
+        Vector3 me = rig.transform.position;
+        for (int i = 0; i < active.Length; i++)
+        {
+            Transform best = null;
+            float bestDistance = float.MaxValue;
+            foreach (var (thing, _) in Here(i))
+            {
+                if (!thing || visited[i].Contains(thing)) continue;
+                float d = (thing.position - me).sqrMagnitude;
+                if (d < bestDistance) { bestDistance = d; best = thing; }
+            }
+            map.taskSpots[i] = best;
+        }
     }
 
     // seconds while `on`: in one go, or adding up
     void Timed(int i, bool on)
     {
         if (on) progress[i] += Time.deltaTime;
-        else if (active[i].inOneGo) progress[i] = 0;
-        if (progress[i] >= active[i].amount) Finish(i);
+        else if (Now(i).inOneGo) progress[i] = 0;
+        if (progress[i] >= Now(i).amount) Finish(i);
     }
 
     // metres
     void Toward(int i, float metres)
     {
         progress[i] += metres;
-        if (progress[i] >= active[i].amount) Finish(i);
+        if (progress[i] >= Now(i).amount) Finish(i);
     }
 
     // at one of its places for the whole time, Count different ones
     void Stay(int i, Vector3 at)
     {
-        Task task = active[i];
+        Task task = Now(i);
         Transform here = null;
-        foreach (var (thing, box) in places[i])
+        foreach (var (thing, box) in Here(i))
             if (At(task, thing, box, at) && !visited[i].Contains(thing)) { here = thing; break; }
         if (here != stayingAt[i]) { stayingAt[i] = here; if (task.inOneGo) progress[i] = 0; }
         if (!here) return;
@@ -509,20 +578,33 @@ public class HuntMatch : NetworkBehaviour
         var random = new System.Random(taskSeed.Value);
         for (int i = all.Count - 1; i > 0; i--) { int j = random.Next(i + 1); (all[i], all[j]) = (all[j], all[i]); }
 
+        // a Chain's steps are the other tasks it names; with Long Tasks, chains are dealt first (singles only fill up)
+        var named = new Dictionary<string, Task>();
+        foreach (Task task in all) if (task.goal != Goal.Chain && !string.IsNullOrEmpty(task.name)) named[task.name] = task;
+        if (pool && pool.longTasks) all.Sort((a, b) => (a.goal == Goal.Chain ? 0 : 1).CompareTo(b.goal == Goal.Chain ? 0 : 1));
+
         Transform[] scene = FindObjectsByType<Transform>(FindObjectsSortMode.InstanceID);
         var picked = new List<Task>();
-        var where = new List<List<(Transform, Bounds)>>();
+        var pickedParts = new List<Task[]>();
+        var where = new List<List<(Transform, Bounds)>[]>();
         int wanted = Mathf.Min(pool ? pool.perRound : 3, 30);
         foreach (Task task in all)
         {
             if (picked.Count >= wanted) break;
-            List<(Transform, Bounds)> found = Places(task, scene);
-            if (!Doable(task, found, scene)) continue;
+            Task[] steps = task.goal == Goal.Chain ? Steps(task, named) : new[] { task };
+            if (steps == null) continue;
+            var found = new List<(Transform, Bounds)>[steps.Length];
+            bool doable = true;
+            for (int s = 0; s < steps.Length && doable; s++) doable = Doable(steps[s], found[s] = Places(steps[s], scene), scene);
+            if (!doable) continue;
             picked.Add(task);
+            pickedParts.Add(steps);
             where.Add(found);
         }
         active = picked.ToArray();
-        places = where.ToArray();
+        parts = pickedParts.ToArray();
+        partPlaces = where.ToArray();
+        step = new int[active.Length];
         progress = new float[active.Length];
         counts = new int[active.Length];
         stayingAt = new Transform[active.Length];
@@ -531,8 +613,18 @@ public class HuntMatch : NetworkBehaviour
         for (int i = 0; i < active.Length; i++) { visited[i] = new HashSet<Transform>(); times[i] = new List<float>(); }
         lastMoney = weapon ? weapon.Money : 0;
         lastAt = rig.transform.position;
-        // a task with one place gets a diamond on the minimap
-        if (map) map.taskSpots = Array.ConvertAll(places, p => p.Count == 1 ? p[0].Item1 : null);
+        if (map) map.taskSpots = new Transform[active.Length]; // Marks fills them in
+    }
+
+    // a Chain's steps by name, in order; null if one isn't a task (or is itself a chain)
+    static Task[] Steps(Task chain, Dictionary<string, Task> named)
+    {
+        if (string.IsNullOrEmpty(chain.steps)) return null;
+        string[] names = chain.steps.Split('>');
+        var steps = new Task[names.Length];
+        for (int s = 0; s < names.Length; s++)
+            if (!named.TryGetValue(names[s].Trim(), out steps[s])) { Debug.LogWarning("Hunt task " + chain.name + ": no task called " + names[s].Trim()); return null; }
+        return steps;
     }
 
     static List<(Transform, Bounds)> Places(Task task, Transform[] scene)
@@ -597,9 +689,10 @@ public class HuntMatch : NetworkBehaviour
         Vector3 at = rig.transform.position;
         for (int i = 0; i < active.Length; i++)
         {
-            Task task = active[i];
-            if (task.goal != Goal.Deed || task.deed != deed || Finished(i) || !Meets(task.when)) continue;
-            if (places[i].Count > 0 && !places[i].Exists(p => At(task, p.thing, p.box, at))) continue; // somewhere in particular
+            if (Finished(i)) continue;
+            Task task = Now(i);
+            if (task.goal != Goal.Deed || task.deed != deed || !Meets(task.when)) continue;
+            if (Here(i).Count > 0 && !Here(i).Exists(p => At(task, p.thing, p.box, at))) continue; // somewhere in particular
             if (task.within > 0)
             {
                 times[i].Add(Time.time);
@@ -622,7 +715,7 @@ public class HuntMatch : NetworkBehaviour
 
         if (menu)
         {
-            GUILayout.BeginArea(new Rect(20, 20, 360, 260), GUI.skin.box);
+            GUILayout.BeginArea(new Rect(20, 20, 360, 320), GUI.skin.box);
             GUILayout.Label("<b>Pigeon vs Seagull: online</b>", new GUIStyle(GUI.skin.label) { fontSize = 20, richText = true });
             if (GUILayout.Button("Host a match", GUILayout.Height(36))) Host();
             GUILayout.BeginHorizontal();
@@ -630,6 +723,10 @@ public class HuntMatch : NetworkBehaviour
             if (GUILayout.Button("Join", GUILayout.Width(80), GUILayout.Height(36))) Join();
             GUILayout.EndHorizontal();
             if (GUILayout.Button("Play offline", GUILayout.Height(30))) CloseMenu();
+            // every mechanic, one station each, offline (GymMenu there comes back here)
+            GUI.enabled = Application.CanStreamedLevelBeLoaded(Gym);
+            if (GUILayout.Button("Mechanics Gym (practice)", GUILayout.Height(30))) LoadMap(Gym);
+            GUI.enabled = true;
             GUILayout.Label(status, new GUIStyle(GUI.skin.label) { fontSize = 15, wordWrap = true });
             GUILayout.EndArea();
             return;
@@ -668,7 +765,9 @@ public class HuntMatch : NetworkBehaviour
                 break;
         }
         box.richText = true;
-        GUI.Box(new Rect(20, 20, 420, phase.Value == Phase.Playing ? 80 + active.Length * 24 + 40 : 110), text, box);
+        int lines = active.Length;
+        for (int i = 0; i < active.Length; i++) if (parts[i].Length > 1 && !Finished(i)) lines++;
+        GUI.Box(new Rect(20, 20, 460, phase.Value == Phase.Playing ? 80 + lines * 24 + 40 : 110), text, box);
     }
 
     // leave the match (if online) and start the scene over, which brings the starting menu back
@@ -679,6 +778,12 @@ public class HuntMatch : NetworkBehaviour
         if (NetworkManager.Singleton) NetworkManager.Singleton.Shutdown();
         Time.timeScale = 1;
         UnityEngine.SceneManagement.SceneManager.LoadScene(gameObject.scene.name);
+    }
+
+    static void LoadMap(string scene)
+    {
+        Time.timeScale = 1;
+        UnityEngine.SceneManagement.SceneManager.LoadScene(scene);
     }
 
     static void Quit()
@@ -694,14 +799,17 @@ public class HuntMatch : NetworkBehaviour
     {
         string list = "";
         for (int i = 0; i < active.Length; i++)
+        {
             list += (Finished(i) ? "[x] " : "[ ] ") + active[i].description + (Finished(i) ? "" : Progress(i)) + "\n";
+            if (parts[i].Length > 1 && !Finished(i)) list += "      step " + (step[i] + 1) + "/" + parts[i].Length + ": " + Now(i).description + "\n";
+        }
         return list;
     }
 
     // how far the Seagull is with a task (only its own game knows; the Pigeon sees just the ticks)
     string Progress(int i)
     {
-        Task task = active[i];
+        Task task = Now(i);
         string done = task.count > 1 && counts[i] > 0 ? "  " + counts[i] + "/" + task.count : "";
         if (progress[i] <= 0) return done;
         if (task.goal is Goal.Earn or Goal.Spend) return "  $" + Mathf.FloorToInt(progress[i]) + "/$" + task.amount;

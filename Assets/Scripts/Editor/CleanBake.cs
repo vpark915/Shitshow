@@ -54,7 +54,7 @@ static class CleanBake
         RenderSettings.ambientMode = AmbientMode.Skybox;
         RenderSettings.ambientIntensity = 1f;
         RenderSettings.defaultReflectionMode = DefaultReflectionMode.Skybox;
-        RenderSettings.reflectionIntensity = 1f;
+        Reflections();
         RenderSettings.fog = true;
         RenderSettings.fogMode = FogMode.ExponentialSquared;
         RenderSettings.fogDensity = 0.0015f;
@@ -133,6 +133,26 @@ static class CleanBake
         AssetDatabase.SaveAssets();
         EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
         Debug.Log("Cheaper Shadows: 80 m, 3 cascades; " + props + " prop renderers no longer cast");
+    }
+
+    // Tools > Wash Square > Stronger Reflections (no bake needed: applied when drawn): the park's reflection probes, and the
+    // sky's reflection where no probe reaches, brighter, so wet-looking and smooth surfaces (paving, cars, windows, the
+    // fountain) pick up the trees and buildings around them
+    const float ReflectionStrength = 1.6f;
+
+    [MenuItem("Tools/Wash Square/Stronger Reflections")]
+    static void Reflections()
+    {
+        RenderSettings.reflectionIntensity = Mathf.Min(ReflectionStrength, 1.3f); // the open sky is bright already: less
+        int n = 0;
+        foreach (ReflectionProbe probe in Object.FindObjectsByType<ReflectionProbe>(FindObjectsSortMode.None))
+        {
+            Undo.RecordObject(probe, "Stronger Reflections");
+            probe.intensity = ReflectionStrength;
+            n++;
+        }
+        EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
+        Debug.Log("Stronger Reflections: " + n + " probes at " + ReflectionStrength + ", sky " + RenderSettings.reflectionIntensity);
     }
 
     // Tools > Wash Square > Daylight Grade: just the colour grading and haze (no bake): rich but natural daylight colour,

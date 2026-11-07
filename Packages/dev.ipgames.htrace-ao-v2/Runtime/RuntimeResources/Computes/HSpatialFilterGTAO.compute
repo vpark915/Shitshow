@@ -1,0 +1,432 @@
+#pragma kernel PointDistributionFill
+#pragma kernel SpatialFilteringDisk
+#pragma kernel SpatialFilteringBox
+#pragma kernel OutputComposition
+#pragma kernel Interpolation 
+
+#pragma multi_compile _ HALF_RESOLUTION
+#pragma multi_compile _ VR_COMPATIBILITY
+#pragma multi_compile _ DOUBLE_SAMPLECOUNT
+
+#include "../Headers/HPipelineDefineAO.hlsl"
+#pragma multi_compile _ _GBUFFER_NORMALS_OCT
+#include "../Headers/HCommonAO.hlsl"
+
+float2 _FilterStep;
+float _Fadeout;
+float _FilterRadius;
+float _FilterAdaptivity;
+float _ExcludedIntensity;
+
+uint _IsFinalPass;
+uint _UseAccurateTemporalRejection;
+uint _ExcludeReceivingMask;
+uint _EarlyOutExcludedReceivers;
+uint _ApplyIntensity;
+
+H_TEXTURE(_Depth);
+H_TEXTURE(_OcclusionNormal);
+H_TEXTURE(_TemporalDataReprojected);
+
+H_RW_TEXTURE(float, _Occlusion_Output);
+H_RW_TEXTURE(float4, _OcclusionNormal_Output);
+H_RW_TEXTURE(float, _Occlusion_ShaderGraphOutput);
+
+StructuredBuffer<float3> _PointDistribution;
+RWStructuredBuffer<float3> _PointDistribution_Output;
+
+
+// ------------------------ POINT DISTRIBUTION --------------------
+[numthreads(16, 1, 1)]
+void PointDistributionFill(uint pixCoord : SV_DispatchThreadID)
+{
+    float2 SampleJitter = IsJitteringEnabled ? HSampleUnitDisk(_FrameCount + pixCoord.x) * 0.2 : 0;
+    
+    #ifdef DOUBLE_SAMPLECOUNT
+    {
+        static const float3 PoissonDiskSamples[16] =
+        {
+            // Ring 3 (outermost) - radius 1.5, axis-aligned
+            float3( -1.50,  0.00, 1.0),
+            float3(  0.00,  1.50, 1.0),
+            float3(  1.50,  0.00, 1.0),
+            float3(  0.00, -1.50, 1.0),
+    
+            // Ring 2 - radius 1.0, diagonal
+            float3( -0.50  * sqrt(2.0),  0.50 * sqrt(2.0), 0.75),
+            float3(  0.50  * sqrt(2.0),  0.50 * sqrt(2.0), 0.75),
+            float3(  0.50  * sqrt(2.0), -0.50 * sqrt(2.0), 0.75),
+            float3( -0.50  * sqrt(2.0), -0.50 * sqrt(2.0), 0.75),
+    
+            // Ring 1 - radius 0.5, axis-aligned
+            float3( -0.50,  0.00, 0.6),
+            float3(  0.00,  0.50, 0.6),
+            float3(  0.50,  0.00, 0.6),
+            float3(  0.00, -0.50, 0.6),
+    
+            // Center ring - radius 0.25, diagonal
+            float3( -0.125 * sqrt(2.0),  0.125 * sqrt(2.0), 0.5),
+            float3(  0.125 * sqrt(2.0),  0.125 * sqrt(2.0), 0.5),
+            float3(  0.125 * sqrt(2.0), -0.125 * sqrt(2.0), 0.5),
+            float3( -0.125 * sqrt(2.0), -0.125 * sqrt(2.0), 0.5),
+        };
+        
+        _PointDistribution_Output[pixCoord.x] = PoissonDiskSamples[pixCoord.x] + float3(SampleJitter.xy, 0);
+    }
+    #else
+    {
+        if (pixCoord.x < 8)
+        {
+            static const float3 PoissonDiskSamples[8] =
+            {
+                // https://www.desmos.com/calculator/abaqyvswem
+                float3( -1.00            ,  0.00            , 1.0),
+                float3(  0.00            ,  1.00            , 1.0),
+                float3(  1.00            ,  0.00            , 1.0),
+                float3(  0.00            , -1.00            , 1.0),
+                float3( -0.25 * sqrt(2.0),  0.25 * sqrt(2.0), 0.5),
+                float3(  0.25 * sqrt(2.0),  0.25 * sqrt(2.0), 0.5),
+                float3(  0.25 * sqrt(2.0), -0.25 * sqrt(2.0), 0.5),
+                float3( -0.25 * sqrt(2.0), -0.25 * sqrt(2.0), 0.5)
+            };
+        
+            _PointDistribution_Output[pixCoord.x] = PoissonDiskSamples[pixCoord.x] + float3(SampleJitter.xy, 0);
+        }  
+    }
+    #endif
+}
+
+
+// ------------------------ SPATIAL BOX FILTERING -------------------------
+[numthreads(8, 8, 1)]
+void SpatialFilteringBox(uint3 pixCoord : SV_DispatchThreadID)
+{
+
+    UNITY_BRANCH
+    if (any(float2(pixCoord.xy) >= _ScreenSize.xy)) return;
+    
+    uint2 pixCoordUnscaled = GetUnscaledCoords(pixCoord.xy);
+
+    bool ExcludedReceiver = false;
+    UNITY_BRANCH
+    if (_EarlyOutExcludedReceivers)
+        ExcludedReceiver = (HBUFFER_RENDER_LAYER_MASK(pixCoordUnscaled) & _ExcludeReceivingMask) != 0;
+
+    UNITY_BRANCH
+    if (ExcludedReceiver)
+    {
+        _OcclusionNormal_Output[H_COORD(pixCoord.xy)] = float4(_IsFinalPass, 0.5, 0.5, 0.5);
+        return;
+    }
+
+    float2 pixCoordNDC = (pixCoordUnscaled.xy + 0.5f) * _ScreenSize.zw;
+    
+    float4 OcclusionNormalCenter = H_LOAD(_OcclusionNormal, pixCoord.xy).xyzw;
+    float OcclusionCenter = OcclusionNormalCenter.x;
+
+    float DepthCenter = H_LOAD(_Depth, pixCoord.xy).x;
+    float DepthCenterLinear = H_LINEAR_EYE_DEPTH(DepthCenter);
+    float3 NormalCenterWS = OcclusionNormalCenter.yzw * 2 - 1;
+    float3 NormalCenterVS = H_TRANSFORM_WORLD_TO_VIEW_NORMAL(NormalCenterWS);
+    float3 PositionCenterVS = ComputeViewSpacePosition(pixCoordNDC, DepthCenter, DepthCenterLinear);
+    float4 NormalPlaneVS = float4(NormalCenterVS, dot(PositionCenterVS, NormalCenterVS));
+
+    float PlaneFilterWeight = lerp(5000, 50000, 1) / g_HPixelSpreadMultiplier;
+    float NormalFilterWeight = lerp(0.4, 0.85, 1);
+    
+    float WeightTotal = 1;
+    float OcclusionFiltered = OcclusionCenter;
+    
+    const static float3 SampleOffsets[8] = {float3(-1, 0, 1.0), float3(0,-1, 1.0), float3(1, 0, 1.0), float3( 0, 1, 1.0),
+                                            float3(-1,-1, 0.5), float3(1, 1, 0.5), float3(1,-1, 0.5), float3(-1, 1, 0.5)};
+
+    uint SampleCount = 4;
+    #ifdef DOUBLE_SAMPLECOUNT
+    SampleCount = 8;
+    #endif
+    
+    UNITY_UNROLL
+    for (uint i = 0; i < SampleCount; i++)
+    {   
+        int2 SampleCoord = pixCoord.xy + SampleOffsets[i].xy * _FilterStep.xy;  
+        float2 SampleCoordNDC = (SampleCoord + 0.5) * _ScreenSize.zw * g_HScaleFactorAO;
+        
+        float DepthSample = H_LOAD(_Depth, SampleCoord.xy).x;
+        float4 OcclusionNormalSample = H_LOAD(_OcclusionNormal, SampleCoord).xyzw;
+        float3 PositionSampleVS = ComputeViewSpacePosition(SampleCoordNDC, DepthSample, H_LINEAR_EYE_DEPTH(DepthSample));
+        
+        float PlaneWeight = PlaneWeighting(NormalPlaneVS, PositionSampleVS, DepthCenterLinear, PlaneFilterWeight);
+        float NormalWeight = max(dot(NormalCenterWS.xyz, OcclusionNormalSample.yzw * 2 - 1), 0) > NormalFilterWeight;
+        
+        float SampleWeight = PlaneWeight * NormalWeight * SampleOffsets[i].z * ENABLE_SPATIAL_DENOISING;
+    
+        WeightTotal += SampleWeight;
+        OcclusionFiltered += OcclusionNormalSample.x * SampleWeight;
+    }
+    
+    OcclusionFiltered /= WeightTotal;
+    
+    _OcclusionNormal_Output[H_COORD(pixCoord.xy)] = _IsFinalPass ? 1 - OcclusionFiltered : float4(OcclusionFiltered, NormalCenterWS * 0.5 + 0.5);
+}
+
+
+// ------------------------ SPATIAL DISK FILTERING -------------------------
+[numthreads(8, 8, 1)]
+void SpatialFilteringDisk(uint3 pixCoord : SV_DispatchThreadID)
+{
+
+    UNITY_BRANCH
+    if (any(float2(pixCoord.xy) >= _ScreenSize.xy)) return;
+
+    uint2 pixCoordUnscaled = GetUnscaledCoords(pixCoord.xy);
+
+    bool ExcludedReceiver = false;
+    UNITY_BRANCH
+    if (_EarlyOutExcludedReceivers)
+        ExcludedReceiver = (HBUFFER_RENDER_LAYER_MASK(pixCoordUnscaled) & _ExcludeReceivingMask) != 0;
+
+    UNITY_BRANCH
+    if (ExcludedReceiver)
+    {
+        _OcclusionNormal_Output[H_COORD(pixCoord.xy)] = float4(_IsFinalPass, 0.5, 0.5, 0.5);
+        return;
+    }
+
+    float2 pixCoordNDC = (pixCoordUnscaled.xy + 0.5f) * _ScreenSize.zw;
+
+    float4 OcclusionNormalCenter = H_LOAD(_OcclusionNormal, pixCoord.xy).xyzw;
+    float OcclusionCenter = OcclusionNormalCenter.x;
+
+    float4 OcclusionGather1 = H_GATHER_RED(_OcclusionNormal, H_SAMPLER_POINT_CLAMP, (pixCoord.xy + int2(-1,-1) + 0.5) * _ScreenSize.zw * HRenderScale.xy, 0).wzxy;
+    float4 OcclusionGather2 = H_GATHER_RED(_OcclusionNormal, H_SAMPLER_POINT_CLAMP, (pixCoord.xy + int2( 0, 0) + 0.5) * _ScreenSize.zw * HRenderScale.xy, 0).wzxy;
+    float OcclusionGathered = dot(OcclusionGather1 + OcclusionGather2, 1) / 8;
+    
+    float DepthCenter = H_LOAD(_Depth, pixCoord.xy).x;
+    float DepthCenterLinear = H_LINEAR_EYE_DEPTH(DepthCenter);
+    float3 NormalCenterWS = OcclusionNormalCenter.yzw * 2 - 1;
+    float3 NormalCenterVS = H_TRANSFORM_WORLD_TO_VIEW_NORMAL(NormalCenterWS);
+    float3 PositionCenterWS = H_COMPUTE_POSITION_WS(pixCoordNDC, DepthCenter, H_MATRIX_I_VP);
+    float3 PositionCenterVS = ComputeViewSpacePosition(pixCoordNDC, DepthCenter, DepthCenterLinear);
+    float4 NormalPlaneVS = float4(NormalCenterVS, dot(PositionCenterVS, NormalCenterVS));
+
+    float3 TemporalData = UnpackTemporalDataGTAO(asuint(H_LOAD(_TemporalDataReprojected, pixCoord.xy).x)).xyz;
+    float SampleCountReprojected = TemporalData.z;
+    float VelocityReprojected = TemporalData.x;
+    
+    float ClampWeight = _UseAccurateTemporalRejection ? saturate(pow(max(1 - VelocityReprojected, 1e-6), TEMPORAL_REJECTION_INTENSITY)) : 1;
+    ClampWeight = SampleCountReprojected < 1 ? 0 : ClampWeight;
+
+    float Adaptivity = lerp(0.25, 1.0f, pow(abs(1 - OcclusionGathered), _FilterAdaptivity * 2 * ClampWeight));
+    
+    float PlaneFilterWeight = lerp(5000, 50000, ClampWeight) / g_HPixelSpreadMultiplier;
+    float NormalFilterWeight = lerp(0.4, 0.85, ClampWeight);
+
+    float FilterRadius = lerp(max(0.04, _FilterRadius), _FilterRadius, ClampWeight);
+    
+    float DistanceToPoint = length(H_GET_ABSOLUTE_POSITION_WS(PositionCenterWS) - H_GET_CAMERA_POSITION_WS());
+    float3x3 OrthoBasis = HGetLocalFrame(NormalCenterWS);
+    float RadiusScale = lerp(5.0f, 125.0f, saturate(DistanceToPoint / 500.0f));
+    float Radius = DistanceToPoint * FilterRadius / RadiusScale * Adaptivity;
+    
+    float2 PerPixelJitter = H_STBN_RANDOM_2D(pixCoord.yx, 0);
+    PerPixelJitter = (PerPixelJitter * 2 - 1) * 0.15; 
+    
+    float OcclusionFiltered = OcclusionCenter;
+    float WeightTotal = 1.0f;
+
+    uint SampleCount = 8;
+    #ifdef DOUBLE_SAMPLECOUNT
+    SampleCount = 16;
+    #endif
+
+    UNITY_UNROLL
+    for (uint i = 0; i < SampleCount; i++)
+    {
+        float2 SamplePoint = (_PointDistribution[i].xy + PerPixelJitter) * Radius;
+        
+        float3 PositionPointWS = PositionCenterWS + OrthoBasis[0] * SamplePoint.x + OrthoBasis[1] * SamplePoint.y;
+        float2 SampleCoordNDC = H_COMPUTE_NDC_Z(PositionPointWS, H_MATRIX_VP).xy;
+        int2 SampleCoord = SampleCoordNDC * _ScreenSize.xy / g_HScaleFactorAO;
+        
+        float DepthSample = H_LOAD(_Depth, SampleCoord.xy).x;
+        float4 OcclusionNormalSample = H_LOAD(_OcclusionNormal, SampleCoord).xyzw;
+        float3 PositionSampleVS = ComputeViewSpacePosition(SampleCoordNDC, DepthSample, H_LINEAR_EYE_DEPTH(DepthSample));
+        
+        float PlaneWeight = PlaneWeighting(NormalPlaneVS, PositionSampleVS, DepthCenterLinear, PlaneFilterWeight);
+        float NormalWeight = max(dot(NormalCenterWS.xyz, OcclusionNormalSample.yzw * 2 - 1), 0) > NormalFilterWeight;
+        float GaussianWeight = GaussianWeighting(_PointDistribution[i].z);
+        
+        float SampleWeight = PlaneWeight * NormalWeight * GaussianWeight * ENABLE_SPATIAL_DENOISING;
+        
+        WeightTotal += SampleWeight;
+        OcclusionFiltered += OcclusionNormalSample.x * SampleWeight;
+    }
+
+    OcclusionFiltered /= WeightTotal;
+    
+    _OcclusionNormal_Output[H_COORD(pixCoord.xy)] = _IsFinalPass ? 1 - OcclusionFiltered : float4(OcclusionFiltered, NormalCenterWS * 0.5 + 0.5);
+}
+
+
+// ------------------------ INTERPOLATION -------------------------
+[numthreads(8, 8, 1)]
+void Interpolation(uint3 pixCoord : SV_DispatchThreadID)
+{
+
+    float2 pixCoordNDC = (pixCoord.xy + 0.5f) * _ScreenSize.zw;
+
+    float DepthCenter = HBUFFER_DEPTH(pixCoord.xy);
+
+    UNITY_BRANCH
+    if (DepthCenter <= UNITY_RAW_FAR_CLIP_VALUE)
+        return;
+
+    bool ExcludedReceiver = false;
+    UNITY_BRANCH
+    if (_EarlyOutExcludedReceivers)
+        ExcludedReceiver = (HBUFFER_RENDER_LAYER_MASK(pixCoord.xy) & _ExcludeReceivingMask) != 0;
+
+    UNITY_BRANCH
+    if (ExcludedReceiver)
+    {
+        _Occlusion_Output[H_COORD(pixCoord.xy)] = 1.0;
+        return;
+    }
+    
+    float DepthCenterLinear = H_LINEAR_EYE_DEPTH(DepthCenter);
+    float3 NormalCenterWS = HBUFFER_NORMAL_WS(pixCoord.xy);
+    float3 NormalCenterVS = H_TRANSFORM_WORLD_TO_VIEW_NORMAL(NormalCenterWS);
+    float3 PositionCenterVS = ComputeViewSpacePosition(pixCoordNDC, DepthCenter, DepthCenterLinear);
+    float4 NormalPlaneVS = float4(NormalCenterVS, dot(PositionCenterVS, NormalCenterVS));
+
+    float PlaneFilterWeight = 10000 / g_HPixelSpreadMultiplier;
+    
+    float OcclusionCenter = H_LOAD(_OcclusionNormal, pixCoord.xy / g_HScaleFactorAO).x;
+    float OcclusionUpscaled = OcclusionCenter;
+    
+    #ifdef HALF_RESOLUTION
+    {
+        float4 DepthGatheredA = H_GATHER_RED(_Depth, H_SAMPLER_POINT_CLAMP, (pixCoord.xy / g_HScaleFactorAO + int2(0,  0) + 0.5) * _ScreenSize.zw * HRenderScale.xy, 0).wzxy;
+        float4 DepthGatheredB = H_GATHER_RED(_Depth, H_SAMPLER_POINT_CLAMP, (pixCoord.xy / g_HScaleFactorAO + int2(0, -1) + 0.5) * _ScreenSize.zw * HRenderScale.xy, 0).wzxy;
+
+        float4 DepthSamplesGroupA = float4(DepthGatheredB.x, DepthGatheredA.z, DepthGatheredA.w, DepthGatheredB.y);
+        float4 DepthSamplesGroupB = float4(DepthGatheredB.z, DepthGatheredB.w, DepthGatheredA.z, DepthGatheredB.x);
+
+        float4 DepthSamplesLinearGroupA = 1.0 / (_ZBufferParams.zzzz * DepthSamplesGroupA.xyzw + _ZBufferParams.wwww);
+        float4 DepthSamplesLinearGroupB = 1.0 / (_ZBufferParams.zzzz * DepthSamplesGroupB.xyzw + _ZBufferParams.wwww);
+        
+        bool RenderedPixel = ((pixCoord.x + pixCoord.y) & 1) == 0;
+        
+        float SpatialWeight = RenderedPixel ? 0.33 : 1.0;
+        float2 OcclusionAccumulated = RenderedPixel ? OcclusionCenter : 0;
+        float2 WeightTotal = RenderedPixel ? 1 : 0;
+
+        const static int2 CrossOffsets[4] = {int2(0,-1), int2(0,1), int2(1,1), int2(1,-1)};
+        const static int2 PlusOffsets[4] = {int2(0,0), int2(1,0), int2(0,1), int2(0,-1)};
+    
+        UNITY_UNROLL
+        for (int i = 0; i < 4; i++)
+        {
+            float Depth = RenderedPixel ? DepthSamplesGroupA[i] : DepthSamplesGroupB[i];
+            float DepthLinear = RenderedPixel ? DepthSamplesLinearGroupA[i] : DepthSamplesLinearGroupB[i];
+            
+            int2 SampleCoord = floor(pixCoord.xy / g_HScaleFactorAO) + (RenderedPixel ? CrossOffsets[i] : PlusOffsets[i]);
+            float2 SampleCoordNDC = (SampleCoord + 0.5) * _ScreenSize.zw * g_HScaleFactorAO;
+         
+            float4 OcclusionNormalSample = H_LOAD(_OcclusionNormal, SampleCoord).xyzw;
+            float3 PositionSampleVS = ComputeViewSpacePosition(SampleCoordNDC, Depth, DepthLinear);
+            
+            float PlaneWeight = PlaneWeighting(NormalPlaneVS, PositionSampleVS, DepthCenterLinear, PlaneFilterWeight);
+            float NormalWeight = pow(max(dot(NormalCenterWS.xyz, OcclusionNormalSample.yzw * 2 - 1), 0), 4);
+            
+            OcclusionAccumulated.x += OcclusionNormalSample.x * PlaneWeight * NormalWeight * SpatialWeight;
+            WeightTotal.x += PlaneWeight * NormalWeight * SpatialWeight;
+        
+            OcclusionAccumulated.y += OcclusionNormalSample.x * PlaneWeight * SpatialWeight;
+            WeightTotal.y += PlaneWeight * SpatialWeight;
+        }
+
+        if (WeightTotal.x > 0.0) OcclusionUpscaled = OcclusionAccumulated.x / WeightTotal.x;
+        else if (WeightTotal.y > 0.0) OcclusionUpscaled = OcclusionAccumulated.y / WeightTotal.y;
+    }
+    #else
+    {
+        const static int2 SampleOffsets[4] = {int2(0, 0), int2(1, 0), int2(0, 1), int2(1, 1)};
+        
+        float2 BilinearCoordNDC = ((pixCoord.xy + 0.25) / g_HScaleFactorAO + 0.5) * _ScreenSize.zw;
+        float2 BilinearCoord = BilinearCoordNDC * _ScreenSize.xy - 0.5;
+        float2 Frac = frac(BilinearCoord);  
+        
+        float4 BilinearWeights;
+        BilinearWeights.x = (1.0 - Frac.x) * (1.0 - Frac.y); 
+        BilinearWeights.y = Frac.x * (1.0 - Frac.y);         
+        BilinearWeights.z = (1.0 - Frac.x) * Frac.y;         
+        BilinearWeights.w = Frac.x * Frac.y;                 
+        
+        float2 OcclusionAccumulated = 0; 
+        float2 WeightTotal = 0;
+
+        float4 DepthSamples = H_GATHER_RED(_Depth, H_SAMPLER_POINT_CLAMP, (pixCoord.xy / g_HScaleFactorAO + 0.5) * _ScreenSize.zw * HRenderScale.xy, 0).wzxy;
+        float4 DepthSamplesLinear = 1.0 / (_ZBufferParams.zzzz * DepthSamples.xyzw + _ZBufferParams.wwww);
+
+        UNITY_UNROLL
+        for (int i = 3; i >= 0; i--)
+        {
+            int2 SampleCoord = (pixCoord.xy / g_HScaleFactorAO + SampleOffsets[i]);
+            float2 SampleCoordNDC = (SampleCoord + 0.5) * _ScreenSize.zw * g_HScaleFactorAO;
+            
+            float4 OcclusionNormalSample = H_LOAD(_OcclusionNormal, SampleCoord).xyzw;
+            float3 PositionSampleVS = ComputeViewSpacePosition(SampleCoordNDC, DepthSamples[i], DepthSamplesLinear[i]);
+
+            float PlaneWeight = PlaneWeighting(NormalPlaneVS, PositionSampleVS, DepthCenterLinear, PlaneFilterWeight);
+            float NormalWeight = pow(max(dot(NormalCenterWS.xyz, OcclusionNormalSample.yzw * 2 - 1), 0), 4);
+
+            OcclusionAccumulated.x += OcclusionNormalSample.x * PlaneWeight * NormalWeight * BilinearWeights[i]; 
+            WeightTotal.x += PlaneWeight * NormalWeight * BilinearWeights[i];
+
+            OcclusionAccumulated.y += OcclusionNormalSample.x * PlaneWeight * BilinearWeights[i];
+            WeightTotal.y += PlaneWeight * BilinearWeights[i];
+
+            OcclusionUpscaled = OcclusionNormalSample.x;
+        }
+                
+        if (WeightTotal.x > 0.0) OcclusionUpscaled = OcclusionAccumulated.x / WeightTotal.x;
+        else if (WeightTotal.y > 0.0) OcclusionUpscaled = OcclusionAccumulated.y / WeightTotal.y;
+    }
+    #endif
+    
+    _Occlusion_Output[H_COORD(pixCoord.xy)] = 1 - OcclusionUpscaled;
+}
+
+
+// ------------------------ OUTPUT COMPOSITION -------------------------
+[numthreads(8, 8, 1)]
+void OutputComposition(uint3 pixCoord : SV_DispatchThreadID)
+{
+    
+    float Depth = HBUFFER_DEPTH(pixCoord.xy);
+    if (Depth <= UNITY_RAW_FAR_CLIP_VALUE) return;
+    
+    float Occlusion = _Occlusion_Output[H_COORD(pixCoord.xy)];
+
+    _Occlusion_ShaderGraphOutput[H_COORD(pixCoord.xy)] = Occlusion;
+
+    float DepthLinear = H_LINEAR_EYE_DEPTH(Depth);
+    
+    if (_ApplyIntensity)
+    Occlusion = pow(abs(Occlusion), g_HIntensityAO);
+
+    if (_Fadeout > 0)
+    {
+        float FadeoutStart = _Fadeout * 0.75;
+        float FadeoutFactor = smoothstep(FadeoutStart, _Fadeout, DepthLinear);
+        Occlusion = lerp(Occlusion, 1.0, FadeoutFactor);  
+    }
+    
+    if (HBUFFER_RENDER_LAYER_MASK(pixCoord.xy) & _ExcludeReceivingMask)
+    {
+        Occlusion = lerp(1.0f, Occlusion, _ExcludedIntensity);
+    }
+
+    _Occlusion_Output[H_COORD(pixCoord.xy)] = Occlusion;
+}

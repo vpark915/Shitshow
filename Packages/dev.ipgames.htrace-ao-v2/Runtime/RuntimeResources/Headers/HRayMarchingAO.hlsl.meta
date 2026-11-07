@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: a00a53669ce504b448efd02464c317c0
+ShaderIncludeImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 369882
+  packageName: 'HTrace: Ambient Occlusion V2 URP'
+  packageVersion: 2.2.2
+  assetPath: Packages/dev.ipgames.htrace-ao-v2/Runtime/RuntimeResources/Headers/HRayMarchingAO.hlsl
+  uploadId: 968282

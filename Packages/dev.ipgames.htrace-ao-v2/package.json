@@ -1,0 +1,27 @@
+{
+  "name": "dev.ipgames.htrace-ao-v2",
+  "displayName": "HTrace Ambient Occlusion V2 URP",
+  "version": "2.2.2",
+  "unity": "2022.3",
+  "description": "HTrace: Ambient Occlusion combines three of the most popular ambient occlusion techniques into a single asset, offering a highly scalable and adaptive system for AO computation.\n\nIncludes three AO modes:\n\n\u25aa SSAO (Screen-Space Ambient Occlusion) \u2013 A lightweight and extremely fast method for occlusion gathering. It doesn\u2019t require a denoiser and produces zero temporal lag.\n\n\u25aa GTAO (Ground-Truth Ambient Occlusion) \u2013 Built on the latest advancements in ambient occlusion research, this technique is highly optimized and refined to deliver the best possible quality in screen-space.\n\n\u25aa RTAO (Ray-Traced Ambient Occlusion) \u2013 The most accurate occlusion method, utilizing hardware ray tracing for uncompromised quality with scalable performance.\n\nUseful Links:\n\n[FAQ](https://docs.ipgames.dev/ambient-occlusion/frequently-asked-questions)\n\n[Documentation](https://docs.ipgames.dev/ambient-occlusion/).\n\nFor questions or support contact us at support@ipgames.dev",
+  "keywords": [
+    "ambient occlusion",
+    "rendering",
+    "hdrp",
+    "urp",
+    "birp",
+    "rtao",
+    "gtao",
+    "ssao"
+  ],
+  "dependencies": {
+    "com.unity.render-pipelines.universal": "14.0.0"
+  },
+  "author": {
+    "name": "IPGames",
+    "url": "https://ipgames.dev/",
+    "email": "support@ipgames.dev"
+  },
+  "documentationUrl": "https://docs.ipgames.dev/ambient-occlusion/",
+  "changelogUrl": "https://docs.ipgames.dev/ambient-occlusion/change-log"
+}

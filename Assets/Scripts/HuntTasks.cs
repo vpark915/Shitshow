@@ -31,6 +31,9 @@ using Task = HuntMatch.Task;
 //   the point: while hurt, hidden...). Money: hold $Amount at once. Earn / Spend: gain / spend $Amount in all.
 // - Stock: hold Count of the food power named in Deed (EggBomb, BagelShield, CrowdFavourite, SnitchFlock).
 //   Reloads: hold Count spare magazines.
+// - Chain: a long task, Steps names other tasks (from this list or the scene's) to do in order, separated by >. Only
+//   the current step counts; the Seagull's panel shows it and the minimap points at it. Drawn only if every step can
+//   be done in the scene.
 // When (any goal): it only counts while that's true too: Flying, OnFoot, Riding (a person), Driving, Wanted,
 // Hurt (a third of health or less), Hidden (soft pretzel's Low profile).
 // In One Go: off, the seconds add up across tries instead of starting over.
@@ -39,6 +42,8 @@ public class HuntTasks : ScriptableObject
 {
     [Tooltip("Tasks the Seagull gets each round")]
     [Range(1, 10)] public int perRound = 3;
+    [Tooltip("Deal long tasks (Chains of several steps) first; single tasks only fill up if too few chains fit the scene")]
+    public bool longTasks = true;
     [Tooltip("Also draw from the scene's landmark tasks (HuntMatch > Tasks: the fountain, arch and chess table)")]
     public bool sceneTasks = true;
     public List<Task> tasks = new List<Task>();
@@ -60,6 +65,8 @@ public class HuntTasks : ScriptableObject
         new Task { name = name, description = description, goal = goal, amount = amount, inOneGo = inOneGo, when = when };
     static Task Hold(Goal goal, string name, string description, int count, string power = null) =>
         new Task { name = name, description = description, goal = goal, count = count, deed = power };
+    static Task Chain(string name, string description, string steps) =>
+        new Task { name = name, description = description, goal = Goal.Chain, steps = steps };
 
     const string Rooftops = "WSP_BobstLibrary|WSP_KimmelCenter|WSP_VanderbiltHall|WSP_HaydenHall|WSP_SilverCenter|WSP_GoddardHall|WSP_ShimkinHall|WSP_PlessHall|WSP_WilfHall|WSP_EducationBuilding|WSP_KevorkianCenter|WSP_KingJuanCarlosCenter|WSP_GlobalCenterSpiritualLife|WSP_1UniversityPlace|WSP_JudsonChurch|WSP_WashSqHotel|WSP_TheRow|WSP_RowWest|WSP_1FifthAve|WSP_2FifthAve|WSP_Fill_";
 
@@ -67,11 +74,29 @@ public class HuntTasks : ScriptableObject
     // whose place isn't in the scene is never drawn there, so the Hunt Gym just gets fewer to pick from
     public static List<Task> Defaults() => new List<Task>
     {
+        // ---- long tasks: several of the tasks below (or the scene's Bath, Chess and Arch) in order; a round's 5
+        // minutes is for three of these ----
+        Chain("Grand tour", "Grand tour: bathe in the fountain, ruin a chess game, then perch on the arch", "Bath>Chess>Arch"),
+        Chain("Picnic", "Picnic: buy something, eat 3 things, then rummage through a trash can", "Customer>Eat 3>Rummage"),
+        Chain("Vendor raid", "Vendor raid: stand on a cart roof, buy something, then sit on a bench", "Cart roof>Customer>Bench"),
+        Chain("Bank job", "Bank job: grab a wallet, hold $50, then spend $20", "Wallet>Rich>Big spender"),
+        Chain("Cop show", "Cop show: get wanted, kill an officer, then survive 20 s while wanted", "Wanted>Cop killer>Fugitive"),
+        Chain("Escape route", "Escape route: get wanted, drive 200 m while wanted, then hide in the fountain", "Wanted>Getaway>Fountain dip"),
+        Chain("Joyride", "Joyride: drive a car, run someone over, then ride a Citi Bike", "Drive>Run over>Bike"),
+        Chain("Rodeo", "Rodeo: ride someone, kill from their head, then a silent kill", "Ride>Puppet master>Silent"),
+        Chain("Air show", "Air show: glide for 6 s, get 15 m up, then kill someone from the air", "Glide>High>From above"),
+        Chain("Clean sweep", "Clean sweep: search 3 trash cans, eat 3 things, then take a bath", "Dumpster diver>Eat 3>Bath"),
+        Chain("Spree", "Spree: kill 5 people, a headshot kill, then a double kill", "Kill 5>Headshot kill>Double kill"),
+        Chain("Rooftop run", "Rooftop run: perch on 3 NYU buildings, kill someone from a rooftop, then perch on the arch", "Rooftop tour>Rooftop sniper>Arch"),
+        Chain("Park life", "Park life: trample the lawn, play in the playground, dust-bathe in the sandpit, then splash in the fountain", "Lawn>Playground>Sandpit>Fountain dip"),
+        Chain("Bench crawl", "Bench crawl: stand on 5 benches, 3 chess tables, then a lamp post", "Benches>Chess tour>Lamp"),
+        Chain("Chess hustle", "Chess hustle: eat 3 chess pieces, kill someone on a chess table, then perch on the arch", "Chess pieces>Checkmate>Arch"),
+
         // ---- perches: on top of things ----
         Stay("Lamp", "Perch on top of a lamp post", "WSP_Prop_Lamp", 4),
         Stay("Lamps", "Perch on top of 3 different lamp posts", "WSP_Prop_Lamp", 2, count: 3),
-        Stay("Bench", "Stand on a bench", "Benches/|WSP_Prop_Bench", 3),
-        Stay("Benches", "Stand on 5 different benches", "Benches/|WSP_Prop_Bench", 1.5f, count: 5),
+        Stay("Bench", "Stand on a bench", "Benches/|WSP_Prop_Bench|ParkBench", 3),
+        Stay("Benches", "Stand on 5 different benches", "Benches/|WSP_Prop_Bench|ParkBench", 1.5f, count: 5),
         Stay("Chess", "Ruin a chess game: stand on any chess table", "ChessTables/|WSP_Prop_ChessTable", 3),
         Stay("Chess tour", "Stand on 3 different chess tables", "ChessTables/|WSP_Prop_ChessTable", 2, count: 3),
         Stay("Garibaldi", "Stand on Garibaldi's head (the statue)", "WSP_Prop_GaribaldiStatue", 4),
@@ -85,8 +110,8 @@ public class HuntTasks : ScriptableObject
         Stay("Play toddler", "Stand on top of the toddler play structure", "WSP_Prop_PlayStructure_Toddler", 4),
         Stay("Mound", "King of the hill: stand on a mound", "WSP_Prop_Mound", 5, onTop: false, low: 0.3f, high: 4),
         Stay("Long benches", "Strut along the long benches", "WSP_Prop_LongBenches", 4, low: -0.3f, high: 2),
-        Stay("Cart roof", "Stand on a food cart or truck roof", "FoodVendors/", 4),
-        Stay("Vendor tour", "Stand on 3 different food carts or trucks", "FoodVendors/", 2, count: 3),
+        Stay("Cart roof", "Stand on a food cart or truck roof", "FoodVendors/|Vendors/", 4),
+        Stay("Vendor tour", "Stand on 3 different food carts or trucks", "FoodVendors/|Vendors/", 2, count: 3),
         Stay("Bike dock", "Sit on a Citi Bike docking station", "CitiBikeStation", 3),
         Stay("Fence", "Walk the park fence", "WSP_ParkFence", 4, low: -0.3f, high: 1.5f),
         // ---- the landmarks (the scene's own fountain, arch and chess table tasks are drawn too) ----

@@ -6,9 +6,10 @@ using UnityEngine;
 // Runs every time the Washington Square blockout is (re)imported from Blender, so the clean-up and colliders survive re-exports.
 class BlockoutPostprocessor : AssetPostprocessor
 {
-    // name prefixes of flat, hollow or walk-through pieces, which need their real shape (WSP_Park covers the park's
-    // ground pieces and fences); everything else is a building or a small prop and gets a box
-    static readonly string[] MeshShaped = { "WSP_Road", "WSP_Sidewalk", "WSP_Park", "WSP_Fountain", "WSP_Arch", "WSP_Prop_LongBenches", "WSP_Prop_Mound" };
+    // name prefixes of the small solid props, which get a box; everything else gets its real shape (a mesh collider).
+    // Buildings had boxes too, but an L-shaped or angled building, a church tower or a setback filled its whole box (2 Fifth
+    // Ave 54% of it, Vanderbilt Hall 73%), so birds hit air; and the benches, angled in their own space, had diagonal boxes
+    static readonly string[] BoxShaped = { "WSP_Prop_Lamp", "WSP_Prop_ChessTable", "WSP_TreePit", "WSP_Prop_Flagpole", "WSP_Prop_GaribaldiStatue", "WSP_Prop_HolleyBust" };
 
     // the ground: its textures are projected in world metres (the pieces come without usable UVs)
     static readonly string[] Flat = { "WSP_Park_Base", "WSP_Park_Paths", "WSP_Sidewalk", "WSP_Road", "WSP_Road_Cobble" };
@@ -21,7 +22,7 @@ class BlockoutPostprocessor : AssetPostprocessor
     const float GridCell = 4f; // metres
 
     // bump to force a reimport after changing this file
-    public override uint GetVersion() => 33; // 33 rim jets flow; 32 lightmap UVs;24 arch tessellation cut (undone); 26 smoothness, granite, weathering; 27 _Glossiness; 28 parallax; 29 MatteImports; 30 displacement retired, deeper stone, granite parallax; 31 deeper brick
+    public override uint GetVersion() => 34; // 34 buildings and benches mesh colliders; 33 rim jets flow; 32 lightmap UVs;24 arch tessellation cut (undone); 26 smoothness, granite, weathering; 27 _Glossiness; 28 parallax; 29 MatteImports; 30 displacement retired, deeper stone, granite parallax; 31 deeper brick
 
     // the meshes are rewritten on import (UVs, GridCut), and the NavMesh bake reads the paths', which needs them readable
     void OnPreprocessModel()
@@ -64,8 +65,8 @@ class BlockoutPostprocessor : AssetPostprocessor
                 if (shape.vertexCount > 10000) Debug.Log("BlockoutPostprocessor: lightmap UVs for " + child.name + " (" + shape.vertexCount + " vertices)");
                 Unwrapping.GenerateSecondaryUVSet(shape);
             }
-            if (MeshShaped.Any(child.name.StartsWith)) child.gameObject.AddComponent<MeshCollider>();
-            else child.gameObject.AddComponent<BoxCollider>();
+            if (BoxShaped.Any(child.name.StartsWith)) child.gameObject.AddComponent<BoxCollider>();
+            else child.gameObject.AddComponent<MeshCollider>();
         }
 
         // the materials, from the renderers: OnPostprocessMaterial isn't called for this importer's embedded

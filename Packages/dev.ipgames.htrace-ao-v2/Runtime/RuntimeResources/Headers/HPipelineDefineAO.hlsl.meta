@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 471fbb84e80757640b40d9d8fa9019bc
+ShaderIncludeImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 369882
+  packageName: 'HTrace: Ambient Occlusion V2 URP'
+  packageVersion: 2.2.2
+  assetPath: Packages/dev.ipgames.htrace-ao-v2/Runtime/RuntimeResources/Headers/HPipelineDefineAO.hlsl
+  uploadId: 968282

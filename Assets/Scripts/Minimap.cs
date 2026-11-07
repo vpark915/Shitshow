@@ -9,7 +9,9 @@ using UnityEngine.UI;
 // centred on the player and turned with the camera so up is the way you're looking. Police are red dots, food carts and trucks yellow squares. The target
 // (the Seagull) is never a dot: it's a circle of Target Radius with them somewhere inside, and the circle only moves
 // once they leave it, so the map says roughly where they are but never exactly. When it's off the map, an arrow on the
-// map's edge points to it. Put this on the HUD canvas.
+// map's edge points to it. The Seagull's unfinished tasks are blue diamonds (HuntMatch moves each to where its current
+// step can be done), with a blue arrow on the map's edge for one off the map; while guiding (the Seagull), a big blue
+// arrow at the top of the screen points to the nearest and says how far. Put this on the HUD canvas.
 public class Minimap : MonoBehaviour
 {
     [Header("Map")]
@@ -22,6 +24,8 @@ public class Minimap : MonoBehaviour
     public float range = 60f;
     [Tooltip("Pixels in the map picture")]
     public int resolution = 1024;
+    [Tooltip("The map picture, taken in the editor (Tools > Wash Square > Bake Minimap). Empty: photographed at start, which in a build can catch the first frame before the lighting and textures have loaded")]
+    public Texture2D bakedPicture;
 
     [Header("Police")]
     public Color policeColor = Color.red;
@@ -48,7 +52,9 @@ public class Minimap : MonoBehaviour
     public Transform[] taskSpots = { };
     [Tooltip("Bit i set: task i is done, its diamond goes")]
     public int tasksDone;
-    public Color taskColor = new Color(0.2f, 0.9f, 1f);
+    public Color taskColor = new Color(0.15f, 0.45f, 1f);
+    [Tooltip("Show the arrow on screen to the nearest task (HuntMatch: the Seagull, during a round)")]
+    public bool guide;
 
     Texture picture;
     Sprite circle;
@@ -58,11 +64,13 @@ public class Minimap : MonoBehaviour
     Outline glow;
     Vector3 zoneCentre;
     bool zonePlaced;
-    readonly List<RectTransform> taskMarks = new List<RectTransform>();
+    readonly List<RectTransform> taskMarks = new List<RectTransform>(), taskArrows = new List<RectTransform>();
+    RectTransform guideArrow;
+    Text guideText;
     readonly List<(Npc cop, RectTransform dot)> police = new List<(Npc, RectTransform)>();
 
     // before anyone's Start, so the crowd and the birds aren't in the picture
-    void Awake() => picture = Photograph();
+    void Awake() => picture = bakedPicture ? bakedPicture : Photograph();
 
     IEnumerator Start()
     {
@@ -83,6 +91,19 @@ public class Minimap : MonoBehaviour
         exact = Make("Target Exact", world, Vector2.one * dotSize * 1.6f, revealColor, circle);
         Make("You", frame, Vector2.one * dotSize, Color.white, circle);
         offMap = Make("Target Off Map", frame, new Vector2(2.4f, 1.6f) * dotSize, offMapColor, DamageIndicator.MakeArrow());
+        // the way to the nearest task, top middle of the screen, with how far under it
+        guideArrow = Make("Task Arrow", transform, new Vector2(54, 40), taskColor, DamageIndicator.MakeArrow());
+        guideArrow.anchorMin = guideArrow.anchorMax = new Vector2(0.5f, 1);
+        guideArrow.anchoredPosition = new Vector2(0, -70);
+        guideText = Make("Distance", transform, new Vector2(200, 30), null, null).gameObject.AddComponent<Text>();
+        guideText.rectTransform.anchorMin = guideText.rectTransform.anchorMax = new Vector2(0.5f, 1);
+        guideText.rectTransform.anchoredPosition = new Vector2(0, -112);
+        guideText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        guideText.fontSize = 20;
+        guideText.alignment = TextAnchor.MiddleCenter;
+        guideText.color = taskColor;
+        guideText.raycastTarget = false;
+        guideText.gameObject.AddComponent<Shadow>();
 
         yield return null; // the NPC spawner fills the park in its own Start
         foreach (Npc npc in FindObjectsByType<Npc>(FindObjectsSortMode.None))
@@ -101,13 +122,21 @@ public class Minimap : MonoBehaviour
             RectTransform mark = Make("Task", world, Vector2.one * dotSize * 1.4f, taskColor, null);
             mark.localEulerAngles = new Vector3(0, 0, 45);
             taskMarks.Add(mark);
+            taskArrows.Add(Make("Task Off Map", Frame(), new Vector2(2f, 1.4f) * dotSize, taskColor, DamageIndicator.MakeArrow()));
         }
+        Transform nearest = null;
+        float nearestDistance = float.MaxValue;
         for (int i = 0; i < taskMarks.Count; i++)
         {
             bool show = i < taskSpots.Length && taskSpots[i] && (tasksDone & (1 << i)) == 0;
             taskMarks[i].gameObject.SetActive(show);
-            if (show) taskMarks[i].anchoredPosition = OnMap(taskSpots[i].position);
+            taskArrows[i].gameObject.SetActive(show && Edge(taskMarks[i], taskArrows[i]));
+            if (!show) continue;
+            taskMarks[i].anchoredPosition = OnMap(taskSpots[i].position);
+            float d = Flat(taskSpots[i].position - player.position).magnitude;
+            if (d < nearestDistance) { nearestDistance = d; nearest = taskSpots[i]; }
         }
+        Guide(nearest, nearestDistance);
 
         foreach ((Npc cop, RectTransform dot) in police)
         {
@@ -135,12 +164,32 @@ public class Minimap : MonoBehaviour
         zone.anchoredPosition = OnMap(zoneCentre);
 
         // off the map: an arrow on the map's edge, in the target's direction
-        Vector2 shown = pivot.localRotation * (world.anchoredPosition + (revealed ? exact : zone).anchoredPosition);
+        offMap.gameObject.SetActive(Edge(revealed ? exact : zone, offMap));
+    }
+
+    RectTransform Frame() => (RectTransform)pivot.parent;
+
+    // `arrow` on the map's edge pointing at `mark` (on the map picture) if that's off the map; false if it's on it
+    bool Edge(RectTransform mark, RectTransform arrow)
+    {
+        Vector2 shown = pivot.localRotation * (world.anchoredPosition + mark.anchoredPosition);
         float half = size / 2, far = Mathf.Max(Mathf.Abs(shown.x), Mathf.Abs(shown.y));
-        if (far <= half) return;
-        offMap.gameObject.SetActive(true);
-        offMap.anchoredPosition = shown * (half - dotSize) / far;
-        offMap.localEulerAngles = new Vector3(0, 0, Vector2.SignedAngle(Vector2.up, shown));
+        if (far <= half) return false;
+        arrow.anchoredPosition = shown * (half - dotSize) / far;
+        arrow.localEulerAngles = new Vector3(0, 0, Vector2.SignedAngle(Vector2.up, shown));
+        return true;
+    }
+
+    // the arrow on screen: which way `spot` is from where the camera looks, flat, and how far
+    void Guide(Transform spot, float metres)
+    {
+        bool on = guide && spot && Camera.main;
+        guideArrow.gameObject.SetActive(on);
+        guideText.gameObject.SetActive(on);
+        if (!on) return;
+        Vector3 way = Camera.main.transform.InverseTransformDirection(spot.position - player.position);
+        guideArrow.localEulerAngles = new Vector3(0, 0, Vector2.SignedAngle(Vector2.up, new Vector2(way.x, way.z)));
+        guideText.text = metres < 3 ? "here" : Mathf.RoundToInt(metres) + " m";
     }
 
     // for a while, show exactly where the target is: a dot on the map instead of the circle, and an outline through walls
@@ -167,8 +216,8 @@ public class Minimap : MonoBehaviour
     Vector2 OnMap(Vector3 p) => Flat(p - area.center) * scale;
     static Vector2 Flat(Vector3 v) => new Vector2(v.x, v.z);
 
-    // straight down from above, world +X to the right and +Z up, matching OnMap
-    Texture Photograph()
+    // straight down from above, world +X to the right and +Z up, matching OnMap (Bake Minimap uses it in the editor too)
+    public RenderTexture Photograph()
     {
         var cam = new GameObject("Minimap Camera").AddComponent<Camera>();
         cam.orthographic = true;
@@ -192,7 +241,7 @@ public class Minimap : MonoBehaviour
         cam.targetTexture = shot;
         cam.Render();
         cam.targetTexture = null;
-        Destroy(cam.gameObject);
+        if (Application.isPlaying) Destroy(cam.gameObject); else DestroyImmediate(cam.gameObject);
         return shot;
     }
 

@@ -13,8 +13,243 @@ MonoBehaviour:
   m_Name: HuntTasks
   m_EditorClassIdentifier: Assembly-CSharp::HuntTasks
   perRound: 3
+  longTasks: 1
   sceneTasks: 1
   tasks:
+  - name: Grand tour
+    description: 'Grand tour: bathe in the fountain, ruin a chess game, then perch
+      on the arch'
+    goal: 15
+    spot: {fileID: 0}
+    at: 
+    onTop: 0
+    radius: 3
+    height: {x: -1, y: 2}
+    amount: 3
+    deed: 
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+    steps: Bath>Chess>Arch
+  - name: Picnic
+    description: 'Picnic: buy something, eat 3 things, then rummage through a trash
+      can'
+    goal: 15
+    spot: {fileID: 0}
+    at: 
+    onTop: 0
+    radius: 3
+    height: {x: -1, y: 2}
+    amount: 3
+    deed: 
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+    steps: Customer>Eat 3>Rummage
+  - name: Vendor raid
+    description: 'Vendor raid: stand on a cart roof, buy something, then sit on a
+      bench'
+    goal: 15
+    spot: {fileID: 0}
+    at: 
+    onTop: 0
+    radius: 3
+    height: {x: -1, y: 2}
+    amount: 3
+    deed: 
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+    steps: Cart roof>Customer>Bench
+  - name: Bank job
+    description: 'Bank job: grab a wallet, hold $50, then spend $20'
+    goal: 15
+    spot: {fileID: 0}
+    at: 
+    onTop: 0
+    radius: 3
+    height: {x: -1, y: 2}
+    amount: 3
+    deed: 
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+    steps: Wallet>Rich>Big spender
+  - name: Cop show
+    description: 'Cop show: get wanted, kill an officer, then survive 20 s while
+      wanted'
+    goal: 15
+    spot: {fileID: 0}
+    at: 
+    onTop: 0
+    radius: 3
+    height: {x: -1, y: 2}
+    amount: 3
+    deed: 
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+    steps: Wanted>Cop killer>Fugitive
+  - name: Escape route
+    description: 'Escape route: get wanted, drive 200 m while wanted, then hide in
+      the fountain'
+    goal: 15
+    spot: {fileID: 0}
+    at: 
+    onTop: 0
+    radius: 3
+    height: {x: -1, y: 2}
+    amount: 3
+    deed: 
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+    steps: Wanted>Getaway>Fountain dip
+  - name: Joyride
+    description: 'Joyride: drive a car, run someone over, then ride a Citi Bike'
+    goal: 15
+    spot: {fileID: 0}
+    at: 
+    onTop: 0
+    radius: 3
+    height: {x: -1, y: 2}
+    amount: 3
+    deed: 
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+    steps: Drive>Run over>Bike
+  - name: Rodeo
+    description: 'Rodeo: ride someone, kill from their head, then a silent kill'
+    goal: 15
+    spot: {fileID: 0}
+    at: 
+    onTop: 0
+    radius: 3
+    height: {x: -1, y: 2}
+    amount: 3
+    deed: 
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+    steps: Ride>Puppet master>Silent
+  - name: Air show
+    description: 'Air show: glide for 6 s, get 15 m up, then kill someone from the
+      air'
+    goal: 15
+    spot: {fileID: 0}
+    at: 
+    onTop: 0
+    radius: 3
+    height: {x: -1, y: 2}
+    amount: 3
+    deed: 
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+    steps: Glide>High>From above
+  - name: Clean sweep
+    description: 'Clean sweep: search 3 trash cans, eat 3 things, then take a bath'
+    goal: 15
+    spot: {fileID: 0}
+    at: 
+    onTop: 0
+    radius: 3
+    height: {x: -1, y: 2}
+    amount: 3
+    deed: 
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+    steps: Dumpster diver>Eat 3>Bath
+  - name: Spree
+    description: 'Spree: kill 5 people, a headshot kill, then a double kill'
+    goal: 15
+    spot: {fileID: 0}
+    at: 
+    onTop: 0
+    radius: 3
+    height: {x: -1, y: 2}
+    amount: 3
+    deed: 
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+    steps: Kill 5>Headshot kill>Double kill
+  - name: Rooftop run
+    description: 'Rooftop run: perch on 3 NYU buildings, kill someone from a rooftop,
+      then perch on the arch'
+    goal: 15
+    spot: {fileID: 0}
+    at: 
+    onTop: 0
+    radius: 3
+    height: {x: -1, y: 2}
+    amount: 3
+    deed: 
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+    steps: Rooftop tour>Rooftop sniper>Arch
+  - name: Park life
+    description: 'Park life: trample the lawn, play in the playground, dust-bathe
+      in the sandpit, then splash in the fountain'
+    goal: 15
+    spot: {fileID: 0}
+    at: 
+    onTop: 0
+    radius: 3
+    height: {x: -1, y: 2}
+    amount: 3
+    deed: 
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+    steps: Lawn>Playground>Sandpit>Fountain dip
+  - name: Bench crawl
+    description: 'Bench crawl: stand on 5 benches, 3 chess tables, then a lamp post'
+    goal: 15
+    spot: {fileID: 0}
+    at: 
+    onTop: 0
+    radius: 3
+    height: {x: -1, y: 2}
+    amount: 3
+    deed: 
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+    steps: Benches>Chess tour>Lamp
+  - name: Chess hustle
+    description: 'Chess hustle: eat 3 chess pieces, kill someone on a chess table,
+      then perch on the arch'
+    goal: 15
+    spot: {fileID: 0}
+    at: 
+    onTop: 0
+    radius: 3
+    height: {x: -1, y: 2}
+    amount: 3
+    deed: 
+    within: 0
+    when: 0
+    count: 1
+    inOneGo: 1
+    steps: Chess pieces>Checkmate>Arch
   - name: Lamp
     description: Perch on top of a lamp post
     goal: 0
@@ -29,6 +264,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Lamps
     description: Perch on top of 3 different lamp posts
     goal: 0
@@ -43,11 +279,12 @@ MonoBehaviour:
     when: 0
     count: 3
     inOneGo: 1
+    steps: 
   - name: Bench
     description: Stand on a bench
     goal: 0
     spot: {fileID: 0}
-    at: Benches/|WSP_Prop_Bench
+    at: Benches/|WSP_Prop_Bench|ParkBench
     onTop: 1
     radius: 0
     height: {x: -0.5, y: 2.5}
@@ -57,11 +294,12 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Benches
     description: Stand on 5 different benches
     goal: 0
     spot: {fileID: 0}
-    at: Benches/|WSP_Prop_Bench
+    at: Benches/|WSP_Prop_Bench|ParkBench
     onTop: 1
     radius: 0
     height: {x: -0.5, y: 2.5}
@@ -71,6 +309,7 @@ MonoBehaviour:
     when: 0
     count: 5
     inOneGo: 1
+    steps: 
   - name: Chess
     description: 'Ruin a chess game: stand on any chess table'
     goal: 0
@@ -85,6 +324,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Chess tour
     description: Stand on 3 different chess tables
     goal: 0
@@ -99,6 +339,7 @@ MonoBehaviour:
     when: 0
     count: 3
     inOneGo: 1
+    steps: 
   - name: Garibaldi
     description: Stand on Garibaldi's head (the statue)
     goal: 0
@@ -113,6 +354,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Holley
     description: Perch on the Holley bust
     goal: 0
@@ -127,6 +369,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Flagpole
     description: Perch on top of the flagpole
     goal: 0
@@ -141,6 +384,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Stage
     description: 'Perform: stand on the stage for 8 s'
     goal: 0
@@ -155,6 +399,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Park house
     description: Sit on the park house roof
     goal: 0
@@ -169,6 +414,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Swings
     description: Sit on the swings frame
     goal: 0
@@ -183,6 +429,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Play big
     description: Stand on top of the big play structure
     goal: 0
@@ -197,6 +444,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Play small
     description: Stand on top of the small play structure
     goal: 0
@@ -211,6 +459,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Play toddler
     description: Stand on top of the toddler play structure
     goal: 0
@@ -225,6 +474,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Mound
     description: 'King of the hill: stand on a mound'
     goal: 0
@@ -239,6 +489,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Long benches
     description: Strut along the long benches
     goal: 0
@@ -253,11 +504,12 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Cart roof
     description: Stand on a food cart or truck roof
     goal: 0
     spot: {fileID: 0}
-    at: FoodVendors/
+    at: FoodVendors/|Vendors/
     onTop: 1
     radius: 0
     height: {x: -0.5, y: 2.5}
@@ -267,11 +519,12 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Vendor tour
     description: Stand on 3 different food carts or trucks
     goal: 0
     spot: {fileID: 0}
-    at: FoodVendors/
+    at: FoodVendors/|Vendors/
     onTop: 1
     radius: 0
     height: {x: -0.5, y: 2.5}
@@ -281,6 +534,7 @@ MonoBehaviour:
     when: 0
     count: 3
     inOneGo: 1
+    steps: 
   - name: Bike dock
     description: Sit on a Citi Bike docking station
     goal: 0
@@ -295,6 +549,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Fence
     description: Walk the park fence
     goal: 0
@@ -309,6 +564,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Fountain dip
     description: Splash about in the fountain for 10 s
     goal: 0
@@ -323,6 +579,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Arch side
     description: 'Cling to the arch: anywhere on it, off the ground'
     goal: 0
@@ -337,6 +594,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Judson
     description: Perch on Judson Memorial Church
     goal: 0
@@ -351,6 +609,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Bobst
     description: Perch on the roof of Bobst Library
     goal: 0
@@ -365,6 +624,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Kimmel
     description: Perch on the Kimmel Center roof
     goal: 0
@@ -379,6 +639,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Vanderbilt
     description: Perch on Vanderbilt Hall
     goal: 0
@@ -393,6 +654,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Hayden
     description: Perch on Hayden Hall
     goal: 0
@@ -407,6 +669,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Silver
     description: Perch on the Silver Center
     goal: 0
@@ -421,6 +684,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Goddard
     description: Perch on Goddard Hall
     goal: 0
@@ -435,6 +699,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Wash Sq Hotel
     description: Perch on the Washington Square Hotel
     goal: 0
@@ -449,6 +714,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: The Row
     description: Perch on The Row
     goal: 0
@@ -463,6 +729,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: 1 Fifth
     description: Perch on top of One Fifth Avenue
     goal: 0
@@ -477,6 +744,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: 2 Fifth
     description: Perch on Two Fifth Avenue
     goal: 0
@@ -491,6 +759,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Rooftop tour
     description: Perch on 3 different NYU buildings
     goal: 0
@@ -505,6 +774,7 @@ MonoBehaviour:
     when: 0
     count: 3
     inOneGo: 1
+    steps: 
   - name: Roof hopper
     description: Perch on 5 different rooftops round the park
     goal: 0
@@ -519,6 +789,7 @@ MonoBehaviour:
     when: 0
     count: 5
     inOneGo: 1
+    steps: 
   - name: Lawn
     description: Trample the grass for 8 s
     goal: 1
@@ -533,6 +804,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Sandpit
     description: 'Dust bath: sit in the sandpit for 6 s'
     goal: 1
@@ -547,6 +819,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Dog run
     description: Visit the dog run for 6 s
     goal: 1
@@ -561,6 +834,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Gravel
     description: Peck about on the gravel for 6 s
     goal: 1
@@ -575,6 +849,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Playground
     description: Hang out in the playground for 8 s
     goal: 1
@@ -589,6 +864,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Flower beds
     description: Wreck the planting beds for 5 s
     goal: 1
@@ -603,6 +879,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Jaywalk
     description: Stand in the road for 10 s (it adds up)
     goal: 1
@@ -617,6 +894,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 0
+    steps: 
   - name: Cobbles
     description: Stroll the cobbled street for 6 s
     goal: 1
@@ -631,6 +909,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Eat 3
     description: Eat 3 things
     goal: 2
@@ -645,6 +924,7 @@ MonoBehaviour:
     when: 0
     count: 3
     inOneGo: 1
+    steps: 
   - name: Eat 6
     description: 'Pig out: eat 6 things'
     goal: 2
@@ -659,6 +939,7 @@ MonoBehaviour:
     when: 0
     count: 6
     inOneGo: 1
+    steps: 
   - name: Hot dog
     description: Eat a hot dog
     goal: 2
@@ -673,6 +954,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Coffee
     description: Drink a coffee
     goal: 2
@@ -687,6 +969,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Gyro
     description: Eat a gyro
     goal: 2
@@ -701,6 +984,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Burrito
     description: Eat a burrito
     goal: 2
@@ -715,6 +999,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Ice cream
     description: Eat an ice cream
     goal: 2
@@ -729,6 +1014,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Pretzel
     description: Eat a soft pretzel
     goal: 2
@@ -743,6 +1029,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Pizza
     description: Steal a pizza slice
     goal: 2
@@ -757,6 +1044,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Pizza 2
     description: Steal 2 pizza slices
     goal: 2
@@ -771,6 +1059,7 @@ MonoBehaviour:
     when: 0
     count: 2
     inOneGo: 1
+    steps: 
   - name: Bagel
     description: Eat a bagel
     goal: 2
@@ -785,6 +1074,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Bread
     description: Eat some bread
     goal: 2
@@ -799,6 +1089,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Chess piece
     description: Eat a chess piece
     goal: 2
@@ -813,6 +1104,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Chess pieces
     description: Eat 3 chess pieces
     goal: 2
@@ -827,6 +1119,7 @@ MonoBehaviour:
     when: 0
     count: 3
     inOneGo: 1
+    steps: 
   - name: Customer
     description: Buy something from a cart or truck
     goal: 2
@@ -841,6 +1134,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Regular
     description: Buy 3 things from carts or trucks
     goal: 2
@@ -855,6 +1149,7 @@ MonoBehaviour:
     when: 0
     count: 3
     inOneGo: 1
+    steps: 
   - name: Rummage
     description: Search a trash can
     goal: 2
@@ -869,6 +1164,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Dumpster diver
     description: Search 3 trash cans
     goal: 2
@@ -883,6 +1179,7 @@ MonoBehaviour:
     when: 0
     count: 3
     inOneGo: 1
+    steps: 
   - name: Wallet
     description: Pick up a wallet
     goal: 2
@@ -897,6 +1194,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Wallets
     description: Pick up 3 wallets
     goal: 2
@@ -911,6 +1209,7 @@ MonoBehaviour:
     when: 0
     count: 3
     inOneGo: 1
+    steps: 
   - name: Magazine
     description: Pick up a police magazine
     goal: 2
@@ -925,6 +1224,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Rich
     description: Hold $50 at once
     goal: 9
@@ -939,6 +1239,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Loaded
     description: Hold $150 at once
     goal: 9
@@ -953,6 +1254,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Kill
     description: Kill someone
     goal: 2
@@ -967,6 +1269,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Kill 5
     description: Kill 5 people
     goal: 2
@@ -981,6 +1284,7 @@ MonoBehaviour:
     when: 0
     count: 5
     inOneGo: 1
+    steps: 
   - name: Massacre
     description: Kill 10 people
     goal: 2
@@ -995,6 +1299,7 @@ MonoBehaviour:
     when: 0
     count: 10
     inOneGo: 1
+    steps: 
   - name: Cop killer
     description: Kill a police officer
     goal: 2
@@ -1009,6 +1314,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Cop killer 3
     description: Kill 3 police officers
     goal: 2
@@ -1023,6 +1329,7 @@ MonoBehaviour:
     when: 0
     count: 3
     inOneGo: 1
+    steps: 
   - name: Guard
     description: Kill a security guard
     goal: 2
@@ -1037,6 +1344,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Headshot
     description: Land 3 headshots
     goal: 2
@@ -1051,6 +1359,7 @@ MonoBehaviour:
     when: 0
     count: 3
     inOneGo: 1
+    steps: 
   - name: Headshot kill
     description: Kill someone with a headshot
     goal: 2
@@ -1065,6 +1374,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Headshot kills
     description: Kill 3 people with headshots
     goal: 2
@@ -1079,6 +1389,7 @@ MonoBehaviour:
     when: 0
     count: 3
     inOneGo: 1
+    steps: 
   - name: Silent
     description: Silently kill someone from their head (needs an empty gun)
     goal: 2
@@ -1093,6 +1404,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Silent cop
     description: Silently kill a police officer from their head
     goal: 2
@@ -1107,6 +1419,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Egg kill
     description: Kill someone with an egg bomb
     goal: 2
@@ -1121,6 +1434,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Egg 3
     description: Hit 3 people with egg bombs
     goal: 2
@@ -1135,6 +1449,7 @@ MonoBehaviour:
     when: 0
     count: 3
     inOneGo: 1
+    steps: 
   - name: Egg bomb
     description: Set off an egg bomb
     goal: 2
@@ -1149,6 +1464,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Snitch
     description: Send a snitch flock after the Pigeon
     goal: 2
@@ -1163,6 +1479,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Ride
     description: Land on someone's head and ride them
     goal: 2
@@ -1177,6 +1494,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Ride cop
     description: Ride a police officer
     goal: 2
@@ -1191,6 +1509,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Ride guard
     description: Ride a security guard
     goal: 2
@@ -1205,6 +1524,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Joyride
     description: Ride people for 20 s
     goal: 3
@@ -1219,6 +1539,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 0
+    steps: 
   - name: Long ride
     description: Ride one person for 15 s in one go
     goal: 3
@@ -1233,6 +1554,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Drive
     description: Drive a car
     goal: 2
@@ -1247,6 +1569,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Bike
     description: Ride a Citi Bike
     goal: 2
@@ -1261,6 +1584,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Hijack
     description: Take over a car driving round the park
     goal: 2
@@ -1275,6 +1599,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Road trip
     description: Drive 300 m in a car
     goal: 4
@@ -1289,6 +1614,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Lap
     description: Drive 800 m in a car (about a lap of the park)
     goal: 4
@@ -1303,6 +1629,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Bike ride
     description: Cycle 200 m on a Citi Bike
     goal: 5
@@ -1317,6 +1644,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Run over
     description: Run someone over
     goal: 2
@@ -1331,6 +1659,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Run over 5
     description: Run over 5 people
     goal: 2
@@ -1345,6 +1674,7 @@ MonoBehaviour:
     when: 0
     count: 5
     inOneGo: 1
+    steps: 
   - name: Run over cop
     description: Run over a police officer
     goal: 2
@@ -1359,6 +1689,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Roadkill
     description: Kill someone with a vehicle
     goal: 2
@@ -1373,6 +1704,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Wanted
     description: Get wanted by the police (drive off the road)
     goal: 2
@@ -1387,6 +1719,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Fugitive
     description: Survive 20 s while wanted
     goal: 8
@@ -1401,6 +1734,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Most wanted
     description: Survive 45 s while wanted (it adds up)
     goal: 8
@@ -1415,6 +1749,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 0
+    steps: 
   - name: Hit cop
     description: Shoot 3 police officers
     goal: 2
@@ -1429,6 +1764,7 @@ MonoBehaviour:
     when: 0
     count: 3
     inOneGo: 1
+    steps: 
   - name: Wing it
     description: Shoot the Pigeon
     goal: 2
@@ -1443,6 +1779,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Pest control
     description: Shoot the Pigeon 5 times
     goal: 2
@@ -1457,6 +1794,7 @@ MonoBehaviour:
     when: 0
     count: 5
     inOneGo: 1
+    steps: 
   - name: Jogger
     description: 'Stop a jogger mid-run: kill one'
     goal: 2
@@ -1471,6 +1809,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Joggers
     description: 'Cardio is murder: kill 3 joggers'
     goal: 2
@@ -1485,6 +1824,7 @@ MonoBehaviour:
     when: 0
     count: 3
     inOneGo: 1
+    steps: 
   - name: Loiterer
     description: Kill someone just standing around
     goal: 2
@@ -1499,6 +1839,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Commuters
     description: 'Ruin 3 commutes: kill 3 people walking by'
     goal: 2
@@ -1513,6 +1854,7 @@ MonoBehaviour:
     when: 0
     count: 3
     inOneGo: 1
+    steps: 
   - name: Double kill
     description: 'Double kill: two kills under 3 s apart'
     goal: 2
@@ -1527,6 +1869,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Triple kill
     description: 'Triple kill: three kills, each under 3 s after the last'
     goal: 2
@@ -1541,6 +1884,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Sniper
     description: 'Sniper: kill someone from 40 m or more'
     goal: 2
@@ -1555,6 +1899,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Sniper 3
     description: 'Marksman: 3 kills from 40 m or more'
     goal: 2
@@ -1569,6 +1914,7 @@ MonoBehaviour:
     when: 0
     count: 3
     inOneGo: 1
+    steps: 
   - name: Point blank
     description: 'Point blank: kill someone from 3 m or less'
     goal: 2
@@ -1583,6 +1929,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Spree
     description: 'Killing spree: 3 kills within 15 s'
     goal: 2
@@ -1597,6 +1944,7 @@ MonoBehaviour:
     when: 0
     count: 3
     inOneGo: 1
+    steps: 
   - name: Bloodbath
     description: 'Bloodbath: 6 kills within 30 s'
     goal: 2
@@ -1611,6 +1959,7 @@ MonoBehaviour:
     when: 0
     count: 6
     inOneGo: 1
+    steps: 
   - name: Cop spree
     description: 'Bad day for the force: 2 officers within 20 s'
     goal: 2
@@ -1625,6 +1974,7 @@ MonoBehaviour:
     when: 0
     count: 2
     inOneGo: 1
+    steps: 
   - name: Headhunter
     description: 'Headhunter: 3 headshot kills within 30 s'
     goal: 2
@@ -1639,6 +1989,7 @@ MonoBehaviour:
     when: 0
     count: 3
     inOneGo: 1
+    steps: 
   - name: From above
     description: 'Death from above: kill someone while in the air'
     goal: 2
@@ -1653,6 +2004,7 @@ MonoBehaviour:
     when: 1
     count: 1
     inOneGo: 1
+    steps: 
   - name: Air headshot
     description: Headshot someone while in the air
     goal: 2
@@ -1667,6 +2019,7 @@ MonoBehaviour:
     when: 1
     count: 1
     inOneGo: 1
+    steps: 
   - name: Puppet master
     description: 'Puppet master: kill someone while riding someone else'
     goal: 2
@@ -1681,6 +2034,7 @@ MonoBehaviour:
     when: 3
     count: 1
     inOneGo: 1
+    steps: 
   - name: Trick shot
     description: 'Trick shot: a headshot kill while riding someone'
     goal: 2
@@ -1695,6 +2049,7 @@ MonoBehaviour:
     when: 3
     count: 1
     inOneGo: 1
+    steps: 
   - name: Outlaw
     description: 'Outlaw: kill 2 people while wanted'
     goal: 2
@@ -1709,6 +2064,7 @@ MonoBehaviour:
     when: 5
     count: 2
     inOneGo: 1
+    steps: 
   - name: Cop while wanted
     description: 'Resisting arrest: kill an officer while wanted'
     goal: 2
@@ -1723,6 +2079,7 @@ MonoBehaviour:
     when: 5
     count: 1
     inOneGo: 1
+    steps: 
   - name: Last stand
     description: 'Last stand: kill someone while badly hurt'
     goal: 2
@@ -1737,6 +2094,7 @@ MonoBehaviour:
     when: 6
     count: 1
     inOneGo: 1
+    steps: 
   - name: Ghost
     description: 'Ghost: kill someone while hidden (eat a soft pretzel first)'
     goal: 2
@@ -1751,6 +2109,7 @@ MonoBehaviour:
     when: 7
     count: 1
     inOneGo: 1
+    steps: 
   - name: Silent 3
     description: 'Silent but deadly: 3 silent kills from heads'
     goal: 2
@@ -1765,6 +2124,7 @@ MonoBehaviour:
     when: 0
     count: 3
     inOneGo: 1
+    steps: 
   - name: Silent guard
     description: 'Inside job: silently kill a security guard'
     goal: 2
@@ -1779,6 +2139,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Rooftop sniper
     description: 'Rooftop sniper: kill someone while perched on a rooftop'
     goal: 2
@@ -1793,6 +2154,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Arch nemesis
     description: 'Arch nemesis: kill someone from the top of the arch'
     goal: 2
@@ -1807,6 +2169,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Fountain of blood
     description: Kill someone while standing in the fountain
     goal: 2
@@ -1821,6 +2184,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Checkmate
     description: 'Checkmate: kill someone while standing on a chess table'
     goal: 2
@@ -1835,6 +2199,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Bench warrant
     description: 'Bench warrant: kill an officer while standing on a bench'
     goal: 2
@@ -1849,6 +2214,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Lamp sniper
     description: Kill someone from on top of a lamp post
     goal: 2
@@ -1863,6 +2229,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Hit and run
     description: 'Hit and run: run over 3 people within 15 s'
     goal: 2
@@ -1877,6 +2244,7 @@ MonoBehaviour:
     when: 0
     count: 3
     inOneGo: 1
+    steps: 
   - name: Rampage
     description: 'Rampage: kill 3 people with vehicles'
     goal: 2
@@ -1891,6 +2259,7 @@ MonoBehaviour:
     when: 0
     count: 3
     inOneGo: 1
+    steps: 
   - name: Getaway kill
     description: Run someone over while wanted
     goal: 2
@@ -1905,6 +2274,7 @@ MonoBehaviour:
     when: 5
     count: 1
     inOneGo: 1
+    steps: 
   - name: Pigeon pile-up
     description: 'Feathers everywhere: run over 3 park birds'
     goal: 2
@@ -1919,6 +2289,7 @@ MonoBehaviour:
     when: 0
     count: 3
     inOneGo: 1
+    steps: 
   - name: Demolition derby
     description: 'Demolition derby: knock over 2 vehicles'
     goal: 2
@@ -1933,6 +2304,7 @@ MonoBehaviour:
     when: 0
     count: 2
     inOneGo: 1
+    steps: 
   - name: Egg 2
     description: 'Egg-cellent: kill 2 people with egg bombs'
     goal: 2
@@ -1947,6 +2319,7 @@ MonoBehaviour:
     when: 0
     count: 2
     inOneGo: 1
+    steps: 
   - name: Egg cop
     description: 'Scrambled cop: hit an officer with an egg bomb'
     goal: 2
@@ -1961,6 +2334,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Egg from above
     description: 'Bombing run: egg bomb someone while riding a person'
     goal: 2
@@ -1975,6 +2349,7 @@ MonoBehaviour:
     when: 3
     count: 1
     inOneGo: 1
+    steps: 
   - name: Payday
     description: 'Payday: pick up $50 in all'
     goal: 10
@@ -1989,6 +2364,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Cash grab
     description: 'Cash grab: pick up $150 in all'
     goal: 10
@@ -2003,6 +2379,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Dirty money
     description: 'Dirty money: pick up $30 while wanted'
     goal: 10
@@ -2017,6 +2394,7 @@ MonoBehaviour:
     when: 5
     count: 1
     inOneGo: 1
+    steps: 
   - name: Big spender
     description: 'Big spender: spend $20'
     goal: 11
@@ -2031,6 +2409,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Shopaholic
     description: 'Shopaholic: spend $40'
     goal: 11
@@ -2045,6 +2424,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Pickpocket
     description: 'Pickpocket: 2 wallets within 20 s'
     goal: 2
@@ -2059,6 +2439,7 @@ MonoBehaviour:
     when: 0
     count: 2
     inOneGo: 1
+    steps: 
   - name: Wallet cop
     description: Grab a wallet while wanted
     goal: 2
@@ -2073,6 +2454,7 @@ MonoBehaviour:
     when: 5
     count: 1
     inOneGo: 1
+    steps: 
   - name: Magazines
     description: 'Supply run: pick up 3 police magazines'
     goal: 2
@@ -2087,6 +2469,7 @@ MonoBehaviour:
     when: 0
     count: 3
     inOneGo: 1
+    steps: 
   - name: Ammo hoarder
     description: 'Ammo hoarder: hold 5 spare magazines'
     goal: 13
@@ -2101,6 +2484,7 @@ MonoBehaviour:
     when: 0
     count: 5
     inOneGo: 1
+    steps: 
   - name: Arsenal
     description: 'Arsenal: hold 8 spare magazines'
     goal: 13
@@ -2115,6 +2499,7 @@ MonoBehaviour:
     when: 0
     count: 8
     inOneGo: 1
+    steps: 
   - name: Egg stash
     description: 'Egg stash: hold 2 egg bombs'
     goal: 12
@@ -2129,6 +2514,7 @@ MonoBehaviour:
     when: 0
     count: 2
     inOneGo: 1
+    steps: 
   - name: Egg hoard
     description: 'Egg hoard: hold 4 egg bombs'
     goal: 12
@@ -2143,6 +2529,7 @@ MonoBehaviour:
     when: 0
     count: 4
     inOneGo: 1
+    steps: 
   - name: Bagel armour
     description: 'Bagel armour: hold 3 bagel shields'
     goal: 12
@@ -2157,6 +2544,7 @@ MonoBehaviour:
     when: 0
     count: 3
     inOneGo: 1
+    steps: 
   - name: Pizza party
     description: 'Pizza party: hold 2 pizza slices'
     goal: 12
@@ -2171,6 +2559,7 @@ MonoBehaviour:
     when: 0
     count: 2
     inOneGo: 1
+    steps: 
   - name: Snitch network
     description: 'Snitch network: hold 2 snitch flocks'
     goal: 12
@@ -2185,6 +2574,7 @@ MonoBehaviour:
     when: 0
     count: 2
     inOneGo: 1
+    steps: 
   - name: Rich and wanted
     description: Hold $50 while wanted
     goal: 9
@@ -2199,6 +2589,7 @@ MonoBehaviour:
     when: 5
     count: 1
     inOneGo: 1
+    steps: 
   - name: Fast food
     description: 'Fast food: eat 3 things within 20 s'
     goal: 2
@@ -2213,6 +2604,7 @@ MonoBehaviour:
     when: 0
     count: 3
     inOneGo: 1
+    steps: 
   - name: Caffeine
     description: 'Double espresso: 2 coffees within 60 s'
     goal: 2
@@ -2227,6 +2619,7 @@ MonoBehaviour:
     when: 0
     count: 2
     inOneGo: 1
+    steps: 
   - name: Snack ride
     description: 'Snack on the go: eat something while riding someone'
     goal: 2
@@ -2241,6 +2634,7 @@ MonoBehaviour:
     when: 3
     count: 1
     inOneGo: 1
+    steps: 
   - name: Wanted snack
     description: 'Stress eating: eat something while wanted'
     goal: 2
@@ -2255,6 +2649,7 @@ MonoBehaviour:
     when: 5
     count: 1
     inOneGo: 1
+    steps: 
   - name: Wanted shopping
     description: 'Shoplift-adjacent: buy something while wanted'
     goal: 2
@@ -2269,6 +2664,7 @@ MonoBehaviour:
     when: 5
     count: 1
     inOneGo: 1
+    steps: 
   - name: Hurt snack
     description: 'Comfort food: eat something while badly hurt'
     goal: 2
@@ -2283,6 +2679,7 @@ MonoBehaviour:
     when: 6
     count: 1
     inOneGo: 1
+    steps: 
   - name: Chess picnic
     description: Eat a chess piece while standing on its table
     goal: 2
@@ -2297,6 +2694,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Chess 3 fast
     description: 'Speed chess: eat 3 chess pieces within 20 s'
     goal: 2
@@ -2311,6 +2709,7 @@ MonoBehaviour:
     when: 0
     count: 3
     inOneGo: 1
+    steps: 
   - name: By a thread
     description: 'Hanging by a thread: stay alive badly hurt for 15 s'
     goal: 14
@@ -2325,6 +2724,7 @@ MonoBehaviour:
     when: 6
     count: 1
     inOneGo: 1
+    steps: 
   - name: Invisible
     description: 'Invisible: stay hidden for 15 s'
     goal: 14
@@ -2339,6 +2739,7 @@ MonoBehaviour:
     when: 7
     count: 1
     inOneGo: 1
+    steps: 
   - name: Human shield
     description: 'Human shield: ride people while wanted for 10 s'
     goal: 3
@@ -2353,6 +2754,7 @@ MonoBehaviour:
     when: 5
     count: 1
     inOneGo: 1
+    steps: 
   - name: Getaway
     description: 'Getaway driver: drive 200 m while wanted'
     goal: 4
@@ -2367,6 +2769,7 @@ MonoBehaviour:
     when: 5
     count: 1
     inOneGo: 1
+    steps: 
   - name: Bike courier
     description: 'Bike courier: cycle 150 m while wanted'
     goal: 5
@@ -2381,6 +2784,7 @@ MonoBehaviour:
     when: 5
     count: 1
     inOneGo: 1
+    steps: 
   - name: Air escape
     description: 'Air escape: 8 s in the air while wanted'
     goal: 6
@@ -2395,6 +2799,7 @@ MonoBehaviour:
     when: 5
     count: 1
     inOneGo: 1
+    steps: 
   - name: Glide
     description: Stay in the air for 6 s in one go
     goal: 6
@@ -2409,6 +2814,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Frequent flyer
     description: Spend 30 s in the air (it adds up)
     goal: 6
@@ -2423,6 +2829,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 0
+    steps: 
   - name: High
     description: Get 15 m above whatever is below you
     goal: 7
@@ -2437,6 +2844,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Sky high
     description: Get 30 m above whatever is below you
     goal: 7
@@ -2451,6 +2859,7 @@ MonoBehaviour:
     when: 0
     count: 1
     inOneGo: 1
+    steps: 
   - name: Spray
     description: Fire 40 shots
     goal: 2
@@ -2465,6 +2874,7 @@ MonoBehaviour:
     when: 0
     count: 40
     inOneGo: 1
+    steps: 
   - name: Reload
     description: Reload twice
     goal: 2
@@ -2479,3 +2889,4 @@ MonoBehaviour:
     when: 0
     count: 2
     inOneGo: 1
+    steps: 

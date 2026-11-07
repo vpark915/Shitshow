@@ -1,0 +1,262 @@
+#pragma kernel GenerateDepthPyramid
+#pragma kernel GenerateRayMarchingDepth
+#pragma kernel ReconstructNormalsFromDepth
+
+#include "../Headers/HPipelineDefineAO.hlsl"
+#include "../Headers/HCommonAO.hlsl"
+
+uint _SimpleTemporalRejection;
+uint _ExcludeObjectsFromDepth;
+uint _RayMarchingLayerMask;
+
+H_TEXTURE(_TemporalDataReprojected);
+
+H_RW_TEXTURE(float, _DepthPyramid_OutputMIP0);
+H_RW_TEXTURE(float, _DepthPyramid_OutputMIP1);
+H_RW_TEXTURE(float, _DepthPyramid_OutputMIP2);
+H_RW_TEXTURE(float, _DepthPyramid_OutputMIP3);
+H_RW_TEXTURE(float, _RayMarchingDepth_Output);
+
+H_RW_TEXTURE(float4, _GeometryNormals_Output);
+H_RW_TEXTURE(float4, _MotionDelta_Output);
+
+groupshared float MipDepthLDS[8][8];
+
+
+void MarkDisocclusion(uint2 pixCoord)
+{
+    float4 MotionData = _MotionDelta_Output[H_COORD(pixCoord)];
+    MotionData.z = -max(abs(MotionData.z), 0.00006103515625);
+    _MotionDelta_Output[H_COORD(pixCoord)] = MotionData;
+}
+
+
+float DepthFilter(float4 DepthSamples, bool MinFilter)
+{
+    float DepthFiltered = 0; 
+
+    if (MinFilter)
+    {
+        DepthFiltered = min(min(DepthSamples.x, DepthSamples.y), min(DepthSamples.z, DepthSamples.w));
+        return DepthFiltered;
+    }
+    else
+    {
+        bool MovingQuad = all(DepthSamples < 0);
+        float4 DepthAbsolute = abs(DepthSamples);
+        
+        DepthFiltered = max(max(DepthAbsolute.x, DepthAbsolute.y), max(DepthAbsolute.z, DepthAbsolute.w));
+        
+        if (DepthFiltered == DepthAbsolute.x) DepthFiltered = MovingQuad ? DepthSamples.x : DepthAbsolute.x;
+        if (DepthFiltered == DepthAbsolute.y) DepthFiltered = MovingQuad ? DepthSamples.y : DepthAbsolute.y;
+        if (DepthFiltered == DepthAbsolute.z) DepthFiltered = MovingQuad ? DepthSamples.z : DepthAbsolute.z;
+        if (DepthFiltered == DepthAbsolute.w) DepthFiltered = MovingQuad ? DepthSamples.w : DepthAbsolute.w;
+        
+        return DepthFiltered;
+    }
+}
+
+
+// ------------------------ DEPTH PYRAMID GENERATION ------------------------
+[numthreads(8, 8, 1)]
+void GenerateDepthPyramid(uint3 pixCoord : SV_DispatchThreadID, uint2 groupThreadID : SV_GroupThreadID)
+{
+    
+    uint2 OriginalCoord = pixCoord.xy;
+    
+    pixCoord *= 2;
+    float2 pixCoordNDC = (pixCoord.xy + 0.5) * _ScreenSize.zw;
+    
+    float4 Depth = H_GATHER_RED(g_HTraceDepth, H_SAMPLER_POINT_CLAMP, pixCoordNDC * HRenderScale.xy, 0).wzxy;
+    uint4 TemporalDataPacked = asuint(H_GATHER_RED(_TemporalDataReprojected, H_SAMPLER_POINT_CLAMP, pixCoordNDC / g_HScaleFactorAO * HRenderScale.xy, 0).wzxy);
+
+    // Check out of bounds full res
+    float4 IsInBounds;
+    IsInBounds.x = any(pixCoord.xy + uint2(0,0) >= uint2(_ScreenSize.xy)) ? 0 : 1;
+    IsInBounds.y = any(pixCoord.xy + uint2(1,0) >= uint2(_ScreenSize.xy)) ? 0 : 1;
+    IsInBounds.z = any(pixCoord.xy + uint2(0,1) >= uint2(_ScreenSize.xy)) ? 0 : 1;
+    IsInBounds.w = any(pixCoord.xy + uint2(1,1) >= uint2(_ScreenSize.xy)) ? 0 : 1;
+
+    // Check out of bounds low (half / quarter) res
+    float4 IsInBoundsLowRes;
+    IsInBoundsLowRes.x = any(uint2(pixCoord.xy / g_HScaleFactorAO + uint2(0,0)) >= uint2(_ScreenSize.xy / g_HScaleFactorAO)) ? 0 : 1;
+    IsInBoundsLowRes.y = any(uint2(pixCoord.xy / g_HScaleFactorAO + uint2(1,0)) >= uint2(_ScreenSize.xy / g_HScaleFactorAO)) ? 0 : 1;
+    IsInBoundsLowRes.z = any(uint2(pixCoord.xy / g_HScaleFactorAO + uint2(0,1)) >= uint2(_ScreenSize.xy / g_HScaleFactorAO)) ? 0 : 1;
+    IsInBoundsLowRes.w = any(uint2(pixCoord.xy / g_HScaleFactorAO + uint2(1,1)) >= uint2(_ScreenSize.xy / g_HScaleFactorAO)) ? 0 : 1;
+
+    // Check VR border
+    float4 IsInBoundsVR;
+    IsInBoundsVR.x = Depth.x >= 0.9999f ? 0 : 1;
+    IsInBoundsVR.y = Depth.y >= 0.9999f ? 0 : 1;
+    IsInBoundsVR.z = Depth.z >= 0.9999f ? 0 : 1;
+    IsInBoundsVR.w = Depth.w >= 0.9999f ? 0 : 1;
+    
+    Depth.x *= IsInBounds.x * IsInBoundsVR.x;
+    Depth.y *= IsInBounds.y * IsInBoundsVR.y;
+    Depth.z *= IsInBounds.z * IsInBoundsVR.z;
+    Depth.w *= IsInBounds.w * IsInBoundsVR.w;
+
+    float4 MotionMask;
+    MotionMask.x = HBUFFER_MOTION_MASK(pixCoord.xy + uint2(0, 0)) * IsInBounds.x * IsInBoundsVR.x;
+    MotionMask.y = HBUFFER_MOTION_MASK(pixCoord.xy + uint2(1, 0)) * IsInBounds.y * IsInBoundsVR.y;
+    MotionMask.z = HBUFFER_MOTION_MASK(pixCoord.xy + uint2(0, 1)) * IsInBounds.z * IsInBoundsVR.z;
+    MotionMask.w = HBUFFER_MOTION_MASK(pixCoord.xy + uint2(1, 1)) * IsInBounds.w * IsInBoundsVR.w;
+
+    float4 TemporalData;
+    TemporalData.x = (IsInBoundsLowRes.x) ? UnpackTemporalDataGTAO(TemporalDataPacked.x).z : 1;
+    TemporalData.y = (IsInBoundsLowRes.y) ? UnpackTemporalDataGTAO(TemporalDataPacked.y).z : 1;
+    TemporalData.z = (IsInBoundsLowRes.z) ? UnpackTemporalDataGTAO(TemporalDataPacked.z).z : 1;
+    TemporalData.w = (IsInBoundsLowRes.w) ? UnpackTemporalDataGTAO(TemporalDataPacked.w).z : 1;
+    
+    if (HBUFFER_RENDER_LAYER_MASK(pixCoord.xy + uint2(0,0)) & _ExcludeObjectsFromDepth) Depth.x = 0;
+    if (HBUFFER_RENDER_LAYER_MASK(pixCoord.xy + uint2(1,0)) & _ExcludeObjectsFromDepth) Depth.y = 0;
+    if (HBUFFER_RENDER_LAYER_MASK(pixCoord.xy + uint2(0,1)) & _ExcludeObjectsFromDepth) Depth.z = 0;
+    if (HBUFFER_RENDER_LAYER_MASK(pixCoord.xy + uint2(1,1)) & _ExcludeObjectsFromDepth) Depth.w = 0;
+    
+    if (!_SimpleTemporalRejection)
+    {
+        if (TemporalData.x < 1 && Depth.x > 0) MarkDisocclusion(pixCoord.xy + uint2(0, 0));
+        if (TemporalData.y < 1 && Depth.y > 0) MarkDisocclusion(pixCoord.xy + uint2(1, 0));
+        if (TemporalData.z < 1 && Depth.z > 0) MarkDisocclusion(pixCoord.xy + uint2(0, 1));
+        if (TemporalData.w < 1 && Depth.w > 0) MarkDisocclusion(pixCoord.xy + uint2(1, 1));
+
+        // Mark with sign moving objects
+        Depth.x = (MotionMask.x > 0 || TemporalData.x < 1) ? -Depth.x : Depth.x;
+        Depth.y = (MotionMask.y > 0 || TemporalData.y < 1) ? -Depth.y : Depth.y;
+        Depth.z = (MotionMask.z > 0 || TemporalData.z < 1) ? -Depth.z : Depth.z;
+        Depth.w = (MotionMask.w > 0 || TemporalData.w < 1) ? -Depth.w : Depth.w; 
+    }
+
+    // Write to MIP0
+    _DepthPyramid_OutputMIP0[H_COORD(pixCoord.xy + uint2(0, 0))] = Depth.x;
+    _DepthPyramid_OutputMIP0[H_COORD(pixCoord.xy + uint2(1, 0))] = Depth.y;
+    _DepthPyramid_OutputMIP0[H_COORD(pixCoord.xy + uint2(0, 1))] = Depth.z;
+    _DepthPyramid_OutputMIP0[H_COORD(pixCoord.xy + uint2(1, 1))] = Depth.w;
+
+    float DepthMIP1 = DepthFilter(Depth, false);
+
+    // Write to MIP1
+    _DepthPyramid_OutputMIP1[H_COORD(OriginalCoord)] = DepthMIP1.x;
+
+    MipDepthLDS[groupThreadID.x][groupThreadID.y] = DepthMIP1.x;
+    GroupMemoryBarrierWithGroupSync();
+    
+    // Write to MIP2
+    UNITY_BRANCH
+    if (all((groupThreadID.xy % int2(2, 2)) == 0))
+    {
+        float4 Depth;
+        Depth.x = MipDepthLDS[groupThreadID.x + 0][groupThreadID.y + 0].x;
+        Depth.y = MipDepthLDS[groupThreadID.x + 1][groupThreadID.y + 0].x;
+        Depth.z = MipDepthLDS[groupThreadID.x + 0][groupThreadID.y + 1].x;
+        Depth.w = MipDepthLDS[groupThreadID.x + 1][groupThreadID.y + 1].x;
+
+        float DepthMIP2 = DepthFilter(Depth, false);
+        
+        _DepthPyramid_OutputMIP2[H_COORD(OriginalCoord / 2)] = DepthMIP2.x;
+        
+        MipDepthLDS[groupThreadID.x][groupThreadID.y] = DepthMIP2;
+    }
+
+    GroupMemoryBarrierWithGroupSync();
+
+    // Write to MIP3
+    UNITY_BRANCH
+    if (all((groupThreadID.xy % int2(4, 4)) == 0))
+    {
+        float4 Depth;
+        Depth.x = MipDepthLDS[groupThreadID.x + 0][groupThreadID.y + 0].x;
+        Depth.y = MipDepthLDS[groupThreadID.x + 2][groupThreadID.y + 0].x;
+        Depth.z = MipDepthLDS[groupThreadID.x + 0][groupThreadID.y + 2].x;
+        Depth.w = MipDepthLDS[groupThreadID.x + 2][groupThreadID.y + 2].x;
+        
+        float DepthMIP3 = DepthFilter(Depth, false);
+        
+        _DepthPyramid_OutputMIP3[H_COORD(OriginalCoord / 4)] = DepthMIP3.x;
+    }
+}
+
+
+// ------------------------ RAY MARCHING DEPTH GENERATION ------------------------
+[numthreads(8, 8, 1)]
+void GenerateRayMarchingDepth(uint3 pixCoord : SV_DispatchThreadID)
+{
+    
+    float Depth = HBUFFER_DEPTH(pixCoord.xy);
+    
+    Depth = Depth >= 0.9999f ? 0 : Depth;
+
+    if (_ExcludeObjectsFromDepth)
+    Depth = (HBUFFER_RENDER_LAYER_MASK(pixCoord.xy + uint2(0,0)) & _RayMarchingLayerMask) ? Depth : -Depth;
+
+    _RayMarchingDepth_Output[H_COORD(pixCoord.xy)] = Depth;
+}
+
+
+// ------------------------ RECONSTRUCT NORMALS FROM DEPTH ------------------------
+[numthreads(8, 8, 1)]
+void ReconstructNormalsFromDepth(uint3 pixCoord : SV_DispatchThreadID)
+{
+    float4 CullSample = 1;
+	// if (pixCoord.x <= 0) CullSample.x = 0;
+	// if (pixCoord.y <= 0) CullSample.y = 0;
+    // if (pixCoord.x >= _ScreenSize.x - 1) CullSample.z = 0;
+    // if (pixCoord.y >= _ScreenSize.y - 1) CullSample.w = 0;
+    
+    // Same as above, but in a single operation
+    CullSample.xyzw = step(int4(1, 1, pixCoord.xy), int4(pixCoord.xy, _ScreenSize.x - 2, _ScreenSize.y - 2));
+    
+    float DepthC = HBUFFER_DEPTH(pixCoord.xy + int2(0, 0));
+    float4 Gather1 = H_GATHER_RED(g_HTraceDepth, H_SAMPLER_POINT_CLAMP, (pixCoord.xy + float2(1,0) + 0.5) * _ScreenSize.zw * HRenderScale.xy, 0);
+    float4 Gather2 = H_GATHER_RED(g_HTraceDepth, H_SAMPLER_POINT_CLAMP, (pixCoord.xy + float2(0,1) + 0.5) * _ScreenSize.zw * HRenderScale.xy, 0);
+    float4 Gather3 = H_GATHER_RED(g_HTraceDepth, H_SAMPLER_POINT_CLAMP, (pixCoord.xy - float2(2,0) + 0.5) * _ScreenSize.zw * HRenderScale.xy, 0);
+    float4 Gather4 = H_GATHER_RED(g_HTraceDepth, H_SAMPLER_POINT_CLAMP, (pixCoord.xy - float2(0,2) + 0.5) * _ScreenSize.zw * HRenderScale.xy, 0);
+    
+    float DepthL = Gather3.z; // HBUFFER_DEPTH(pixCoord + int2(-1,  0));
+    float DepthR = Gather1.w; // HBUFFER_DEPTH(pixCoord + int2( 1,  0));
+    float DepthD = Gather4.x; // HBUFFER_DEPTH(pixCoord + int2( 0, -1));
+    float DepthU = Gather2.w; // HBUFFER_DEPTH(pixCoord + int2( 0,  1));
+    
+#ifdef VR_COMPATIBILITY
+    float3 WorldPosC = H_COMPUTE_POSITION_WS((pixCoord + 0.5 + float2( 0.0,  0.0)) * _ScreenSize.zw, DepthC, H_MATRIX_I_VP);
+    float3 WorldPosL = H_COMPUTE_POSITION_WS((pixCoord + 0.5 + float2(-1.0,  0.0)) * _ScreenSize.zw, DepthL, H_MATRIX_I_VP);
+    float3 WorldPosR = H_COMPUTE_POSITION_WS((pixCoord + 0.5 + float2( 1.0,  0.0)) * _ScreenSize.zw, DepthR, H_MATRIX_I_VP);
+    float3 WorldPosD = H_COMPUTE_POSITION_WS((pixCoord + 0.5 + float2( 0.0, -1.0)) * _ScreenSize.zw, DepthD, H_MATRIX_I_VP);
+    float3 WorldPosU = H_COMPUTE_POSITION_WS((pixCoord + 0.5 + float2( 0.0,  1.0)) * _ScreenSize.zw, DepthU, H_MATRIX_I_VP);
+#else
+    float4 DepthLinearLRDU = 1.0 / (_ZBufferParams.zzzz * float4(DepthL, DepthR, DepthD, DepthU) + _ZBufferParams.wwww);
+    float3 WorldPosC = ComputeViewSpacePosition((pixCoord.xy + 0.5 + float2( 0.0,  0.0)) * _ScreenSize.zw, DepthC, H_LINEAR_EYE_DEPTH(DepthC));
+    float3 WorldPosL = ComputeViewSpacePosition((pixCoord.xy + 0.5 + float2(-1.0,  0.0)) * _ScreenSize.zw, DepthL, DepthLinearLRDU.x);
+    float3 WorldPosR = ComputeViewSpacePosition((pixCoord.xy + 0.5 + float2( 1.0,  0.0)) * _ScreenSize.zw, DepthR, DepthLinearLRDU.y);
+    float3 WorldPosD = ComputeViewSpacePosition((pixCoord.xy + 0.5 + float2( 0.0, -1.0)) * _ScreenSize.zw, DepthD, DepthLinearLRDU.z);
+    float3 WorldPosU = ComputeViewSpacePosition((pixCoord.xy + 0.5 + float2( 0.0,  1.0)) * _ScreenSize.zw, DepthU, DepthLinearLRDU.w);
+#endif
+
+    float3 L = WorldPosC - WorldPosL;
+    float3 R = WorldPosR - WorldPosC;
+    float3 D = WorldPosC - WorldPosD;
+    float3 U = WorldPosU - WorldPosC;
+
+    float DepthL2 = Gather3.w; // HBUFFER_DEPTH(pixCoord + int2(-2, 0));
+    float DepthR2 = Gather1.z; // HBUFFER_DEPTH(pixCoord + int2( 2, 0));
+    float DepthD2 = Gather4.w; // HBUFFER_DEPTH(pixCoord + int2(0, -2));
+    float DepthU2 = Gather2.x; // HBUFFER_DEPTH(pixCoord + int2(0,  2));
+    
+    float4 H = float4(DepthL, DepthR, DepthL2, DepthR2) * CullSample.xzxz;
+    float4 V = float4(DepthD, DepthU, DepthD2, DepthU2) * CullSample.ywyw; 
+    
+    float2 HE = abs((2 * H.xy - H.zw) - DepthC);
+    float2 VE = abs((2 * V.xy - V.zw) - DepthC);
+    
+    float3 DerivH = HE.x < HE.y ? L : R;
+    float3 DerivV = VE.x < VE.y ? D : U;
+
+    float3 Normal = normalize(cross(DerivH, DerivV));
+#ifdef VR_COMPATIBILITY
+    return float4(-Normal, DepthC);
+#else
+    Normal = H_TRANSFORM_VIEW_TO_WORLD_NORMAL(Normal);
+#endif
+    
+    _GeometryNormals_Output[H_COORD(pixCoord.xy)] = float4(Normal.xyz, 1);
+}

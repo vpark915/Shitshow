@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 8d0ab03b6d5b6f643b4b6741a3725f24
+ComputeShaderImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 369882
+  packageName: 'HTrace: Ambient Occlusion V2 URP'
+  packageVersion: 2.2.2
+  assetPath: Packages/dev.ipgames.htrace-ao-v2/Runtime/RuntimeResources/Computes/HRenderGTAO.compute
+  uploadId: 968282

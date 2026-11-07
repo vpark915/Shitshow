@@ -1,0 +1,10 @@
+fileFormatVersion: 2
+guid: 30510765aaa92bf4e95a8fe85a9f5416
+timeCreated: 1754583095
+AssetOrigin:
+  serializedVersion: 1
+  productId: 369882
+  packageName: 'HTrace: Ambient Occlusion V2 URP'
+  packageVersion: 2.2.2
+  assetPath: Packages/dev.ipgames.htrace-ao-v2/Runtime/URP/Passes/MotionVectorsPassURP.cs
+  uploadId: 968282

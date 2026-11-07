@@ -1,0 +1,10 @@
+fileFormatVersion: 2
+guid: 40278d91d9d7a5546a88dbafca7fb313
+timeCreated: 1754733387
+AssetOrigin:
+  serializedVersion: 1
+  productId: 369882
+  packageName: 'HTrace: Ambient Occlusion V2 URP'
+  packageVersion: 2.2.2
+  assetPath: Packages/dev.ipgames.htrace-ao-v2/Runtime/Extensions/CameraHistorySystem/CameraHistorySystem.cs
+  uploadId: 968282

@@ -1,0 +1,341 @@
+#pragma kernel ShadingRateGeneration
+#pragma kernel ShadingRateClassification
+#pragma kernel DisocclusionClassification
+#pragma kernel IndirectArguments
+
+#pragma multi_compile _ SHADING_RATE_VISUALIZATION
+#pragma multi_compile _ DISOCCLUSION_BOOST
+
+#include "../Headers/HPipelineDefineAO.hlsl"
+#pragma multi_compile _ _GBUFFER_NORMALS_OCT
+#include "../Headers/HCommonAO.hlsl"
+
+#define TILE_SIZE 16
+
+uint _RayTracedCounter;
+uint _UseAdaptiveResolution;
+uint _UseDisocclusionBoost;
+uint _ExcludeReceivingMask;
+uint _EarlyOutExcludedReceivers;
+
+groupshared uint SharedRayAllocator;
+groupshared uint SharedDisocclusionAllocator;
+groupshared uint SharedAllocationStartOffset;
+groupshared uint2 SharedAllocatedRays[TILE_SIZE * TILE_SIZE];
+
+H_TEXTURE(_ShadingRate);
+H_TEXTURE(_TemporalDataReprojected);
+
+H_RW_TEXTURE(float3, _Debug_Output);
+H_RW_TEXTURE(uint, _ShadingRate_Output);
+
+RWStructuredBuffer<uint> _RayCounter;
+RWStructuredBuffer<uint>  _DisocclusionCounter;
+RWStructuredBuffer<uint2> _IndirectCoords_Output;
+RWStructuredBuffer<uint> _IndirectArguments_Output;
+
+
+// ------------------------ SHADING RATE GENERATION -------------------------
+[numthreads(8, 8, 1)]
+void ShadingRateGeneration(uint3 pixCoord : SV_DispatchThreadID, uint2 groupThreadID : SV_GroupThreadID, uint groupIndex : SV_GroupIndex)
+{
+    
+    uint2 pixCoordFullRes = pixCoord.xy * 2;
+    float2 pixCoordNDC = (pixCoordFullRes.xy + 0.5) * _ScreenSize.zw;
+
+    float4 DepthSamples = H_GATHER_RED(g_HTraceDepth, H_SAMPLER_POINT_CLAMP, pixCoordNDC * HRenderScale.xy, 0).wzxy;
+    float4 DepthSamplesLinear = 1.0 / (_ZBufferParams.zzzz * DepthSamples.xyzw + _ZBufferParams.wwww);
+
+    float DepthCenter = DepthSamples.x;
+    float DepthCenterLinear = DepthSamplesLinear.x;
+
+    float3 NormalCenterWS = HBUFFER_NORMAL_WS(pixCoordFullRes.xy);
+    float3 NormalCenterVS = H_TRANSFORM_WORLD_TO_VIEW_NORMAL(NormalCenterWS);
+    float3 PositionCenterVS = ComputeViewSpacePosition(pixCoordNDC, DepthCenter, DepthSamplesLinear.x);
+    float4 NormalPlaneVS = float4(NormalCenterVS, dot(PositionCenterVS, NormalCenterVS));
+
+    // Unused for now, but may come in handy in some cases
+    // float DirectionalWeights[3]; // 0 = Horizontal, 1 = Vertical, 2 = Diagonal
+    float TotalWeight = 0;
+    
+    const static uint2 QuadOffsets[3] = {uint2(1,0), uint2(0,1), uint2(1,1)};
+
+    UNITY_UNROLL
+    for (int i = 0 ; i < 3; i++)
+    {
+        if (DepthSamples[i + 1] <= UNITY_RAW_FAR_CLIP_VALUE)
+        {
+            TotalWeight -= 1;
+            continue; 
+        }
+        
+        int2 SampleCoord = pixCoordFullRes.xy + QuadOffsets[i];
+        
+        float3 NormalSampleWS = HBUFFER_NORMAL_WS(SampleCoord);
+        float3 PositionSampleVS = ComputeViewSpacePosition(float2(SampleCoord + 0.5f) * _ScreenSize.zw, DepthSamples[i + 1], DepthSamplesLinear[i + 1]);
+
+        float PlaneWeight = PlaneWeighting(NormalPlaneVS, PositionSampleVS, DepthCenterLinear, 10000); // > 0.25;
+        float NormalWeight = dot(NormalCenterWS, NormalSampleWS); // > 0.7;
+
+        float SampleWeight = (NormalWeight > 0.7) * (PlaneWeight > 0.25);
+        TotalWeight += SampleWeight;
+
+        // Unused for now, but may come in handy in some cases
+        // DirectionalWeights[i] = (NormalWeight > 0.9) * (PlaneWeight > 0.90);
+    }
+    
+    uint ShadingRate = SHADING_RATE_QUARTER;
+    if (TotalWeight <= 2) ShadingRate = SHADING_RATE_HALF;
+ 
+        // Unused for now, but may come in handy in some cases
+        // if (DirectionalWeights[0] > max(DirectionalWeights[1],  DirectionalWeights[2])) ShadingRate |= SHADING_DIRECTION_HORZ; 
+        // if (DirectionalWeights[1] > max(DirectionalWeights[0],  DirectionalWeights[2])) ShadingRate |= SHADING_DIRECTION_VERT;
+        // if (DirectionalWeights[2] > max(DirectionalWeights[0],  DirectionalWeights[1])) ShadingRate |= SHADING_DIRECTION_DIAG;
+
+    _ShadingRate_Output[H_COORD(pixCoord.xy)] = ShadingRate;   
+
+}
+
+
+// ------------------------ SHADING RATE CLASSIFICATION -------------------------
+[numthreads(TILE_SIZE, TILE_SIZE, 1)]
+void ShadingRateClassification(uint3 pixCoord : SV_DispatchThreadID, uint2 groupThreadID : SV_GroupThreadID, uint groupIndex : SV_GroupIndex)
+{
+
+    uint2 pixCoordUnscaled = GetUnscaledCoords(pixCoord.xy);
+    
+    if (groupIndex == 0)
+    {
+        SharedRayAllocator = 0;
+        SharedDisocclusionAllocator = 0;
+    }
+    
+    GroupMemoryBarrierWithGroupSync();
+    
+    uint IndirectCoordOffsetVR = (_ScreenSize.x / g_HScaleFactorAO.x) * (_ScreenSize.y / g_HScaleFactorAO.y) * pixCoord.z ;
+    uint RayCounterOffsetVR = 2 * pixCoord.z;
+    
+    float4 TemporalData = UnpackTemporalDataRTAO(asuint(H_LOAD(_TemporalDataReprojected, pixCoord.xy).x));
+    float VelocityReprojected = TemporalData.x;
+    float SampleCountReprojected = TemporalData.z;
+    
+    bool RenderThisPixel = false;
+    
+    // Load per-quad shading rate value
+    uint ShadingRate = asuint(H_LOAD(_ShadingRate, pixCoord.xy / 2).x);
+
+    // Keep these conditions in sync with Disocclusion Classification
+    bool TemporalDisocclusion = SampleCountReprojected < 1;
+    bool MotionRejection = StochasticMotionRejection(VelocityReprojected, pixCoord.xy);
+    bool IsInsideFrame = ENABLE_DISOCCLUSION_BOOST_FOR_FRAME_BORDERS ? 1 : TemporalData.w > 0;
+
+    // Don't apply disocclusion boost to the areas around borders because it can be too costly
+    _UseDisocclusionBoost *= IsInsideFrame;
+
+    // Calculate per-pixel shading rate value based on temporal disucclusion or motion rejection
+    if (!_UseDisocclusionBoost && (TemporalDisocclusion || MotionRejection))
+        ShadingRate = SHADING_RATE_FULL;
+    
+    if (ShadingRate == SHADING_RATE_FULL)
+    {
+        // Render every pixel
+        RenderThisPixel = true;
+    }
+    else if (ShadingRate & SHADING_RATE_HALF)
+    {
+        // Render 50% of pixels in alternating vertical columns
+        RenderThisPixel = ((pixCoord.x ^ _FrameCount) & 1) == 0;
+    }
+    else if (ShadingRate & SHADING_RATE_QUARTER)
+    {
+        // Render 25% of pixels in alternating diagonal (bottom-left one frame, top right - another)
+        RenderThisPixel = ((pixCoord.x & 1) == (pixCoord.y & 1)) && ((pixCoord.x & 1) == (uint(_FrameCount) & 1));
+    }
+
+    bool IsPixelInsideFrame = all(float2(pixCoordUnscaled) < _ScreenSize.xy);
+    bool ExcludedReceiver = false;
+    UNITY_BRANCH
+    if (_EarlyOutExcludedReceivers)
+    {
+        if (IsPixelInsideFrame)
+            ExcludedReceiver = (HBUFFER_RENDER_LAYER_MASK(pixCoordUnscaled) & _ExcludeReceivingMask) != 0;
+    }
+
+    bool InvalidPixel = !IsPixelInsideFrame || ExcludedReceiver;
+    UNITY_BRANCH
+    if (!InvalidPixel)
+        InvalidPixel = HBUFFER_DEPTH(pixCoordUnscaled) <= UNITY_RAW_FAR_CLIP_VALUE;
+
+    // Check if pixel can't be traced at all because it's either a skybox, out of bounds, or an excluded receiver
+    if (InvalidPixel)
+    {
+        RenderThisPixel = false;
+    }
+    // If pixel can be traced, check if full res tracing is requested for it (or would be by disocclusion boost) and mark it for sample rebalancing
+    else if (TemporalDisocclusion || MotionRejection)  
+    {
+        uint Unused;
+        #ifdef DISOCCLUSION_BOOST
+        {
+            InterlockedAdd(SharedDisocclusionAllocator, 1, Unused);
+        }
+        #endif
+    }
+    
+    // Cull all pixels that will be traced during disocclusion boost phase from regular tracing
+    if (_UseDisocclusionBoost && (TemporalDisocclusion || MotionRejection))
+        RenderThisPixel = false;
+
+    // Add pixel for rendering if it passed all tests
+    if (RenderThisPixel)
+    {
+        // uint Index = 0;
+        // InterlockedAdd(_RayCounter_Output[0 + RayCounterOffsetVR], 1, Index);
+        // _IndirectCoords_Output[Index + IndirectCoordOffsetVR] = pixCoord.xy;
+        
+        uint SharedTexelOffset;
+        InterlockedAdd(SharedRayAllocator, 1, SharedTexelOffset);
+        SharedAllocatedRays[SharedTexelOffset] = pixCoord.xy;
+    }
+    
+    GroupMemoryBarrierWithGroupSync();
+    
+    uint ThreadIndex = groupThreadID.y * TILE_SIZE + groupThreadID.x;
+    
+    if (ThreadIndex == 0)
+    {
+        uint Unused;
+        InterlockedAdd(_RayCounter[0 + RayCounterOffsetVR], SharedRayAllocator, SharedAllocationStartOffset);
+    
+        #ifdef DISOCCLUSION_BOOST
+        {
+            InterlockedAdd(_DisocclusionCounter[0 + RayCounterOffsetVR], SharedDisocclusionAllocator, Unused);
+        }
+        #endif
+    }
+    
+    GroupMemoryBarrierWithGroupSync();
+    
+    if (ThreadIndex < SharedRayAllocator)
+    {
+        _IndirectCoords_Output[SharedAllocationStartOffset + ThreadIndex + IndirectCoordOffsetVR] = SharedAllocatedRays[ThreadIndex];
+    }
+    
+    #ifdef SHADING_RATE_VISUALIZATION
+    {
+        float3 ShadingRateVisualization = 0;
+        if (ShadingRate == SHADING_RATE_FULL) ShadingRateVisualization = float3(1,0,0);
+        if (ShadingRate == SHADING_RATE_HALF) ShadingRateVisualization = float3(1,1,0);
+        if (ShadingRate == SHADING_RATE_QUARTER) ShadingRateVisualization = float3(0,0.70,0);
+    
+        if (InvalidPixel)
+            ShadingRateVisualization = 0;
+        
+        _Debug_Output[H_COORD(pixCoord.xy)] = ShadingRateVisualization;
+    }
+    #endif
+}
+
+
+// ------------------------ DISOCCLUSION CLASSIFICATION -------------------------
+[numthreads(TILE_SIZE, TILE_SIZE, 1)]
+void DisocclusionClassification(uint3 pixCoord : SV_DispatchThreadID, uint2 groupThreadID : SV_GroupThreadID, uint groupIndex : SV_GroupIndex)
+{
+
+    uint2 pixCoordUnscaled = GetUnscaledCoords(pixCoord.xy);
+
+    if (groupIndex == 0) SharedRayAllocator = 0;
+    GroupMemoryBarrierWithGroupSync();
+    
+    uint IndirectCoordOffsetVR = (_ScreenSize.x / g_HScaleFactorAO.x) * (_ScreenSize.y / g_HScaleFactorAO.y) * pixCoord.z ;
+    uint RayCounterOffsetVR = 2 * pixCoord.z;
+    
+    float4 TemporalData = UnpackTemporalDataRTAO(asuint(H_LOAD(_TemporalDataReprojected, pixCoord.xy).x));
+    float VelocityReprojected = TemporalData.x;
+    float SampleCountReprojected = TemporalData.z;
+
+    // Keep these conditions in sync with Shading Rate Classification
+    bool TemporalDisocclusion = SampleCountReprojected < 1;
+    bool MotionRejection = StochasticMotionRejection(VelocityReprojected, pixCoord.xy);
+    bool IsInsideFrame = ENABLE_DISOCCLUSION_BOOST_FOR_FRAME_BORDERS ? 1 : TemporalData.w > 0;
+    
+    bool DisocclusionBoost = false;
+    
+    if (IsInsideFrame && (TemporalDisocclusion || MotionRejection))
+        DisocclusionBoost = true; 
+    
+    bool IsPixelInsideFrame = all(float2(pixCoordUnscaled) < _ScreenSize.xy);
+    bool ExcludedReceiver = false;
+    UNITY_BRANCH
+    if (_EarlyOutExcludedReceivers)
+    {
+        if (IsPixelInsideFrame)
+            ExcludedReceiver = (HBUFFER_RENDER_LAYER_MASK(pixCoordUnscaled) & _ExcludeReceivingMask) != 0;
+    }
+
+    bool InvalidPixel = !IsPixelInsideFrame || ExcludedReceiver;
+    UNITY_BRANCH
+    if (!InvalidPixel)
+        InvalidPixel = HBUFFER_DEPTH(pixCoordUnscaled.xy) <= UNITY_RAW_FAR_CLIP_VALUE;
+
+    if (InvalidPixel)
+        DisocclusionBoost = false;
+    
+    if (DisocclusionBoost)
+    {
+        // uint Index = 0;
+        // InterlockedAdd(_RayCounter_Output[0 + RayCounterOffsetVR], 1, Index);
+        // _IndirectCoords_Output[Index + IndirectCoordOffsetVR] = pixCoord.xy;
+        
+        uint SharedTexelOffset;
+        InterlockedAdd(SharedRayAllocator, 1, SharedTexelOffset);
+        SharedAllocatedRays[SharedTexelOffset] = pixCoord.xy;
+    }
+    
+    GroupMemoryBarrierWithGroupSync();
+    
+    uint ThreadIndex = groupThreadID.y * TILE_SIZE + groupThreadID.x;
+    
+    if (ThreadIndex == 0)
+    {
+        InterlockedAdd(_RayCounter[0 + RayCounterOffsetVR], SharedRayAllocator, SharedAllocationStartOffset);
+    }
+    
+    GroupMemoryBarrierWithGroupSync();
+    
+    if (ThreadIndex < SharedRayAllocator)
+    {
+        _IndirectCoords_Output[SharedAllocationStartOffset + ThreadIndex + IndirectCoordOffsetVR] = SharedAllocatedRays[ThreadIndex];
+    }
+
+    #ifdef SHADING_RATE_VISUALIZATION
+    {
+        if (DisocclusionBoost)
+        _Debug_Output[H_COORD(pixCoord.xy)] = float3(1,0,0);
+    }
+    #endif
+}
+
+
+// ------------------------ INDIRECT ARGUMENTS GENERATION -------------------------
+[numthreads(1, 1, 1)]
+void IndirectArguments(uint3 pixCoord : SV_DispatchThreadID, uint2 groupThreadID : SV_GroupThreadID, uint2 groupID : SV_GroupID)
+{
+    
+    uint IndirectArgumentsOffsetVR = 3 * pixCoord.z;
+    uint RayCounterOffsetVR = 2 * pixCoord.z;
+    
+    uint RayCount = _RayCounter[0 + RayCounterOffsetVR];
+
+    _IndirectArguments_Output[0 + IndirectArgumentsOffsetVR] = _RayTracedCounter ? RayCount : (RayCount + 63) / 64;
+    _IndirectArguments_Output[1 + IndirectArgumentsOffsetVR] = 1;	
+    _IndirectArguments_Output[2 + IndirectArgumentsOffsetVR] = 1;
+    
+    _RayCounter[0 + RayCounterOffsetVR] = 0;
+    _RayCounter[1 + RayCounterOffsetVR] = RayCount;
+
+    uint DisocclusionCount = _DisocclusionCounter[0 + RayCounterOffsetVR];
+    
+    _DisocclusionCounter[0 + RayCounterOffsetVR] = 0;
+    _DisocclusionCounter[1 + RayCounterOffsetVR] = DisocclusionCount;
+}

@@ -74,7 +74,9 @@ MonoBehaviour:
   - {fileID: 5928374615283746191}
   - {fileID: 4417306204921835521}
   - {fileID: -5892571760887733824}
-  m_RendererFeatureMap: ad6b866f10d7b46ca5b0780a2e30ec8786e1a238119b7662f71d1375089ec947bcb662763a5496308f456e7f4dd1455201b07ee8966c4d3dc0e1c922346139ae
+  - {fileID: 7599437447948126470}
+  - {fileID: 4835890043274277592}
+  m_RendererFeatureMap: ad6b866f10d7b46ca5b0780a2e30ec8786e1a238119b7662f71d1375089ec947bcb662763a5496308f456e7f4dd1455201b07ee8966c4d3dc0e1c922346139ae06c9bf6918a07669d832366a5f881c43
   m_UseNativeRenderPass: 1
   xrSystemData: {fileID: 0}
   postProcessData: {fileID: 11400000, guid: 41439944d30ece34e96484bdb6645b55, type: 2}
@@ -137,10 +139,24 @@ MonoBehaviour:
     AfterOpaque: 1
     Source: 0
     NormalSamples: 0
-    Intensity: 1.18
-    DirectLightingStrength: 0.592
-    Radius: 2.68
+    Intensity: 0.48
+    DirectLightingStrength: 1
+    Radius: 2.27
     SampleCount: 2
+--- !u!114 &4835890043274277592
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 43a84b065505d8f41b624b74c882ed4b, type: 3}
+  m_Name: HTrace Screen Space Global Illumination
+  m_EditorClassIdentifier: HTraceSSGI::HTraceSSGI.Scripts.Infrastructure.URP.HTraceSSGIRendererFeature
+  m_Active: 1
+  UseVolumes: 1
 --- !u!114 &5172839406172839415
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -194,6 +210,60 @@ MonoBehaviour:
   m_Active: 0
   renderPassEvent: 500
   material: {fileID: 2100000, guid: 99feff69039fb40baa3964aba38fc306, type: 2}
+--- !u!114 &7599437447948126470
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 525b7e7f92bc51343aeb8ac268b814c8, type: 3}
+  m_Name: HTrace Ambient Occlusion V2 URP
+  m_EditorClassIdentifier: HTraceAO.Runtime::IPGames.HTraceAO.Runtime.URP.Infrastructure.HTraceAORendererFeature
+  m_Active: 1
+  m_Settings:
+    AOMethod: 0
+    Downsample: 0
+    AfterOpaque: 0
+    Source: 1
+    NormalSamples: 1
+    Intensity: 3
+    DirectLightingStrength: 0.25
+    Radius: 0.035
+    Samples: 1
+    BlurQuality: 0
+    Falloff: 100
+    SampleCount: -1
+  UseVolumes: 1
+  Resources:
+    Computes:
+      HContactOcclusionRTAO: {fileID: 7200000, guid: 7cd98588f778daf4b992fa0bd0826d87, type: 3}
+      HDebugAO: {fileID: 7200000, guid: abb6e96ac86d1c64687df5ea10bb279f, type: 3}
+      HDenoiseSSAO: {fileID: 7200000, guid: c4057fc691720784e964a9d09e292c13, type: 3}
+      HDepthPyramidAO: {fileID: 7200000, guid: 3ab6303d5d163574e9a65b03b14915fb, type: 3}
+      HDepthPyramidSSAO: {fileID: 7200000, guid: 889442a9139eb304ead3d42645c999eb, type: 3}
+      HRenderGTAO: {fileID: 7200000, guid: 8d0ab03b6d5b6f643b4b6741a3725f24, type: 3}
+      HRenderRTAO: {fileID: 0}
+      HRenderSSAO: {fileID: 7200000, guid: 5f616ea4ebb59aa42a09cfea5d72795c, type: 3}
+      HSpatialFilterGTAO: {fileID: 7200000, guid: 8c3e6c541b70b7a488397317e602641e, type: 3}
+      HSpatialFilterRTAO: {fileID: 7200000, guid: bc2b562eeb319484fa69e53b83206801, type: 3}
+      HTemporalFilterGTAO: {fileID: 7200000, guid: 0ed38119bb90ed64fa798c6ea063625c, type: 3}
+      HTemporalFilterRTAO: {fileID: 7200000, guid: f154a7288d8bb304988db6cac048fc7a, type: 3}
+      HThreadCompactionRTAO: {fileID: 7200000, guid: 7ef476de78d7aec4c92fa33fd480a462, type: 3}
+    Shared:
+      OwenScrambledNoise256: {fileID: 2800000, guid: 84c51472dda0c654e823e5ca5e64bcff, type: 3}
+      ScramblingTile8Spp: {fileID: 2800000, guid: a25841c571081fb48a931d221355f8b8, type: 3}
+      RankingTile8Spp: {fileID: 2800000, guid: 15474bee4290d8945b4d4446b37601b4, type: 3}
+      ScrambleNoise: {fileID: 2800000, guid: a29266803a11f904d8a27a9a29f3eaf3, type: 3}
+      Stbn1D128X128X16: {fileID: 11700000, guid: f14c686b6565a114d95e093f340510ae, type: 3}
+      Stbn2D128X128X16: {fileID: 11700000, guid: adf80ca2453066145bd64886bfa499fe, type: 3}
+    URP:
+      MotionVectorsUrpShader: {fileID: 4800000, guid: 97c5958809449e3489086e90a71688d1, type: 3}
+      OutputCompositionUrpShader: {fileID: 4800000, guid: 41123a67711138f4ca84f4c988514b46, type: 3}
+    SRP:
+      ObjectMotionDeltaSrpShader: {fileID: 4800000, guid: 893bdfd6555b08541a9327c637a61c7b, type: 3}
 --- !u!114 &7833122117494664109
 MonoBehaviour:
   m_ObjectHideFlags: 0

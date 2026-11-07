@@ -1,0 +1,165 @@
+#pragma kernel Debug
+#pragma kernel DebugSSAO
+
+#include "../Headers/HPipelineDefineAO.hlsl"
+#pragma multi_compile _ _GBUFFER_NORMALS_OCT
+#include "../Headers/HCommonAO.hlsl"
+
+uint _IsGTAO;
+uint _DebugSwitch;
+uint _BuffersSwitch;
+uint _ExcludeObjectsFromDepth;
+
+H_TEXTURE(_DebugDepth);
+H_TEXTURE(_HTraceBufferAO);
+H_TEXTURE(_TemporalDataReprojected);
+
+H_RW_TEXTURE(float4, _Debug_Output);
+
+[numthreads(8, 8, 1)]
+void Debug(uint3 pixCoord : SV_DispatchThreadID)
+{
+    
+    if (_DebugSwitch == 1)
+    {
+        if (_BuffersSwitch == 0) // Multi
+        {
+            uint2 QuadSize = _ScreenSize.xy / 2;
+            uint2 QuadIndex = pixCoord.xy / QuadSize; // (0,0), (1,0), (0,1), (1,1)
+            uint2 LocalCoord = pixCoord.xy % QuadSize;
+            uint2 SampleCoord = LocalCoord * 2;
+        
+            float4 Output = float4(0, 0, 0, 1);
+
+            if (HBUFFER_DEPTH(SampleCoord.xy) <= UNITY_RAW_FAR_CLIP_VALUE)
+            {
+                _Debug_Output[H_COORD(pixCoord.xy)] = Output;
+                return;
+            }
+            
+            if (QuadIndex.x == 0 && QuadIndex.y == 0) // Bottom Left
+            {
+                Output = float4(HBUFFER_NORMAL_WS(SampleCoord).xyz, 1) * 0.5 + 0.5;
+            }
+            else if (QuadIndex.x == 1 && QuadIndex.y == 0) // Bottom Right
+            {
+                float MotionMask = HBUFFER_MOTION_MASK(SampleCoord).x;
+                float2 MotionDelta = HBUFFER_MOTION_DELTA(SampleCoord.xy).xy;
+                float2 MotionVectors = HBUFFER_MOTION_VECTOR(SampleCoord).xy;
+
+                float3 CombinedMotionVectorDebug = float3(MotionVectors, 0);
+                
+                if (MotionDelta.y != 0)
+                    CombinedMotionVectorDebug = float3(0, length(MotionVectors) * 20, length(MotionVectors) * 20);
+
+                if (MotionDelta.y == 0 && MotionMask != 0)
+                    CombinedMotionVectorDebug = float3(0, 0, length(MotionVectors) * 20);
+                
+                Output = float4(CombinedMotionVectorDebug, 1);
+            }
+            else if (QuadIndex.x == 0 && QuadIndex.y == 1) // Top Left
+            {
+                float Depth = _IsGTAO ? H_LOAD(_DebugDepth, SampleCoord.xy).x : HBUFFER_DEPTH(SampleCoord.xy);
+                float3 DepthDebug = Depth == 0 ? float3(1,0,0) : abs(Depth.xxx) * 5 * (0.3 / _ProjectionParams.y);
+                Output = float4(DepthDebug, 1);
+            }
+            else if (QuadIndex.x == 1 && QuadIndex.y == 1) // Top Right
+            {
+                Output = pow(abs(H_LOAD(_HTraceBufferAO, SampleCoord.xy).x), g_HIntensityAO).xxxx;
+            }
+            
+            _Debug_Output[H_COORD(pixCoord.xy)] = Output;
+            return;
+        }
+        
+        if (HBUFFER_DEPTH(pixCoord.xy) <= UNITY_RAW_FAR_CLIP_VALUE)
+        {
+            _Debug_Output[H_COORD(pixCoord.xy)] = 0;
+            return;
+        }
+        
+        if (_BuffersSwitch == 1) // Depth
+        {
+            float Depth = _IsGTAO ? H_LOAD(_DebugDepth, pixCoord.xy).x : HBUFFER_DEPTH(pixCoord.xy);
+            float3 DepthDebug = Depth == 0 ? float3(1,0,0) : abs(Depth.xxx) * 5 * (0.3 / _ProjectionParams.y);
+            _Debug_Output[H_COORD(pixCoord.xy)] = float4(DepthDebug, 1);
+        }
+        if (_BuffersSwitch == 3) // Normal
+        {
+            _Debug_Output[H_COORD(pixCoord.xy)] = float4(HBUFFER_NORMAL_WS(pixCoord.xy).xyz, 1) * 0.5 + 0.5;
+        }
+        if (_BuffersSwitch == 4) // Motion Mask
+        {
+            float MotionMask = HBUFFER_MOTION_MASK(pixCoord.xy).x;
+            float2 MotionDelta = HBUFFER_MOTION_DELTA(pixCoord.xy).xy;
+
+            float3 CombinedMotionMaskebug = 0;
+                
+            if (MotionDelta.y != 0)
+                CombinedMotionMaskebug = float3(0, 1, 1);
+
+            if (MotionDelta.y == 0 && MotionMask != 0)
+                CombinedMotionMaskebug = float3(0, 0, 1);
+            
+            _Debug_Output[H_COORD(pixCoord.xy)] = float4(CombinedMotionMaskebug, 1);
+        }
+        if (_BuffersSwitch == 5)  // Motion Vectors
+        {
+            _Debug_Output[H_COORD(pixCoord.xy)] = float4(-HBUFFER_MOTION_VECTOR(pixCoord.xy).xy * 10, 0, 1);
+        }
+    }
+
+    if (HBUFFER_DEPTH(pixCoord.xy) <= UNITY_RAW_FAR_CLIP_VALUE)
+    {
+        _Debug_Output[H_COORD(pixCoord.xy)] = 0;
+        return;
+    }
+
+    if (_DebugSwitch == 2) // AO
+    {   
+        _Debug_Output[H_COORD(pixCoord.xy)] = pow(abs(H_LOAD(_HTraceBufferAO, pixCoord.xy).x), g_HIntensityAO).xxxx;
+    }
+    
+    if (_DebugSwitch == 3) // Temporal Disocclusion
+    {
+        float3 TemporalData = 0;
+        if (_IsGTAO) TemporalData = UnpackTemporalDataGTAO(asuint(H_LOAD(_TemporalDataReprojected, pixCoord.xy / g_HScaleFactorAO).x)).xyz;
+        else TemporalData = UnpackTemporalDataRTAO(asuint(H_LOAD(_TemporalDataReprojected, pixCoord.xy / g_HScaleFactorAO).x)).xyz;
+        
+        float VelocityReprojected = TemporalData.x;
+        float SampleCountReprojected = TemporalData.z;
+
+        SampleCountReprojected *= saturate(pow(max(1 - VelocityReprojected, 1e-6), TEMPORAL_REJECTION_INTENSITY));
+
+        float SamplecountMult = _IsGTAO ? 2 : 1;
+
+        float3 Output = SampleCountReprojected.x < 1 ? float3(1,0,0) : SampleCountReprojected.xxx / (float(g_HTemporalSamplecountAO) * SamplecountMult);
+        _Debug_Output[H_COORD(pixCoord.xy)] = float4(Output, 1);
+    }
+}
+
+
+[numthreads(8, 8, 1)]
+void DebugSSAO(uint3 pixCoord : SV_DispatchThreadID)
+{
+
+    if (HBUFFER_DEPTH(pixCoord.xy) <= UNITY_RAW_FAR_CLIP_VALUE)
+    {
+        _Debug_Output[H_COORD(pixCoord.xy)] = 0;
+        return;
+    }
+    
+    if (_DebugSwitch == 1) // Depth
+    {
+        float Depth = HBUFFER_DEPTH(pixCoord.xy);
+        float3 DepthDebug = Depth.xxx * 5 * (0.3 / _ProjectionParams.y);
+        if (HBUFFER_RENDER_LAYER_MASK(pixCoord.xy) & _ExcludeObjectsFromDepth) DepthDebug = float3(1,0,0);
+        
+        _Debug_Output[H_COORD(pixCoord.xy)] = float4(DepthDebug, 1);
+    }
+
+    if (_DebugSwitch == 2) // AO
+    {
+        _Debug_Output[H_COORD(pixCoord.xy)] = pow(abs(H_LOAD(_HTraceBufferAO, pixCoord.xy).x), g_HIntensityAO).xxxx;
+    }
+}

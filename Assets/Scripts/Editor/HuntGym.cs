@@ -100,6 +100,40 @@ static class HuntGym
         Debug.Log("Built " + ScenePath);
     }
 
+    // Tools > Wash Square > Update Hunt Maps: both maps (this gym and Wash Square Hunt) brought up to date: 5-minute
+    // rounds, the minimap picture baked (Bake Minimap);
+    // and the saved task list (Resources/HuntTasks) given the long tasks and the gym's names for benches and vendors,
+    // keeping any task already in it as it is
+    static readonly string[] Maps = { ScenePath, "Assets/Scenes/WashSquareHunt.unity" };
+
+    [MenuItem("Tools/Wash Square/Update Hunt Maps")]
+    static void UpdateMaps()
+    {
+        if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
+        string was = EditorSceneManager.GetActiveScene().path;
+
+        HuntTasks pool = HuntTasks.Load();
+        int added = 0, moved = 0, chains = 0;
+        foreach (HuntMatch.Task task in HuntTasks.Defaults())
+        {
+            int i = pool.tasks.FindIndex(t => t.name == task.name && t.goal == task.goal);
+            if (i < 0) { pool.tasks.Insert(task.goal == HuntMatch.Goal.Chain ? chains++ : pool.tasks.Count, task); added++; }
+            else if (task.name is "Bench" or "Benches" or "Cart roof" or "Vendor tour" && pool.tasks[i].at != task.at) { pool.tasks[i].at = task.at; moved++; }
+        }
+        EditorUtility.SetDirty(pool);
+        AssetDatabase.SaveAssets();
+
+        foreach (string path in Maps)
+        {
+            EditorSceneManager.OpenScene(path);
+            HuntMatch match = Object.FindFirstObjectByType<HuntMatch>();
+            if (match) { Undo.RecordObject(match, "Update Hunt Maps"); match.roundLength = 300; EditorUtility.SetDirty(match); }
+            MinimapBake.Bake(); // saves the scene
+        }
+        if (!string.IsNullOrEmpty(was)) EditorSceneManager.OpenScene(was);
+        Debug.Log("Update Hunt Maps: " + added + " tasks added to the pool (" + chains + " long), " + moved + " given the gym's names; both maps 5-minute rounds, minimaps baked");
+    }
+
     // new cover, vendors, stray food and people in the Hunt Gym from HuntGymSettings, keeping everything else
     [MenuItem("Tools/Wash Square/Reshuffle Hunt Gym Cover")]
     internal static void Reshuffle()

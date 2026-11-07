@@ -1,0 +1,343 @@
+#pragma kernel RenderGTAO
+
+#pragma multi_compile _ HALF_RESOLUTION
+#pragma multi_compile _ VR_COMPATIBILITY
+#pragma multi_compile _ RADIUS_IN_PIXELS
+#pragma multi_compile _ DEPTH_NORMAL_OUTPUT
+#pragma multi_compile _ VISIBILITY_BITMASKS
+#pragma multi_compile _ ACCURATE_TEMPORAL_REJECTION
+
+#include "../Headers/HPipelineDefineAO.hlsl"
+#pragma multi_compile _ _GBUFFER_NORMALS_OCT
+#include "../Headers/HCommonAO.hlsl"
+
+float _Fadeout;
+float _Thickness;
+float _WorldSpaceRadius;
+float _ScreenSpaceRadius;
+float _TemporalRejection;
+float _ScreenSpaceRadiusScale;
+
+uint _UseAttenuation;
+uint _UseTemporalNoise;
+uint _UseLinearThickness;
+uint _IndexXR;
+uint _IsFinalPass;
+uint _StepCount;
+uint _SliceCount;
+uint _ExcludeReceivingMask;
+uint _EarlyOutExcludedReceivers;
+
+H_TEXTURE(_RayMarchingDepthPyramid);
+
+H_RW_TEXTURE(float, _Depth_Output);
+H_RW_TEXTURE(float2, _Occlusion_Output);
+H_RW_TEXTURE(float4, _OcclusionNormal_Output);
+
+struct SampleData
+{
+    float3 ViewDirection;
+    float3 PositionCenterVS;
+    float2 CoordNDC;
+    float MinHorizon;
+    float Thickness;
+    float Falloff;
+    float Random;
+    uint LOD;
+};
+
+
+// ------------------------ GTAO FUNCTIONS -------------------------
+void UpdateHitVelocity(float2 HitCoord, bool HasMarkedHit, uint HitLOD, float4 OriginMotionDirection, inout float HitVelocity)
+{
+    uint2 HitPixel = uint2(clamp(HitCoord / HRenderScale.xy * _ScreenSize.xy, 0, _ScreenSize.xy - 1));
+    
+    bool HitDisoccluded;
+    float4 HitMotionDirection = GetMotionDirection(HitPixel, HitDisoccluded);
+
+    if (HasMarkedHit && HitDisoccluded && HitLOD < 2)
+    {
+        HitVelocity = 1;
+        return;
+    }
+
+    float MotionDeltaDivergence = abs(HitMotionDirection.w - OriginMotionDirection.w);
+    float MotionDeltaMagnitude = max(HitMotionDirection.w, OriginMotionDirection.w);
+    float MotionAngleDivergence = dot(OriginMotionDirection.xyz, HitMotionDirection.xyz);
+            
+    // Mark only if the movement difference between origin and hit is more than a threshold
+    if (MotionDeltaDivergence / (MotionDeltaMagnitude + 1e-6) > MOTION_DELTA_THRESHOLD || MotionAngleDivergence < 0.5 || HitMotionDirection.w == 0)
+    {
+        float MotionDelta = max(HitMotionDirection.w, OriginMotionDirection.w) * 10;
+        float HitMotionDeltaScale = MotionDeltaMagnitude > 0 ? saturate(MotionDelta) : 1;
+        
+         HitVelocity = max(HitMotionDeltaScale, HitVelocity);
+    }
+}
+
+
+// Visibility bitmask processing
+void UpdateBitmask(inout uint Bitmask, float2 HorizonSamples)
+{
+    uint2 HorizonInt = uint2(round(HorizonSamples.xy * 32.0));
+    uint HorizonMin = HorizonInt.x < 32u ? 0xFFFFFFFFu << HorizonInt.x : 0u;
+    uint HorizonMax = HorizonInt.y != 0u ? 0xFFFFFFFFu >> (32u - HorizonInt.y) : 0u;
+    uint OccludedBits = HorizonMin & HorizonMax;            
+    Bitmask = Bitmask | OccludedBits;   
+}
+
+
+// Horizon processing for non-bitmask variant
+float UpdateHorizon(SampleData Sample, inout float2 VelocityCoord, inout uint VelocityLOD, float Test)
+{
+    float2 SampleCoord = Sample.CoordNDC * HRenderScale.xy;
+    
+    float DepthSample = H_SAMPLE_LOD(_RayMarchingDepthPyramid, H_SAMPLER_POINT_CLAMP, SampleCoord, Sample.LOD).x;
+    bool MovingHit = DepthSample < 0;
+    DepthSample = abs(DepthSample);
+
+    float DepthFrontLinear = H_LINEAR_EYE_DEPTH(DepthSample);
+    float3 SampleDeltaFront = ComputeViewSpacePosition(Sample.CoordNDC, DepthSample, DepthFrontLinear) * float3(1, -1, -1) - Sample.PositionCenterVS;
+   
+    float DeltaLengthSquared = dot(SampleDeltaFront, SampleDeltaFront);
+    float SampleHorizon = dot(Sample.ViewDirection, SampleDeltaFront) * rsqrt(DeltaLengthSquared); // Same as: dot(normalize(SampleDeltaFront), ViewDirection);
+    
+    float SampleWeight = rcp(0.95 + DeltaLengthSquared * 2 * Sample.Falloff);
+    SampleHorizon = lerp(Sample.MinHorizon, SampleHorizon, SampleWeight);
+
+    if (MovingHit && Sample.Random < pow(SampleWeight, 5))
+    {
+        VelocityCoord = SampleCoord;
+        VelocityLOD = Sample.LOD;
+    }
+    
+    return SampleHorizon;
+}
+
+
+// Horizon processing for bitmask variant
+float2 PrepareHorizon(SampleData Sample, inout float2 VelocityCoord, inout uint VelocityLOD)
+{
+    float2 SampleCoord = Sample.CoordNDC * HRenderScale.xy;
+    
+    float DepthSample = H_SAMPLE_LOD(_RayMarchingDepthPyramid, H_SAMPLER_POINT_CLAMP, SampleCoord, Sample.LOD).x;
+    bool MovingHit = DepthSample < 0;
+    DepthSample = abs(DepthSample);
+    
+    float DepthFrontLinear = H_LINEAR_EYE_DEPTH(DepthSample);
+    float3 SampleDeltaFront = ComputeViewSpacePosition(Sample.CoordNDC, DepthSample, DepthFrontLinear) * float3(1, -1, -1) - Sample.PositionCenterVS;
+    
+    float HorizonAngle = dot(SampleDeltaFront, Sample.ViewDirection);
+    float DeltaLengthSquared = dot(SampleDeltaFront, SampleDeltaFront);
+    
+    float2 SampleHorizon = rsqrt(float2(DeltaLengthSquared, DeltaLengthSquared + Sample.Thickness * Sample.Thickness - (HorizonAngle * Sample.Thickness * 2.0f)));
+    SampleHorizon *= float2(HorizonAngle, HorizonAngle - Sample.Thickness);
+    
+    float SampleWeight = rcp(1 + DeltaLengthSquared * Sample.Falloff);
+    float2 SampleHorizonWithFaloff = lerp(Sample.MinHorizon.xx, SampleHorizon, SampleWeight);
+
+    if (MovingHit && Sample.Random < pow(SampleWeight, 5))
+    {
+        VelocityCoord = SampleCoord;
+        VelocityLOD = Sample.LOD;
+    }
+
+    return _UseAttenuation ? SampleHorizonWithFaloff : SampleHorizon;
+}
+
+
+// ------------------------ GTAO RENDER -------------------------
+[numthreads(8, 8, 1)]
+void RenderGTAO(uint3 pixCoord : SV_DispatchThreadID, uint3 groupThreadID : SV_GroupThreadID, uint groupIndex : SV_GroupIndex, uint2 groupID : SV_GroupID)
+{
+    
+    uint2 pixCoordUnscaled = GetUnscaledCoords(pixCoord.xy);
+    const float2 pixCoordNDC = (pixCoordUnscaled + 0.5f) * _ScreenSize.zw;
+    
+    float DepthCenter = HBUFFER_DEPTH(pixCoordUnscaled);
+    
+    if (DepthCenter <= UNITY_RAW_FAR_CLIP_VALUE) return;
+
+    bool ExcludedReceiver = false;
+    UNITY_BRANCH
+    if (_EarlyOutExcludedReceivers)
+        ExcludedReceiver = (HBUFFER_RENDER_LAYER_MASK(pixCoordUnscaled) & _ExcludeReceivingMask) != 0;
+
+    UNITY_BRANCH
+    if (ExcludedReceiver)
+    {
+        float NeutralOcclusion = _IsFinalPass ? 1.0 : 0.0;
+        #ifdef DEPTH_NORMAL_OUTPUT
+        _Depth_Output[H_COORD(pixCoord.xy)] = DepthCenter;
+        _OcclusionNormal_Output[H_COORD(pixCoord.xy)] = float4(NeutralOcclusion, 0.5, 0.5, 0.5);
+        #else
+        _Occlusion_Output[H_COORD(pixCoord.xy)] = float2(NeutralOcclusion, 0.0);
+        #endif
+        return;
+    }
+    
+    float DepthLinearCenter = H_LINEAR_EYE_DEPTH(DepthCenter);
+    float3 NormalCenterWS = HBUFFER_NORMAL_WS(pixCoordUnscaled);
+    float3 NormalCenterVS = H_TRANSFORM_WORLD_TO_VIEW_NORMAL(NormalCenterWS) * float3(1, -1, -1);
+    float3 PositionCenterVS = ComputeViewSpacePosition(pixCoordNDC, DepthCenter, DepthLinearCenter) * float3(1, -1, -1);
+    float3 ViewDirection = normalize(-PositionCenterVS);
+    
+    PositionCenterVS *= lerp(0.996, 1.0, abs(dot(NormalCenterVS, ViewDirection)));
+    
+    const float SliceCount = _SliceCount;
+    const float StepCount = _StepCount;
+
+    uint FrameCounter = _UseTemporalNoise ? _FrameCount : 0;
+    const static float Rotations[] = {60.0, 300.0, 180.0, 240.0, 120.0, 0.0};
+    const static float Offsets[] = {0.0f, 0.5f, 0.25f, 0.75f};
+
+    int2 NoiseCoord = pixCoord.xy;
+    #ifdef HALF_RESOLUTION
+    NoiseCoord = pixCoord.yx;
+    #endif
+        
+    float2 Noise = 0;
+    Noise.x = HInterleavedGradientNoise(NoiseCoord.xy, 0);
+    Noise.y = frac(HInterleavedGradientNoise(_ScreenSize.xy - NoiseCoord.yx, 6 - (FrameCounter % 6)) + Offsets[(FrameCounter / 3) % 4]);
+
+    float SliceRotation = Rotations[FrameCounter % 6] / 360.0;
+    
+    float ScreenSpaceRadiusFromWorld = _WorldSpaceRadius / (DepthLinearCenter * _ScreenSpaceRadiusScale);
+    float ScreenSpaceRadius = max(ScreenSpaceRadiusFromWorld, _ScreenSpaceRadius);
+    float WorldSpaceRadius = ScreenSpaceRadius * DepthLinearCenter * _ScreenSpaceRadiusScale;
+    
+    float MinStep = 1.3f / ScreenSpaceRadius;
+    
+    float Occlusion = 0;
+    float HitVelocity = 0;
+    float TotalWeight = 0;
+    
+    SampleData HorizonData;
+    HorizonData.PositionCenterVS = PositionCenterVS;
+    HorizonData.ViewDirection = ViewDirection;
+    HorizonData.Thickness = _UseLinearThickness ? max(_Thickness / 10 * DepthLinearCenter, _Thickness) : _Thickness;
+    HorizonData.Random = H_STBN_RANDOM_1D(pixCoord.xy, FrameCounter % g_HTemporalSamplecountAO);
+    HorizonData.Falloff = rcp(WorldSpaceRadius); HorizonData.Falloff *= HorizonData.Falloff;
+    
+    float MovingOrigin = HBUFFER_MOTION_MASK(pixCoordUnscaled.xy);
+    float4 OriginMotionDirection = HBUFFER_MOTION_DIRECTION(pixCoordUnscaled.xy);
+    
+    for (uint Slice = 0; Slice < _SliceCount; Slice++)
+    {
+        float Phi = (float(Slice) + Noise.x + SliceRotation) * (H_PI / float(SliceCount));
+        
+        float3 SliceDirection = float3(cos(Phi), sin(Phi), 0);
+        float2 SamplingDirection = float2(SliceDirection.x, -SliceDirection.y)  * ScreenSpaceRadius;
+        
+        float3 OrthoDirectionVec = SliceDirection - (dot(SliceDirection, ViewDirection) * ViewDirection);
+        float3 AxisVec = normalize(cross(OrthoDirectionVec, ViewDirection));
+        float3 ProjectedNormal = NormalCenterVS - AxisVec * dot(NormalCenterVS , AxisVec);
+        float NormalSign = sign(dot(OrthoDirectionVec, ProjectedNormal));
+        float ProjectedNormalLength = length(ProjectedNormal);
+        float CosN = saturate(dot(ProjectedNormal, ViewDirection) / ProjectedNormalLength);
+        float N = NormalSign * acos(CosN);
+
+        float4 SliceVelocityCoord = 0;
+        uint2 SliceVelocityLOD = 0;
+        uint VisibilityBitmask = 0;
+        
+        float2 MaxHorizons, MinHorizons;
+        MinHorizons.x = MaxHorizons.x = cos(N - H_PI_HALF);
+        MinHorizons.y = MaxHorizons.y = cos(N + H_PI_HALF);
+
+        for (int Step = 0; Step < StepCount; Step++)   
+        {
+            float StepStride = (Step + Noise.y) / float(StepCount) ;
+            StepStride = pow(abs(StepStride), 2) + MinStep;
+            
+            float2 SampleOffset = StepStride * SamplingDirection;
+            HorizonData.LOD = uint(clamp(log2(length(SampleOffset)) - 3, 0, 3));
+            SampleOffset = round(SampleOffset) * _ScreenSize.zw;
+            
+            #ifdef VISIBILITY_BITMASKS
+            {
+                HorizonData.CoordNDC = pixCoordNDC - SampleOffset;
+                HorizonData.MinHorizon = MinHorizons.x;
+                float2 HorizonSamplesA = PrepareHorizon(HorizonData, SliceVelocityCoord.xy, SliceVelocityLOD.x);
+
+                HorizonData.CoordNDC = pixCoordNDC + SampleOffset;
+                HorizonData.MinHorizon = MinHorizons.y;
+                float2 HorizonSamplesB = PrepareHorizon(HorizonData, SliceVelocityCoord.zw, SliceVelocityLOD.y);
+
+                HorizonSamplesA = HFastACos(HorizonSamplesA); // HorizonSamplesA = H_PI_HALF - HorizonSamplesA * H_PI_HALF;
+                HorizonSamplesB = HFastACos(HorizonSamplesB); // HorizonSamplesB = H_PI_HALF - HorizonSamplesB * H_PI_HALF;
+                
+                HorizonSamplesA = saturate((N + HorizonSamplesA + H_PI_HALF) / H_PI);
+                HorizonSamplesA = HorizonSamplesA * HorizonSamplesA * (3.0f - 2.0f * HorizonSamplesA);
+            
+                HorizonSamplesB = saturate((N - HorizonSamplesB + H_PI_HALF) / H_PI);
+                HorizonSamplesB = HorizonSamplesB * HorizonSamplesB * (3.0f - 2.0f * HorizonSamplesB);
+            
+                UpdateBitmask(VisibilityBitmask, HorizonSamplesA.xy);
+                UpdateBitmask(VisibilityBitmask, HorizonSamplesB.yx);
+            }
+            #else
+            {
+                float2 HorizonSamples;
+                
+                HorizonData.CoordNDC = pixCoordNDC - SampleOffset;
+                HorizonData.MinHorizon = MinHorizons.x;
+                HorizonSamples.x = UpdateHorizon(HorizonData, SliceVelocityCoord.xy, SliceVelocityLOD.x, length(SampleOffset));
+
+                HorizonData.CoordNDC = pixCoordNDC + SampleOffset;
+                HorizonData.MinHorizon = MinHorizons.y;
+                HorizonSamples.y = UpdateHorizon(HorizonData, SliceVelocityCoord.zw, SliceVelocityLOD.y, length(SampleOffset));
+                
+                MaxHorizons = max(MaxHorizons.xy, HorizonSamples.xy);
+            }
+            #endif
+        }
+        
+        #ifdef VISIBILITY_BITMASKS
+        {
+            float SliceOcclusion = 1 - saturate(float(countbits(VisibilityBitmask)) / float(26));
+            Occlusion += SliceOcclusion * ProjectedNormalLength;
+            TotalWeight += ProjectedNormalLength;  
+        }
+        #else
+        {
+            MaxHorizons.xy = HFastACos(clamp(MaxHorizons.xy, -1, 1));
+            MaxHorizons.x = N + max(-MaxHorizons.x - N, -H_PI_HALF);
+            MaxHorizons.y = N + min(+MaxHorizons.y - N, +H_PI_HALF);
+
+            float SinN = sin(N);
+            float2 IntegratedArc = -cos(2 * MaxHorizons.xy - N) + CosN + 2 * MaxHorizons.xy * SinN;
+            Occlusion += 0.25 * (IntegratedArc.x + IntegratedArc.y) * ProjectedNormalLength;
+            TotalWeight += ProjectedNormalLength * (N * SinN + CosN);
+        }
+        #endif
+
+        #ifdef ACCURATE_TEMPORAL_REJECTION
+        {
+            bool HasMarkedHitA = any(SliceVelocityCoord.xy != 0);
+            bool HasMarkedHitB = any(SliceVelocityCoord.zw != 0);
+
+            if (HasMarkedHitA || MovingOrigin)
+                UpdateHitVelocity(SliceVelocityCoord.xy, HasMarkedHitA, SliceVelocityLOD.x, OriginMotionDirection, HitVelocity);
+            
+            if (HasMarkedHitB || MovingOrigin)
+                UpdateHitVelocity(SliceVelocityCoord.zw, HasMarkedHitB, SliceVelocityLOD.y, OriginMotionDirection, HitVelocity);
+        }
+        #endif
+    }
+    
+    HitVelocity = saturate(HitVelocity) * _TemporalRejection;
+    Occlusion = saturate(Occlusion / TotalWeight);
+    Occlusion = _IsFinalPass ? Occlusion : 1 - Occlusion;
+    
+    #ifdef DEPTH_NORMAL_OUTPUT
+    {
+        _Depth_Output[H_COORD(pixCoord.xy)] = DepthCenter;
+        _OcclusionNormal_Output[H_COORD(pixCoord.xy)] = float4(Occlusion, NormalCenterWS * 0.5 + 0.5); 
+    }
+    #else
+    {
+        _Occlusion_Output[H_COORD(pixCoord.xy)] = float2(Occlusion, HitVelocity);
+    }
+    #endif
+}

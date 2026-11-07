@@ -1,0 +1,102 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6ef4515945af6e9428d60d8997340332, type: 3}
+  m_Name: Default HTraceAO Profile
+  m_EditorClassIdentifier: 
+  GeneralSettings:
+    HBuffer: 0
+    AmbientOcclusionMode: 1
+    _intensity: 2
+    OutputDithering: 0
+    OutputDitheringAnimate: 0
+    _directLightOcclusion: 0
+  SSAOSettings:
+    DebugModeSSAO: 0
+    _thickness: 0
+    _radius: 2
+  GTAOSettings:
+    DebugMode: 0
+    _thickness: 0.5
+    _worldSpaceRadius: 1
+    _screenSpaceRadius: 25
+    _sliceCount: 2
+    _stepCount: 16
+    Resolution: 0
+    TracingMode: 0
+    ThicknessMode: 0
+    UseAttenuation: 1
+    UpscalingQuality: 0
+    UpscalingNormalWeight: 1
+    UpscalingJitter: 0
+    Denoising: 3
+    UseSimpleRejection: 0
+    _temporalRejection: 0.8
+    _sampleCountTemporal: 8
+    _normalRejectionTemporal: 0
+    _rejectionStrengthTemporal: 0.25
+    ReprojectionFilter: 0
+    DisocclusionBoost: 1
+    UseNormalWeightingTemporal: 1
+    SpatialFilterType: 1
+    _filterRadius: 0.5
+    _filterAdaptivity: 0.5
+    _filterStrength: 0.75
+    NormalRejectionSpatial: 0
+    NormalWeightSpatial: 1
+    _boxPassCount: 2
+    DoubleSampleCount: 0
+  RTAOSettings:
+    DebugMode: 0
+    DebugSceneMismatch: 1
+    _worldSpaceRadius: 1
+    _maxRayBias: 0.001
+    _specularOcclusion: 0.5
+    TracingMode: 1
+    _rayCount: 4
+    SampleRebalancing: 0
+    CullBackfaces: 0
+    CullAlphaCutout: 0
+    CullingMask:
+      serializedVersion: 2
+      m_Bits: 4294967295
+    ScreenSpacePretrace: 0
+    PretraceMask:
+      serializedVersion: 0
+      m_Bits: 1
+    _pretraceSamples: 12
+    _pretraceDistance: 0.5
+    _pretraceThickness: 0.1
+    CullingMode: 0
+    _cullingDistance: 1000
+    _minSolidAngle: 4
+    Resolution: 2
+    Denoising: 2
+    _sampleCountTemporal: 15
+    _staticRejection: 0.1
+    _dynamicRejection: 0.3
+    _normalRejectionTemporal: 0
+    _rejectionStrengthTemporal: 0.25
+    ReprojectionFilter: 1
+    UseNormalWeightingTemporal: 1
+    DisocclusionBoost: 1
+    _filterRadius: 0.5
+    _contactOcclusion: 0
+    ContactOcclusionDenoise: 1
+  DebugSettings:
+    ShowBowels: 0
+    ShowFullDebugLog: 0
+    HTraceLayer:
+      serializedVersion: 2
+      m_Bits: 4294967295
+    TestCheckBox1: 0
+    TestCheckBox2: 0
+    TestCheckBox3: 0

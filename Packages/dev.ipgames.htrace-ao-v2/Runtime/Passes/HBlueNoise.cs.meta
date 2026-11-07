@@ -1,0 +1,10 @@
+fileFormatVersion: 2
+guid: ea643cb5fc3920c4e812eca902ee7cf9
+timeCreated: 1729617470
+AssetOrigin:
+  serializedVersion: 1
+  productId: 369882
+  packageName: 'HTrace: Ambient Occlusion V2 URP'
+  packageVersion: 2.2.2
+  assetPath: Packages/dev.ipgames.htrace-ao-v2/Runtime/Passes/HBlueNoise.cs
+  uploadId: 968282

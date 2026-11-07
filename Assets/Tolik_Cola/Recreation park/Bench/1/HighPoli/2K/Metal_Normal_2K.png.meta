@@ -1,5 +1,12 @@
 fileFormatVersion: 2
 guid: ff2097f10785b2c4a97f70dbe90e71da
+AssetOrigin:
+  serializedVersion: 1
+  productId: 314977
+  packageName: Recreation park
+  packageVersion: 1.0
+  assetPath: Assets/Tolik_Cola/Recreation park/Bench/1/HighPoli/2K/Metal_Normal_2K.png
+  uploadId: 748779
 TextureImporter:
   internalIDToNameTable: []
   externalObjects: {}
@@ -69,7 +76,7 @@ TextureImporter:
   platformSettings:
   - serializedVersion: 4
     buildTarget: DefaultTexturePlatform
-    maxTextureSize: 2048
+    maxTextureSize: 1024
     resizeAlgorithm: 0
     textureFormat: -1
     textureCompression: 1
@@ -106,6 +113,19 @@ TextureImporter:
     ignorePlatformSupport: 0
     androidETC2FallbackOverride: 0
     forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Android
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
   spriteSheet:
     serializedVersion: 2
     sprites: []
@@ -128,10 +148,3 @@ TextureImporter:
   userData: 
   assetBundleName: 
   assetBundleVariant: 
-AssetOrigin:
-  serializedVersion: 1
-  productId: 314977
-  packageName: Recreation park
-  packageVersion: 1.0
-  assetPath: Assets/Tolik_Cola/Recreation park/Bench/1/HighPoli/2K/Metal_Normal_2K.png
-  uploadId: 748779

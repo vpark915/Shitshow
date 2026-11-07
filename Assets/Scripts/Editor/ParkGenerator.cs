@@ -52,6 +52,53 @@ public static class ParkGenerator
 
     static float Smooth(float from, float to, float value) => Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(from, to, value));
 
+    // ---- greener leaves and grass: the pack's foliage materials multiply their texture by these two tints; the trees'
+    // are LeafBrightness brighter than the shade plants'
+    // ponytail: edits the pack's own materials in place (they were near-white); reimport the pack to get the originals back
+    const float LeafBrightness = 1.15f;
+
+    // Tools > Wash Square > Tint Foliage: just this, on the open scene's terrain, without regenerating the park
+    [MenuItem("Tools/Wash Square/Tint Foliage")]
+    static void TintFoliageMenu()
+    {
+        Terrain terrain = Terrain.activeTerrain;
+        if (!terrain) { Debug.LogWarning("Tint Foliage: no terrain in the open scene"); return; }
+        TintFoliage(terrain.terrainData);
+        AssetDatabase.SaveAssets();
+        Debug.Log("Tint Foliage: leaves x" + LeafBrightness);
+    }
+
+    static Color Bright(Color c, float k) => new Color(c.r * k, c.g * k, c.b * k, c.a); // alpha left alone
+
+    static void TintFoliage(TerrainData data)
+    {
+        IEnumerable<Material> Foliage(IEnumerable<GameObject> prefabs) => prefabs.SelectMany(p => p.GetComponentsInChildren<Renderer>(true))
+            .SelectMany(r => r.sharedMaterials).Where(m => m && m.HasProperty("_HealthyColor")).Distinct();
+        var leaves = Foliage(data.treePrototypes.Select(p => p.prefab)).ToList();
+        foreach (Material m in Foliage(data.detailPrototypes.Where(p => p.usePrototypeMesh).Select(p => p.prototype)))
+        {
+            float k = leaves.Contains(m) ? LeafBrightness : 1f; // shared with a tree: the tree's
+            m.SetColor("_HealthyColor", Bright(FoliageHealthy, k));
+            m.SetColor("_DryColor", Bright(FoliageDry, k));
+            EditorUtility.SetDirty(m);
+        }
+        foreach (Material m in leaves)
+        {
+            m.SetColor("_HealthyColor", Bright(FoliageHealthy, LeafBrightness));
+            m.SetColor("_DryColor", Bright(FoliageDry, LeafBrightness));
+            EditorUtility.SetDirty(m);
+        }
+
+        // the far LOD's cross-card materials have no foliage tint, so they stood out bright green against the tinted
+        // leaves: give them the leaves' tint (in their base colour, the pack's 0.85 grey times the tint)
+        foreach (Material m in data.treePrototypes.SelectMany(p => p.prefab.GetComponentsInChildren<Renderer>(true)).SelectMany(r => r.sharedMaterials)
+            .Where(m => m && m.name.EndsWith("_Cross") && m.HasProperty("_BaseColor")).Distinct())
+        {
+            m.SetColor("_BaseColor", Bright(Color.Lerp(FoliageHealthy, FoliageDry, 0.5f) * 0.85f, LeafBrightness));
+            EditorUtility.SetDirty(m);
+        }
+    }
+
     [MenuItem("Tools/Wash Square/Regenerate Park")]
     public static string Generate()
     {
@@ -235,25 +282,7 @@ public static class ParkGenerator
             }
         for (int i = 0; i < layers.Length; i++) data.SetDetailLayer(0, 0, i, layers[i]);
 
-        // ---- greener leaves and grass: the pack's foliage materials multiply their texture by these two tints
-        // ponytail: edits the pack's own materials in place (they were near-white); reimport the pack to get the originals back
-        var materials = data.treePrototypes.Select(p => p.prefab).Concat(data.detailPrototypes.Where(p => p.usePrototypeMesh).Select(p => p.prototype))
-            .SelectMany(p => p.GetComponentsInChildren<Renderer>(true)).SelectMany(r => r.sharedMaterials).Where(m => m && m.HasProperty("_HealthyColor")).Distinct();
-        foreach (Material m in materials)
-        {
-            m.SetColor("_HealthyColor", FoliageHealthy);
-            m.SetColor("_DryColor", FoliageDry);
-            EditorUtility.SetDirty(m);
-        }
-
-        // the far LOD's cross-card materials have no foliage tint, so they stood out bright green against the tinted
-        // leaves: give them the leaves' tint (in their base colour, the pack's 0.85 grey times the tint)
-        foreach (Material m in data.treePrototypes.SelectMany(p => p.prefab.GetComponentsInChildren<Renderer>(true)).SelectMany(r => r.sharedMaterials)
-            .Where(m => m && m.name.EndsWith("_Cross") && m.HasProperty("_BaseColor")).Distinct())
-        {
-            m.SetColor("_BaseColor", Color.Lerp(FoliageHealthy, FoliageDry, 0.5f) * 0.85f);
-            EditorUtility.SetDirty(m);
-        }
+        TintFoliage(data);
 
         // the pack's LODs turned trees into cross cards below 30% of the screen's height (a few dozen metres) and kept
         // full detail only nearer than the tree is tall; now full detail out to ~20 m, the 2,600-triangle LOD2 out to ~200 m,

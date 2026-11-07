@@ -1,0 +1,185 @@
+#pragma kernel ContactOcclusion
+
+#pragma multi_compile _ FINAL_PASS
+
+#include "../Headers/HPipelineDefineAO.hlsl"
+#pragma multi_compile _ _GBUFFER_NORMALS_OCT
+#include "../Headers/HCommonAO.hlsl"
+
+#define RADIUS 0.2
+#define STEP_COUNT 3
+#define SLICE_COUNT 3
+ 
+float _ContactOcclusionIntensity;
+float _ScreenSpaceRadiusScale;
+uint _IsFinalPass;
+uint _ExcludeReceivingMask;
+uint _EarlyOutExcludedReceivers;
+
+H_TEXTURE(_RayMarchingDepth);
+H_RW_TEXTURE(float4, _Occlusion_Output);
+
+groupshared uint TileNotEmpty;
+
+float UpdateSample(float2 Faloff, float2 SampleCoordNDC, float MinHorizon, float3 ViewDirection, float3 PositionCenterVS)
+{
+    float DepthSample = abs(H_SAMPLE_LOD(_RayMarchingDepth, H_SAMPLER_POINT_CLAMP, SampleCoordNDC * HRenderScale.xy, 0).x);
+ 
+    float3 SampleDeltaFront = ComputeViewSpacePosition(SampleCoordNDC, DepthSample, H_LINEAR_EYE_DEPTH(DepthSample)) * float3(1, -1, -1) - PositionCenterVS;
+    
+    float SampleDist = length(SampleDeltaFront);
+    float SampleHorizon = dot(ViewDirection, SampleDeltaFront) / SampleDist;
+    float SampleHorizonWeight = saturate(SampleDist * Faloff.x + Faloff.y);
+    
+    return lerp(MinHorizon, SampleHorizon, SampleHorizonWeight);
+}
+
+
+// ------------------------ CONTACT OCCLUSION TRACING -------------------------
+[numthreads(8, 8, 1)]
+void ContactOcclusion(uint3 pixCoord : SV_DispatchThreadID, uint3 groupThreadID : SV_GroupThreadID, uint groupIndex : SV_GroupIndex, uint groupID : SV_GroupID)
+{
+    
+    float2 pixCoordNDC = (pixCoord.xy + 0.5f) * _ScreenSize.zw;
+
+    float4 AmbientOcclusion = _Occlusion_Output[H_COORD(pixCoord.xy)];
+    float DepthCenter = HBUFFER_DEPTH(pixCoord.xy);
+    bool ExcludedReceiver = false;
+    UNITY_BRANCH
+    if (_EarlyOutExcludedReceivers)
+        ExcludedReceiver = (HBUFFER_RENDER_LAYER_MASK(pixCoord.xy) & _ExcludeReceivingMask) != 0;
+
+    #ifdef FINAL_PASS
+    {
+        if (groupIndex == 0) TileNotEmpty = 0;
+        GroupMemoryBarrierWithGroupSync();
+        
+        if (!ExcludedReceiver && AmbientOcclusion.x > 0) InterlockedOr(TileNotEmpty, 1);
+        GroupMemoryBarrierWithGroupSync();
+
+        UNITY_BRANCH
+        if (ExcludedReceiver)
+        {
+            _Occlusion_Output[H_COORD(pixCoord.xy)] = float4(1.0, 0.0, 0.0, 0.0);
+            return;
+        }
+        
+        UNITY_BRANCH
+        if (!TileNotEmpty || DepthCenter <= UNITY_RAW_FAR_CLIP_VALUE)
+        {   
+            _Occlusion_Output[H_COORD(pixCoord.xy)] = AmbientOcclusion;
+            return;
+        }  
+    }
+    #else
+    {
+        UNITY_BRANCH
+        if (ExcludedReceiver)
+        {
+            _Occlusion_Output[H_COORD(pixCoord.xy)] = 0.0;
+            return;
+        }
+
+        if (DepthCenter <= UNITY_RAW_FAR_CLIP_VALUE)
+            return;
+    }
+    #endif
+
+    float DepthCenterLinear = H_LINEAR_EYE_DEPTH(DepthCenter);
+    float3 NormalCenterWS = HBUFFER_NORMAL_WS(pixCoord.xy);
+    float3 NormalCenterVS = H_TRANSFORM_WORLD_TO_VIEW_NORMAL(NormalCenterWS) * float3(1, -1, -1);
+    float3 PositionCenterVS = ComputeViewSpacePosition(pixCoordNDC, DepthCenter, DepthCenterLinear) * float3(1, -1, -1);
+    float3 ViewDirection = -normalize(PositionCenterVS);
+
+    PositionCenterVS *= lerp(0.9965, 1.0, abs(dot(NormalCenterVS, ViewDirection)));
+
+    const static float Radius = RADIUS;
+    const static int StepCount = STEP_COUNT; 
+    const static int SliceCount = SLICE_COUNT;
+    
+    float Distribution = 2;
+    float FalloffRange = 0.5f * Radius;
+    float FalloffFrom = Radius * (1.0f - 0.5f);
+    float FalloffMul =  -0.5 / FalloffRange * lerp(2.25, 1, saturate(DepthCenterLinear / 50));
+    float FalloffAdd = FalloffFrom / FalloffRange + 1;
+
+    bool TemporalAccumulationEnabled = true;
+    #ifdef FINAL_PASS
+    TemporalAccumulationEnabled = IsJitteringEnabled;
+    #endif
+    
+    float2 Noise = 0;
+    Noise.x = GetBNDSequenceSample(pixCoord.xy, TemporalAccumulationEnabled ? uint(_FrameCount) % 6 : 0, 0);
+    Noise.y = GetBNDSequenceSample(pixCoord.xy, TemporalAccumulationEnabled ? uint(_FrameCount) % 6 : 0, 1); 
+    
+    float ScreenSpaceRadius = Radius / (DepthCenterLinear * _ScreenSpaceRadiusScale );
+    float MinStep = 1.3f / ScreenSpaceRadius;
+    
+    float ContactOcclusion = 0;
+    float TotalWeight = 0;
+    
+    for (int Slice = 0; Slice < SliceCount; Slice++)
+    {
+        float SliceSeed = float(Slice + Noise.x) / float(SliceCount);
+        float Phi = SliceSeed * H_PI;
+        
+        float3 SliceDirection = float3(cos(Phi), sin(Phi), 0); 
+        float2 SamplingDirection = float2(SliceDirection.x, -SliceDirection.y) * ScreenSpaceRadius;
+        
+        float3 OrthoDirectionVec = SliceDirection - (dot(SliceDirection, ViewDirection) * ViewDirection);
+        float3 AxisVec = normalize(cross(OrthoDirectionVec, ViewDirection));
+        float3 ProjectedNormal = NormalCenterVS - AxisVec * dot(NormalCenterVS , AxisVec);
+        float NormalSign = sign(dot(OrthoDirectionVec, ProjectedNormal));
+        float ProjectedNormalLength = length(ProjectedNormal);
+        float CosN = saturate(dot(ProjectedNormal, ViewDirection) / ProjectedNormalLength);
+        float N = NormalSign * acos(CosN);
+        
+        float2 MaxHorizons, MinHorizons;
+        MinHorizons.x = MaxHorizons.x = cos(N - H_PI_HALF);
+        MinHorizons.y = MaxHorizons.y = cos(N + H_PI_HALF);
+        
+        for (int Step = 0; Step < StepCount; Step++)   
+        {
+            float StepSeed = float(Slice + Step * StepCount) * 0.6180339887498948482;
+            float StepNoise = frac(Noise.y + StepSeed);
+            float StepStride = (Step + StepNoise) / (StepCount); StepStride = pow(abs(StepStride), Distribution) + MinStep;
+            float2 SampleOffset = StepStride * SamplingDirection * 1;
+            SampleOffset = round(SampleOffset) * _ScreenSize.zw;
+
+            float2 HorizonSamples;
+            HorizonSamples.x = UpdateSample(float2(FalloffMul, FalloffAdd), pixCoordNDC - SampleOffset, MinHorizons.x, ViewDirection, PositionCenterVS);
+            HorizonSamples.y = UpdateSample(float2(FalloffMul, FalloffAdd), pixCoordNDC + SampleOffset, MinHorizons.y, ViewDirection, PositionCenterVS);
+
+            MaxHorizons.x = max(MaxHorizons.x, HorizonSamples.x);
+            MaxHorizons.y = max(MaxHorizons.y, HorizonSamples.y);
+        }
+        
+        MaxHorizons.xy = HFastACos(clamp(MaxHorizons.xy, -1, 1));
+        MaxHorizons.x = N + max(-MaxHorizons.x - N, -H_PI_HALF);
+        MaxHorizons.y = N + min(+MaxHorizons.y - N, +H_PI_HALF);
+
+        float SinN = sin(N);
+        float2 IntegratedArc = -cos(2 * MaxHorizons.xy - N) + CosN + 2 * MaxHorizons.xy * SinN;
+        ContactOcclusion += 0.25 * (IntegratedArc.x + IntegratedArc.y) * ProjectedNormalLength;
+        TotalWeight += ProjectedNormalLength * (N * SinN + CosN);
+    }
+    
+    ContactOcclusion = saturate(ContactOcclusion / TotalWeight);
+    ContactOcclusion = pow(ContactOcclusion, g_HIntensityAO);
+    ContactOcclusion = lerp(1, ContactOcclusion, _ContactOcclusionIntensity);
+    
+    float Mix = 0;
+    #ifdef FINAL_PASS
+    {
+        Mix = AmbientOcclusion.x * ContactOcclusion;
+    }
+    #else
+    {
+        AmbientOcclusion.x = 1 - AmbientOcclusion.x;
+        Mix = AmbientOcclusion.x * ContactOcclusion;
+        Mix = 1 - Mix;
+    }
+    #endif
+    
+    _Occlusion_Output[H_COORD(pixCoord.xy)] = float4(Mix, AmbientOcclusion.yzw);
+}

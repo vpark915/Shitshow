@@ -1,0 +1,492 @@
+#pragma kernel TemporalReprojection
+#pragma kernel TemporalAccumulation
+#pragma kernel TemporalStabilization
+
+#pragma multi_compile _ VR_COMPATIBILITY
+#pragma multi_compile _ BICUBIC_REPROJECTION
+#pragma multi_compile _ USE_NORMAL_WEIGHTING
+#pragma multi_compile _ ADAPTIVE_RESOLUTION
+
+#include "../Headers/HPipelineDefineAO.hlsl"
+#pragma multi_compile _ _GBUFFER_NORMALS_OCT
+#include "../Headers/HCommonAO.hlsl"
+
+#if (USE_NORMAL_WEIGHTING)
+#define NORMAL_DISOCCLUSION 1
+#else
+#define NORMAL_DISOCCLUSION 0
+#endif
+
+#define PLANE_DISOCCLUSION 0
+#define BICUBIC_SHARPNESS  0.65
+
+float2 _ZBufferParamsPrev;
+float4 _CameraPositionsPrevious[6];
+uint _ExcludeReceivingMask;
+uint _EarlyOutExcludedReceivers;
+
+H_TEXTURE(_Occlusion);
+H_TEXTURE(_OcclusionNormal);
+H_TEXTURE(_OcclusionHalfRate);
+H_TEXTURE(_Occlusion_History);
+H_TEXTURE(_OcclusionReprojected);
+H_TEXTURE(_TemporalDataReprojected);
+H_TEXTURE(_SamplecountNormalHistory);
+H_TEXTURE(_ShadingRate);
+H_TEXTURE(_VelocityHistory);
+H_TEXTURE(_DepthHistory);
+
+H_RW_TEXTURE(uint, _TemporalData_Output);
+H_RW_TEXTURE(float, _Depth_Output);
+H_RW_TEXTURE(float, _VelocityHistory_Output);
+H_RW_TEXTURE(float2, _Occlusion_Output);
+H_RW_TEXTURE(float2, _OcclusionHistory_Output);
+H_RW_TEXTURE(float4, _OcclusionNormal_Output);
+H_RW_TEXTURE(float4, _SamplecountNormalHistory_Output);
+
+struct CurrentFrameData
+{
+    float3  NormalWS;
+    float3  PositionWS;
+    float   DepthRaw;
+    float   DepthLinear;
+};
+
+
+// ------------------------ TEMPORAL REPROJECTION -------------------------
+[numthreads(8, 8, 1)]
+void TemporalReprojection(uint3 pixCoord : SV_DispatchThreadID, uint3 groupThreadID : SV_GroupThreadID, uint groupIndex : SV_GroupIndex, uint groupID : SV_GroupID)
+{
+    
+    uint2 pixCoordUnscaled = GetUnscaledCoords(pixCoord.xy);
+    float2 pixCoordNDC = (pixCoordUnscaled.xy + 0.5f) / _ScreenSize.xy;
+
+    CurrentFrameData CurrentData;
+    CurrentData.DepthRaw = HBUFFER_DEPTH(pixCoordUnscaled.xy);
+    
+    UNITY_BRANCH
+    if (any(float2(pixCoord.xy) >= _ScreenSize.xy) || CurrentData.DepthRaw <= UNITY_RAW_FAR_CLIP_VALUE)
+    {
+        _TemporalData_Output[H_COORD(pixCoord.xy)] = PackTemporalDataGTAO(0, 0, g_HTemporalSamplecountAO);
+        return;   
+    }
+
+    bool ExcludedReceiver = false;
+    UNITY_BRANCH
+    if (_EarlyOutExcludedReceivers)
+        ExcludedReceiver = (HBUFFER_RENDER_LAYER_MASK(pixCoordUnscaled) & _ExcludeReceivingMask) != 0;
+
+    UNITY_BRANCH
+    if (ExcludedReceiver)
+    {
+        _Occlusion_Output[H_COORD(pixCoord.xy)] = 0.0;
+        _TemporalData_Output[H_COORD(pixCoord.xy)] = PackTemporalDataRTAO(0, 0, 0, false);
+        return;
+    }
+
+    CurrentData.NormalWS = HBUFFER_NORMAL_WS(pixCoordUnscaled.xy);
+    CurrentData.PositionWS = H_COMPUTE_POSITION_WS(pixCoordNDC, CurrentData.DepthRaw, H_MATRIX_I_VP);
+    float3 PositionAbsoluteWS = H_GET_ABSOLUTE_POSITION_WS(CurrentData.PositionWS);
+    CurrentData.DepthLinear = H_LINEAR_EYE_DEPTH(PositionAbsoluteWS, H_MATRIX_PREV_V);
+    
+    float MotionMask = HBUFFER_MOTION_MASK(pixCoordUnscaled.xy);
+    float MotionDelta = HBUFFER_MOTION_DELTA(pixCoordUnscaled.xy).x;
+
+    CurrentData.DepthLinear = CurrentData.DepthLinear + MotionDelta;
+
+    // Calculate disocclusion thresholds
+    float ViewAligment = 1.0f - abs(dot(H_GET_VIEW_DIRECTION_WS(CurrentData.PositionWS), CurrentData.NormalWS));
+    float DisocclusionDepthThreshold = lerp(0.005, 0.10, pow(ViewAligment, 8)) * CurrentData.DepthLinear * g_HPixelSpreadMultiplier;
+    float DisocclusionPlaneThreshold = 0.005 * CurrentData.DepthLinear * g_HPixelSpreadMultiplier;
+    float DisocclusionNormalThreshold = 0.5;
+    
+    // Relax thresholds on moving objects lacking depth delta
+    if (MotionDelta == 0 && MotionMask != 0)
+    {
+        float RelaxMultiplier = max((50 / CurrentData.DepthLinear), 1);
+        DisocclusionDepthThreshold *= RelaxMultiplier;
+        DisocclusionPlaneThreshold *= RelaxMultiplier;
+    }
+
+    float3 ViewDirectionCurrent = normalize(_WorldSpaceCameraPos - PositionAbsoluteWS);
+    if (dot(CurrentData.NormalWS, ViewDirectionCurrent) >= 0 && HBUFFER_MOTION_DELTA(pixCoordUnscaled.xy).y == 0)
+    {
+        float3 ViewDirectionPrevious1 = normalize(_CameraPositionsPrevious[3].xyz - PositionAbsoluteWS);
+        float3 ViewDirectionPrevious2 = normalize(_CameraPositionsPrevious[5].xyz - PositionAbsoluteWS);
+        
+        DisocclusionDepthThreshold *= dot(CurrentData.NormalWS, ViewDirectionPrevious1) > 0;
+        DisocclusionDepthThreshold *= dot(CurrentData.NormalWS, ViewDirectionPrevious2) > 0;
+    }
+    
+    // Alternative version:
+    // float2 NDC = (pixCoord.xy + 0.5) / _ScreenSize.xy * g_HScaleFactorAO;
+    // float2 ReprojectionCoord = (NDC - HBUFFER_MOTION_VECTOR(pixCoordUnscaled.xy)) * (_ScreenSize.xy / g_HScaleFactorAO);
+
+    float2 ReprojectionCoord = float2(pixCoord.xy) - HBUFFER_MOTION_VECTOR(pixCoordUnscaled) * floor(_ScreenSize.xy / g_HScaleFactorAO);
+    ReprojectionCoord /= (g_HPreviousScaleFactorAO.xy / g_HScaleFactorAO.xy); // Preserves temporal accumulation during AO resolution changes
+    ReprojectionCoord /= (HRenderScale.xy / HRenderScalePrevious.xy); // Preserves temporal accumulation during window resizing
+    ReprojectionCoord += 0.5;
+    
+    float2 BilinearOrigin = floor(ReprojectionCoord - 0.5);
+    float2 BilinearBaseWeights = frac(ReprojectionCoord - 0.5); // saturate(ReprojectionCoord - 0.5 - bilinearOrigin);
+    float4 BilinearSamplesValidity = float4(1, 1, 1, 1);
+    
+    // Check if the reprojection is inside frame
+    float4 BilinearExtent = BilinearOrigin.xyxy + float4(0, 0, 1, 1);
+    float4 InsideScreen = float4(BilinearExtent >= 0.0);
+    InsideScreen *= float4(BilinearExtent < (_ScreenSize.xyxy / g_HScaleFactorAO.xyxy));
+    float4 IsReprojectionInsideScreen = InsideScreen.xzxz * InsideScreen.yyww;
+    BilinearSamplesValidity *= IsReprojectionInsideScreen;
+
+    DisocclusionDepthThreshold -= 1e-6;
+    DisocclusionPlaneThreshold -= 1e-6;
+    DisocclusionNormalThreshold -= 1e-6;
+    
+    bool IsBicubicFootprintValid = false;
+
+    float4 DepthPrevious, DepthPreviousLinear;
+    #ifdef BICUBIC_REPROJECTION
+    {
+        float4 DepthPrevious_00 = H_GATHER_RED(_DepthHistory, H_SAMPLER_POINT_CLAMP, (float2(BilinearOrigin) + float2(0.0, 0.0)) * _ScreenSize.zw * HRenderScale.xy, 0).wzxy;
+        float4 DepthPrevious_10 = H_GATHER_RED(_DepthHistory, H_SAMPLER_POINT_CLAMP, (float2(BilinearOrigin) + float2(2.0, 0.0)) * _ScreenSize.zw * HRenderScale.xy, 0).wzxy;
+        float4 DepthPrevious_01 = H_GATHER_RED(_DepthHistory, H_SAMPLER_POINT_CLAMP, (float2(BilinearOrigin) + float2(0.0, 2.0)) * _ScreenSize.zw * HRenderScale.xy, 0).wzxy;
+        float4 DepthPrevious_11 = H_GATHER_RED(_DepthHistory, H_SAMPLER_POINT_CLAMP, (float2(BilinearOrigin) + float2(2.0, 2.0)) * _ScreenSize.zw * HRenderScale.xy, 0).wzxy;
+
+        float4 DepthPreviousLinear_00 = 1.0 / (_ZBufferParamsPrev.xxxx * DepthPrevious_00.xyzw + _ZBufferParamsPrev.yyyy);
+        float4 DepthPreviousLinear_10 = 1.0 / (_ZBufferParamsPrev.xxxx * DepthPrevious_10.xyzw + _ZBufferParamsPrev.yyyy);
+        float4 DepthPreviousLinear_01 = 1.0 / (_ZBufferParamsPrev.xxxx * DepthPrevious_01.xyzw + _ZBufferParamsPrev.yyyy);
+        float4 DepthPreviousLinear_11 = 1.0 / (_ZBufferParamsPrev.xxxx * DepthPrevious_11.xyzw + _ZBufferParamsPrev.yyyy);
+
+        float3 DepthWeights_00 = step(abs((DepthPreviousLinear_00.yzw - CurrentData.DepthLinear.xxx)), DisocclusionDepthThreshold.xxx);
+        float3 DepthWeights_10 = step(abs((DepthPreviousLinear_10.xzw - CurrentData.DepthLinear.xxx)), DisocclusionDepthThreshold.xxx);
+        float3 DepthWeights_01 = step(abs((DepthPreviousLinear_01.xyw - CurrentData.DepthLinear.xxx)), DisocclusionDepthThreshold.xxx);
+        float3 DepthWeights_11 = step(abs((DepthPreviousLinear_11.xyz - CurrentData.DepthLinear.xxx)), DisocclusionDepthThreshold.xxx);
+
+        DepthPrevious = float4(DepthPrevious_00.w, DepthPrevious_10.z, DepthPrevious_01.y, DepthPrevious_11.x);
+        DepthPreviousLinear = float4(DepthPreviousLinear_00.w, DepthPreviousLinear_10.z, DepthPreviousLinear_01.y, DepthPreviousLinear_11.x);
+
+        IsBicubicFootprintValid = dot(DepthWeights_00 + DepthWeights_10 + DepthWeights_01 + DepthWeights_11, 1.0) + dot(BilinearSamplesValidity, 1) > 15.5;  
+        BilinearSamplesValidity *= float4(DepthWeights_00.z, DepthWeights_10.y, DepthWeights_01.y, DepthWeights_11.x);
+    }
+    #else
+    {
+        DepthPrevious = H_GATHER_RED(_DepthHistory, H_SAMPLER_POINT_CLAMP, (float2(BilinearOrigin) + float2(1.0, 1.0)) * _ScreenSize.zw * HRenderScale.xy, 0).wzxy;
+        DepthPreviousLinear = 1.0 / (_ZBufferParamsPrev.xxxx * DepthPrevious.xyzw + _ZBufferParamsPrev.yyyy);
+        float4 DepthWeights = step(abs((DepthPreviousLinear.xyzw - CurrentData.DepthLinear.xxxx)), DisocclusionDepthThreshold.xxxx);
+
+        BilinearSamplesValidity *= float4(DepthWeights.x, DepthWeights.y, DepthWeights.z, DepthWeights.w);
+    }
+    #endif
+    
+    if (PLANE_DISOCCLUSION)
+    {
+        float3 NormalPreviousVS = normalize(mul((float3x3)H_MATRIX_PREV_V, CurrentData.NormalWS));
+        
+        float3 PositionPreviousVS_00 = ComputeViewSpacePosition((BilinearOrigin + uint2(0,0) + 0.5f) * _ScreenSize.zw * g_HScaleFactorAO, DepthPrevious.x, DepthPreviousLinear.x);
+        float3 PositionPreviousVS_10 = ComputeViewSpacePosition((BilinearOrigin + uint2(1,0) + 0.5f) * _ScreenSize.zw * g_HScaleFactorAO, DepthPrevious.y, DepthPreviousLinear.y);
+        float3 PositionPreviousVS_01 = ComputeViewSpacePosition((BilinearOrigin + uint2(0,1) + 0.5f) * _ScreenSize.zw * g_HScaleFactorAO, DepthPrevious.z, DepthPreviousLinear.z);
+        float3 PositionPreviousVS_11 = ComputeViewSpacePosition((BilinearOrigin + uint2(1,1) + 0.5f) * _ScreenSize.zw * g_HScaleFactorAO, DepthPrevious.w, DepthPreviousLinear.w);
+        
+        float4 PlaneVS;
+        PlaneVS.x = dot(NormalPreviousVS, PositionPreviousVS_00);
+        PlaneVS.y = dot(NormalPreviousVS, PositionPreviousVS_10);
+        PlaneVS.z = dot(NormalPreviousVS, PositionPreviousVS_01);
+        PlaneVS.w = dot(NormalPreviousVS, PositionPreviousVS_11);
+        
+        float4 BilinearPlaneWeights = step(abs(PlaneVS.xyzw / DepthPreviousLinear.xyzw * CurrentData.DepthLinear.xxxx - PlaneVS.xyzw), DisocclusionPlaneThreshold);
+        BilinearSamplesValidity *= BilinearPlaneWeights; 
+    }
+
+    float4 SamplecountNormalHistory_00 = H_LOAD(_SamplecountNormalHistory, BilinearOrigin + uint2(0,0));
+    float4 SamplecountNormalHistory_10 = H_LOAD(_SamplecountNormalHistory, BilinearOrigin + uint2(1,0));
+    float4 SamplecountNormalHistory_01 = H_LOAD(_SamplecountNormalHistory, BilinearOrigin + uint2(0,1));
+    float4 SamplecountNormalHistory_11 = H_LOAD(_SamplecountNormalHistory, BilinearOrigin + uint2(1,1));
+    
+    if (NORMAL_DISOCCLUSION)
+    {
+        float4 BilinearNormalWeights;
+        BilinearNormalWeights.x = dot(SamplecountNormalHistory_00.yzw * 2 - 1, CurrentData.NormalWS);
+        BilinearNormalWeights.y = dot(SamplecountNormalHistory_10.yzw * 2 - 1, CurrentData.NormalWS);
+        BilinearNormalWeights.z = dot(SamplecountNormalHistory_01.yzw * 2 - 1, CurrentData.NormalWS);
+        BilinearNormalWeights.w = dot(SamplecountNormalHistory_11.yzw * 2 - 1, CurrentData.NormalWS);
+        BilinearNormalWeights = step(DisocclusionNormalThreshold, BilinearNormalWeights);
+
+        BilinearSamplesValidity *= BilinearNormalWeights;
+    }
+    
+    float2 OneMinusWeights = saturate(1.0f - BilinearBaseWeights);
+    float4 BilinearWeights = BilinearSamplesValidity;
+    BilinearWeights.x *= OneMinusWeights.x * OneMinusWeights.y;
+    BilinearWeights.y *= BilinearBaseWeights.x * OneMinusWeights.y;
+    BilinearWeights.z *= OneMinusWeights.x * BilinearBaseWeights.y;
+    BilinearWeights.w *= BilinearBaseWeights.x * BilinearBaseWeights.y;
+
+    float BilinearWeightSum = BilinearWeights.x + BilinearWeights.y + BilinearWeights.z + BilinearWeights.w;
+    
+    float2 OcclusionReprojected = 0;
+    
+    #ifdef BICUBIC_REPROJECTION
+    {
+        float2 ReprojectionCenter = floor(ReprojectionCoord - 0.5) + 0.5;
+        float2 Frac = saturate(ReprojectionCoord - ReprojectionCenter);
+        float2 Weights0 = Frac * (Frac * (-BICUBIC_SHARPNESS * Frac + 2.0 * BICUBIC_SHARPNESS) - BICUBIC_SHARPNESS);
+        float2 Weights1 = Frac * (Frac * ((2.0 - BICUBIC_SHARPNESS) * Frac - (3.0 - BICUBIC_SHARPNESS))) + 1.0;
+        float2 Weights2 = Frac * (Frac * (-( 2.0 - BICUBIC_SHARPNESS) * Frac + (3.0 - 2.0 * BICUBIC_SHARPNESS)) + BICUBIC_SHARPNESS);
+        float2 Weights3 = Frac * (Frac * (BICUBIC_SHARPNESS * Frac - BICUBIC_SHARPNESS));
+        float2 Weights12 = Weights1 + Weights2;
+        float2 Offset = Weights2 / Weights12;
+
+        float4 BicubicWeights;
+        BicubicWeights.x = Weights12.x * Weights0.y;
+        BicubicWeights.y = Weights0.x * Weights12.y;
+        BicubicWeights.z = Weights12.x * Weights12.y;
+        BicubicWeights.w = Weights3.x * Weights12.y;
+        float BicubicWeight = Weights12.x * Weights3.y;
+    
+        float4 ReprojectionWeights = IsBicubicFootprintValid ? BicubicWeights : BilinearWeights;
+        float ReprojectionWeight = IsBicubicFootprintValid ? BicubicWeight : 0.0;
+        float ReprojectionWeightsSum = dot(ReprojectionWeights, 1.0) + ReprojectionWeight;
+
+        float4 ReprojectionCoord01 = ReprojectionCenter.xyxy + (IsBicubicFootprintValid ? float4(Offset.x, -1.0, -1.0, Offset.y) : float4( 0, 0, 1, 0));
+        float4 ReprojectionCoord23 = ReprojectionCenter.xyxy + (IsBicubicFootprintValid ? float4(Offset.x, Offset.y, 2.0, Offset.y) : float4( 0, 1, 1, 1));
+        float2 ReprojectionCoord4 = ReprojectionCenter + (IsBicubicFootprintValid ? float2(Offset.x, 2.0) : Frac);
+
+        OcclusionReprojected += H_SAMPLE_LOD(_Occlusion_History, H_SAMPLER_LINEAR_CLAMP, ReprojectionCoord01.xy * _ScreenSize.zw * HRenderScale.xy, 0).xy * ReprojectionWeights.x;
+        OcclusionReprojected += H_SAMPLE_LOD(_Occlusion_History, H_SAMPLER_LINEAR_CLAMP, ReprojectionCoord01.zw * _ScreenSize.zw * HRenderScale.xy, 0).xy * ReprojectionWeights.y;
+        OcclusionReprojected += H_SAMPLE_LOD(_Occlusion_History, H_SAMPLER_LINEAR_CLAMP, ReprojectionCoord23.xy * _ScreenSize.zw * HRenderScale.xy, 0).xy * ReprojectionWeights.z;
+        OcclusionReprojected += H_SAMPLE_LOD(_Occlusion_History, H_SAMPLER_LINEAR_CLAMP, ReprojectionCoord23.zw * _ScreenSize.zw * HRenderScale.xy, 0).xy * ReprojectionWeights.w;
+        OcclusionReprojected += H_SAMPLE_LOD(_Occlusion_History, H_SAMPLER_LINEAR_CLAMP, ReprojectionCoord4 * _ScreenSize.zw * HRenderScale.xy, 0).xy * ReprojectionWeight;
+        
+        OcclusionReprojected = ReprojectionWeightsSum < 0.0001 ? 0 : OcclusionReprojected / ReprojectionWeightsSum;
+    }
+    #else
+    {
+        float4 OcclusionHistory1 = H_GATHER_RED(_Occlusion_History, H_SAMPLER_POINT_CLAMP, (float2(BilinearOrigin) + float2(1.0, 1.0)) * _ScreenSize.zw * HRenderScale.xy, 0).wzxy;
+        float4 OcclusionHistory2 = H_GATHER_GREEN(_Occlusion_History, H_SAMPLER_POINT_CLAMP, (float2(BilinearOrigin) + float2(1.0, 1.0)) * _ScreenSize.zw * HRenderScale.xy, 0).wzxy;
+        
+        OcclusionReprojected += float2(OcclusionHistory1.x, OcclusionHistory2.x) * BilinearWeights.xx;
+        OcclusionReprojected += float2(OcclusionHistory1.y, OcclusionHistory2.y) * BilinearWeights.yy;
+        OcclusionReprojected += float2(OcclusionHistory1.z, OcclusionHistory2.z) * BilinearWeights.zz;
+        OcclusionReprojected += float2(OcclusionHistory1.w, OcclusionHistory2.w) * BilinearWeights.ww;
+        
+        OcclusionReprojected = BilinearWeightSum < 0.0001 ? 0 : OcclusionReprojected / BilinearWeightSum;
+    }
+    #endif
+
+    float4 VelocityHistory = H_GATHER_RED(_VelocityHistory, H_SAMPLER_POINT_CLAMP, (float2(BilinearOrigin) + float2(1.0, 1.0)) * _ScreenSize.zw * HRenderScale.xy, 0).wzxy;
+
+    float VelocityReprojected = 0;
+    VelocityReprojected += VelocityHistory.x * BilinearWeights.x;
+    VelocityReprojected += VelocityHistory.y * BilinearWeights.y;
+    VelocityReprojected += VelocityHistory.z * BilinearWeights.z;
+    VelocityReprojected += VelocityHistory.w * BilinearWeights.w;
+    
+    float SamplecountReprojected = 0;
+    SamplecountReprojected += round(SamplecountNormalHistory_00.x * 16) * BilinearWeights.x;
+    SamplecountReprojected += round(SamplecountNormalHistory_10.x * 16) * BilinearWeights.y;
+    SamplecountReprojected += round(SamplecountNormalHistory_01.x * 16) * BilinearWeights.z;
+    SamplecountReprojected += round(SamplecountNormalHistory_11.x * 16) * BilinearWeights.w;
+
+    VelocityReprojected = BilinearWeightSum < 0.0001 ? 0 : VelocityReprojected / BilinearWeightSum;
+    SamplecountReprojected = BilinearWeightSum < 0.0001 ? 0 : SamplecountReprojected / BilinearWeightSum;
+    
+    // Finalize reprojection
+    VelocityReprojected = saturate(VelocityReprojected);
+    OcclusionReprojected = saturate(OcclusionReprojected);
+    SamplecountReprojected = max(SamplecountReprojected, 0);
+
+    _Occlusion_Output[H_COORD(pixCoord.xy)] = OcclusionReprojected;
+    _TemporalData_Output[H_COORD(pixCoord.xy)] = PackTemporalDataRTAO(VelocityReprojected, OcclusionReprojected.x, SamplecountReprojected, any(IsReprojectionInsideScreen));
+}
+
+
+// ------------------------ TEMPORAL ACCUMULATION -------------------------
+[numthreads(8, 8, 1)]
+void TemporalAccumulation(uint3 pixCoord : SV_DispatchThreadID, uint3 groupThreadID : SV_GroupThreadID, uint groupIndex : SV_GroupIndex, uint groupID : SV_GroupID)
+{   
+    
+    uint2 pixCoordUnscaled = GetUnscaledCoords(pixCoord.xy);
+
+    float Depth = HBUFFER_DEPTH(pixCoordUnscaled.xy);
+
+    UNITY_BRANCH
+    if (any(float2(pixCoord.xy) >= _ScreenSize.xy) ||  Depth <= UNITY_RAW_FAR_CLIP_VALUE) return;
+
+    bool ExcludedReceiver = false;
+    UNITY_BRANCH
+    if (_EarlyOutExcludedReceivers)
+        ExcludedReceiver = (HBUFFER_RENDER_LAYER_MASK(pixCoordUnscaled) & _ExcludeReceivingMask) != 0;
+
+    UNITY_BRANCH
+    if (ExcludedReceiver)
+    {
+        _Depth_Output[H_COORD(pixCoord.xy)] = Depth;
+        _OcclusionNormal_Output[H_COORD(pixCoord.xy)] = float4(0.0, 0.5, 0.5, 0.5);
+        _VelocityHistory_Output[H_COORD(pixCoord.xy)] = 0.0;
+        _OcclusionHistory_Output[H_COORD(pixCoord.xy)] = 0.0;
+        _SamplecountNormalHistory_Output[H_COORD(pixCoord.xy)] = float4(0.0, 0.5, 0.5, 0.5);
+        return;
+    }
+
+    float OcclusionReprojected = H_LOAD(_OcclusionReprojected, pixCoord.xy).x;
+
+    float2 OcclusionVelocity = H_LOAD(_Occlusion, pixCoord.xy).xy;
+    float Occlusion = OcclusionVelocity.x;
+    float Velocity = OcclusionVelocity.y;
+    
+    float4 TemporalData = UnpackTemporalDataRTAO(asuint(H_LOAD(_TemporalDataReprojected, pixCoord.xy).x)).xyzw;
+    float SampleCountReprojected = TemporalData.z;
+    float VelocityReprojected = TemporalData.x;
+    
+    #ifdef ADAPTIVE_RESOLUTION
+    {
+        // Load per-quad shading rate value
+        uint ShadingRate = asuint(H_LOAD(_ShadingRate, pixCoord.xy / 2).x);
+    
+        // Calculate per-pixel shading rate value
+        if (SampleCountReprojected < 1 || StochasticMotionRejection(VelocityReprojected, pixCoord.xy))
+        {
+            ShadingRate = SHADING_RATE_FULL;
+        }
+    
+        bool UseHistory = false;
+        if (ShadingRate & SHADING_RATE_HALF)
+        {
+            UseHistory = ((pixCoord.x ^ _FrameCount) & 1) != 0;
+        }
+        else if (ShadingRate & SHADING_RATE_QUARTER)
+        {
+            float2 OcclusionVelocity = H_LOAD(_OcclusionHalfRate, pixCoord.xy / 2).xy;
+            Occlusion = OcclusionVelocity.x;
+            Velocity = OcclusionVelocity.y;
+        
+            const static uint4 PixelPairs[6] = {uint4(0,0, 0,1), uint4(0,0, 1,0), uint4(0,0, 1,1), uint4(1,0, 1,1), uint4(0,1, 1,1), uint4(0,1, 1,0)};
+            
+            uint BlockRandom = (uint)(H_STBN_RANDOM_1D(pixCoord.xy / 2 * 2, 0) * 6.0);
+            uint PairIndex = (_FrameCount + BlockRandom) % 6;
+            uint4 SelectedPair = PixelPairs[PairIndex];
+            uint2 PixelOffset = pixCoord.xy & 1;
+    
+            UseHistory = false;
+            if (all(PixelOffset.xy == SelectedPair.xy) || all(PixelOffset.xy == SelectedPair.zw))
+                UseHistory = true;
+        }
+    
+        if (UseHistory)
+        {
+            Occlusion = OcclusionReprojected;
+            Velocity = VelocityReprojected;
+        }
+    }
+    #endif
+    
+    float SampleCountAccumulated = min(SampleCountReprojected + 1, g_HTemporalSamplecountAO);
+    float TemporalWeight = 1 - (1.0f / SampleCountAccumulated);
+
+    // Accumulate velocity with a temporal weight not adjusted by the velocity itself first
+    float VelocityAccumulated = lerp(Velocity, VelocityReprojected, TemporalWeight / 3);
+
+    // Now adjust the temporal weight with the velocity
+    TemporalWeight *= saturate(pow(1 - VelocityReprojected, TEMPORAL_REJECTION_INTENSITY));
+
+    // Occlusion is accumulated with the adjusted weight
+    float OcclusionAccumulated = lerp(Occlusion, OcclusionReprojected, TemporalWeight * ENABLE_TEMPORAL_DENOISING);
+    
+    float3 NormalWS = HBUFFER_NORMAL_WS(pixCoordUnscaled.xy) * 0.5 + 0.5;
+
+    _Depth_Output[H_COORD(pixCoord.xy)] = Depth;
+    _OcclusionNormal_Output[H_COORD(pixCoord.xy)] = float4(OcclusionAccumulated, NormalWS);
+ 
+    _VelocityHistory_Output[H_COORD(pixCoord.xy)] = VelocityAccumulated;
+    _OcclusionHistory_Output[H_COORD(pixCoord.xy)] = float2(OcclusionAccumulated, 0);
+    _SamplecountNormalHistory_Output[H_COORD(pixCoord.xy)] = float4(saturate(SampleCountAccumulated / 16.0), NormalWS);
+}
+
+
+// ------------------------ TEMPORAL STABILIZATION -------------------------
+[numthreads(8, 8, 1)]
+void TemporalStabilization(uint3 pixCoord : SV_DispatchThreadID, uint3 groupThreadID : SV_GroupThreadID, uint groupIndex : SV_GroupIndex, uint groupID : SV_GroupID)
+{
+
+    uint2 pixCoordUnscaled = GetUnscaledCoords(pixCoord.xy);
+
+    float Depth = HBUFFER_DEPTH(pixCoordUnscaled.xy);
+    
+    if (Depth <= UNITY_RAW_FAR_CLIP_VALUE) return;
+
+    bool ExcludedReceiver = false;
+    UNITY_BRANCH
+    if (_EarlyOutExcludedReceivers)
+        ExcludedReceiver = (HBUFFER_RENDER_LAYER_MASK(pixCoordUnscaled) & _ExcludeReceivingMask) != 0;
+
+    UNITY_BRANCH
+    if (ExcludedReceiver)
+    {
+        _OcclusionNormal_Output[H_COORD(pixCoord.xy)] = float4(0.0, 0.5, 0.5, 0.5);
+        _OcclusionHistory_Output[H_COORD(pixCoord.xy)] = 0.0;
+        return;
+    }
+    
+    float OcclusionReporjected = H_LOAD(_OcclusionReprojected, pixCoord.xy).y;
+
+    float4 OcclusionNormalCenter = H_LOAD(_OcclusionNormal, pixCoord.xy).xyzw;
+    float Occlusion = OcclusionNormalCenter.x;
+    
+    float4 TemporalData = UnpackTemporalDataRTAO(asuint(H_LOAD(_TemporalDataReprojected, pixCoord.xy).x));
+    float VelocityReprojected = TemporalData.x;
+    float SampleCountReprojected = TemporalData.z;
+
+    bool TemporalDisocclusion = SampleCountReprojected < 1;
+    SampleCountReprojected = min(SampleCountReprojected + 1, TEMPORAL_STABILIZATION_SAMPLECOUNT);
+    float TemporalWeight = 1 - (1.0f / SampleCountReprojected) ;
+    
+    if (TEMPORAL_STABILIZATION_HISTORY_CLAMP)
+    {
+        float ClampPower = saturate(pow(1 - VelocityReprojected, TEMPORAL_REJECTION_INTENSITY));
+
+        float2 Moments = float2(Occlusion, Occlusion * Occlusion);
+        float2 MinMax = float2(1, -1);
+
+        float4 OcclusionGather0 = H_GATHER_RED(_OcclusionNormal, H_SAMPLER_LINEAR_CLAMP, (clamp(int2(pixCoord.xy) + int2(-1,-1), 0, _ScreenSize.xy - 2) + 0.5) * _ScreenSize.zw * HRenderScale.xy, 0).wzxy;
+        float4 OcclusionGather1 = H_GATHER_RED(_OcclusionNormal, H_SAMPLER_LINEAR_CLAMP, (clamp(int2(pixCoord.xy) + int2( 0, 0), 0, _ScreenSize.xy - 2) + 0.5) * _ScreenSize.zw * HRenderScale.xy, 0).wzxy;
+        float4 OcclusionGather2 = H_GATHER_RED(_OcclusionNormal, H_SAMPLER_LINEAR_CLAMP, (clamp(int2(pixCoord.xy) + int2(-1, 0), 0, _ScreenSize.xy - 2) + 0.5) * _ScreenSize.zw * HRenderScale.xy, 0).wzxy;
+        float4 OcclusionGather3 = H_GATHER_RED(_OcclusionNormal, H_SAMPLER_LINEAR_CLAMP, (clamp(int2(pixCoord.xy) + int2( 0,-1), 0, _ScreenSize.xy - 2) + 0.5) * _ScreenSize.zw * HRenderScale.xy, 0).wzxy;
+        const float Samples[8] = {OcclusionGather0.x, OcclusionGather0.y, OcclusionGather0.z, OcclusionGather1.y, OcclusionGather1.z, OcclusionGather1.w, OcclusionGather2.z, OcclusionGather3.y};
+
+        UNITY_UNROLL
+        for (int i = 0; i < 8; i++)
+        {
+            float Sample = Samples[i];
+                
+            Moments.x += Sample;
+            Moments.y += Sample * Sample;
+        
+            MinMax.x = min(MinMax.x, Sample);
+            MinMax.y = max(MinMax.y, Sample);
+        }
+
+        Moments.x /= 9.0f;
+        Moments.y /= 9.0f;
+        
+        float ClampBox = 0.5;
+        float ClampBoxMultiplier = lerp(1, 4, ClampPower);
+        float StdDev = sqrt(max(0.0, Moments.y - Moments.x * Moments.x));
+
+        float Min = lerp(Occlusion, Moments.x, ClampBox * ClampBox) - StdDev * ClampBox * ClampBoxMultiplier;
+        float Max = lerp(Occlusion, Moments.x, ClampBox * ClampBox) + StdDev * ClampBox * ClampBoxMultiplier;
+        
+        OcclusionReporjected.x = clamp(OcclusionReporjected.x, Min, Max);
+
+        Occlusion = lerp(Moments.x, Occlusion, TemporalDisocclusion ? 0 : ClampPower);
+    }
+    
+    float OcclusionAccumulated = lerp(Occlusion, OcclusionReporjected, TemporalWeight * ENABLE_TEMPORAL_STABILIZATION);
+    
+    float OcclusionHistoryPassthrough =  _OcclusionHistory_Output[H_COORD(pixCoord.xy)].x;
+
+    // This is a good place to add a recurrent blur, but it will interfere badly with the contact occlusion
+    // OcclusionHistoryPassthrough = lerp(OcclusionHistoryPassthrough, Occlusion, _RecurrentBlur);
+
+    _OcclusionNormal_Output[H_COORD(pixCoord.xy)] = float4(OcclusionAccumulated, OcclusionNormalCenter.yzw);
+    _OcclusionHistory_Output[H_COORD(pixCoord.xy)] = float2(OcclusionHistoryPassthrough, OcclusionAccumulated);
+}
