@@ -126,7 +126,7 @@ Material:
     - _HeightTile: 2
     - _Metallic: 0
     - _OcclusionStrength: 1
-    - _Parallax: 0.02
+    - _Parallax: 0.04
     - _ParallaxMax: 0.708
     - _ParallaxMin: 0.52
     - _QueueOffset: 0

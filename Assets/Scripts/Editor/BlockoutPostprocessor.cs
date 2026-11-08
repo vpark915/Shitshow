@@ -22,7 +22,7 @@ class BlockoutPostprocessor : AssetPostprocessor
     const float GridCell = 4f; // metres
 
     // bump to force a reimport after changing this file
-    public override uint GetVersion() => 34; // 34 buildings and benches mesh colliders; 33 rim jets flow; 32 lightmap UVs;24 arch tessellation cut (undone); 26 smoothness, granite, weathering; 27 _Glossiness; 28 parallax; 29 MatteImports; 30 displacement retired, deeper stone, granite parallax; 31 deeper brick
+    public override uint GetVersion() => 36; // 36 ground relief x2; 35 smoothness x1.05 for sun glints; 34 buildings and benches mesh colliders; 33 rim jets flow; 32 lightmap UVs;24 arch tessellation cut (undone); 26 smoothness, granite, weathering; 27 _Glossiness; 28 parallax; 29 MatteImports; 30 displacement retired, deeper stone, granite parallax; 31 deeper brick
 
     // the meshes are rewritten on import (UVs, GridCut), and the NavMesh bake reads the paths', which needs them readable
     void OnPreprocessModel()
@@ -169,13 +169,13 @@ class BlockoutPostprocessor : AssetPostprocessor
         ["WSP_limestone"] = ("WSP_limestone_Color", "Concrete034", 2f, 0.42f, 0, 0.006f),     // ~0.2
         ["WSP_sandstone"] = ("WSP_sandstone_Color", "Concrete034", 2f, 0.42f, 0, 0.006f),     // ~0.2
         ["WSP_slate"] = ("WSP_slate_Color", "Concrete034", 2f, 0.62f, 0, 0.006f),             // ~0.3
-        ["WSP_concrete"] = (null, "Concrete034", 2f, 0.42f, 0, 0.006f),                       // ~0.2
-        ["WSP_cobble"] = (null, "PavingStones046", 2f, 0.6f, 0, 0.025f),                      // ~0.25
-        ["WSP_gravel"] = (null, "Gravel023", 2f, 0.28f, 0, 0.03f),                           // ~0.15
-        ["WSP_sand"] = (null, "Ground054", 2f, 0.3f, 0, 0.015f),                              // ~0.1
-        ["WSP_grass"] = (null, "Grass004", 2f, 0.34f, 0, 0.03f),                             // ~0.25
-        ["WSP_turf"] = ("WSP_turf_Color", "Grass004", 2f, 0.4f, 0, 0.02f),                   // ~0.3: artificial
-        ["WSP_planting"] = (null, "Ground078", 2f, 0.28f, 0, 0.025f),                         // ~0.12: soil
+        ["WSP_concrete"] = (null, "Concrete034", 2f, 0.42f, 0, 0.012f),                       // ~0.2
+        ["WSP_cobble"] = (null, "PavingStones046", 2f, 0.6f, 0, 0.05f),                       // ~0.25
+        ["WSP_gravel"] = (null, "Gravel023", 2f, 0.28f, 0, 0.06f),                           // ~0.15
+        ["WSP_sand"] = (null, "Ground054", 2f, 0.3f, 0, 0.03f),                               // ~0.1
+        ["WSP_grass"] = (null, "Grass004", 2f, 0.34f, 0, 0.06f),                             // ~0.25
+        ["WSP_turf"] = ("WSP_turf_Color", "Grass004", 2f, 0.4f, 0, 0.04f),                   // ~0.3: artificial
+        ["WSP_planting"] = (null, "Ground078", 2f, 0.28f, 0, 0.05f),                          // ~0.12: soil
         ["WSP_wood"] = ("WSP_bench_wood_Color", "Wood051", 1.5f, 0.54f, 0, 0.012f),           // ~0.25: weathered slats, grain cut deep
         ["WSP_iron"] = ("WSP_iron_Color", "PaintedMetal004", 1f, 0.47f, 0, 0.002f),           // ~0.4: painted, so not metal; chips sunk 2 mm
         ["WSP_dark"] = ("WSP_dark_Color", "PaintedMetal004", 1f, 0.47f, 0, 0.002f),
@@ -206,7 +206,7 @@ class BlockoutPostprocessor : AssetPostprocessor
 
     // turned up across every listed material for a rougher, more worn look: normal maps deeper, smoothness down (the
     // table's values times this), metallic up (only the bronze has any), the grime layer heavier (1 = the map as made)
-    internal const float NormalStrength = 1.8f, SmoothnessScale = 0.8f, MetallicScale = 1.3f, WeatheringStrength = 1.5f, ParallaxStrength = 2.5f; // ParallaxStrength: times the relief column
+    internal const float NormalStrength = 1.8f, SmoothnessScale = 1.05f, MetallicScale = 1.3f, WeatheringStrength = 1.5f, ParallaxStrength = 2.5f; // ParallaxStrength: times the relief column
 
     bool Surface(Material material)
     {

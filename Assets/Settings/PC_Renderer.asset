@@ -155,7 +155,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 43a84b065505d8f41b624b74c882ed4b, type: 3}
   m_Name: HTrace Screen Space Global Illumination
   m_EditorClassIdentifier: HTraceSSGI::HTraceSSGI.Scripts.Infrastructure.URP.HTraceSSGIRendererFeature
-  m_Active: 1
+  m_Active: 0
   UseVolumes: 1
 --- !u!114 &5172839406172839415
 MonoBehaviour:

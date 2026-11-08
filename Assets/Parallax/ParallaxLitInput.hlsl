@@ -205,7 +205,7 @@ void ApplyPerPixelDisplacement(half3 viewDirTS, inout float2 uv)
 {
 #if defined(_PARALLAXMAP)
     float3 view = normalize((float3)viewDirTS);
-    int steps = (int)lerp(32.0, 10.0, saturate(view.z)); // 24/8 before the relief went 2.5x deeper: fewer showed as layers
+    int steps = (int)lerp(40.0, 12.0, saturate(view.z)); // 40/12 since the ground relief doubled; 32/10 before, 24/8 before the 2.5x
     float layer = 1.0 / steps;
     float2 shift = view.xy / max(view.z, 0.15) * _Parallax * layer; // per step, in texture repeats
     float2 dx = ddx(uv), dy = ddy(uv); // the pixel's footprint, so the loop reads the right mips

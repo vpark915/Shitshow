@@ -8,7 +8,7 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: M_Forest_black_cherry
-  m_Shader: {fileID: 4800000, guid: adce0b63bca75a84e9f786201b7d7b0b, type: 3}
+  m_Shader: {fileID: 4800000, guid: fbea6ab69344944eea143d2402aecb02, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords:
@@ -140,7 +140,7 @@ Material:
     - _ATDistance: 1
     - _AlbedoAffectEmissive: 0
     - _AlphaClip: 1
-    - _AlphaCutoff: 0.302
+    - _AlphaCutoff: 0.45
     - _AlphaCutoffEnable: 1
     - _AlphaCutoffPostpass: 0.5
     - _AlphaCutoffPrepass: 0.5
@@ -216,7 +216,7 @@ Material:
     - _HeightTessCenter: 0.5
     - _InitialBend: 1
     - _InvTilingScale: 1
-    - _InvertBackfaceNormal: 0
+    - _InvertBackfaceNormal: 1
     - _Ior: 1
     - _IridescenceMask: 1
     - _IridescenceThickness: 1
@@ -242,9 +242,9 @@ Material:
     - _ShiverDirectionality: 1
     - _ShiverDrag: 0.03
     - _Smoothness: 1
-    - _SmoothnessRemapMax: 0.25
-    - _SmoothnessRemapMin: 0
-    - _Specular: 0.08
+    - _SmoothnessRemapMax: 0.45
+    - _SmoothnessRemapMin: 0.1
+    - _Specular: 0.3
     - _SpecularAAScreenSpaceVariance: 0.1
     - _SpecularAAThreshold: 0.2
     - _SrcBlend: 1
@@ -269,6 +269,8 @@ Material:
     - _TexWorldScaleEmissive: 1
     - _Thickness: 0
     - _ThicknessMultiplier: 1
+    - _TranslucencyPower: 4
+    - _TranslucencyStrength: 1.6
     - _TransmissionEnable: 1
     - _TransparentBackfaceEnable: 0
     - _TransparentCullMode: 2

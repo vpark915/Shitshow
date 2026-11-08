@@ -21,7 +21,7 @@ public static class ParkGenerator
     const float BigTreeSpacing = 7.5f;
     const float OpenLawn = 8f;          // lawn this many metres or more from a path is left open: grass only
     const float TrunkThicken = 1.3f;    // big trees are widened by this much (trunk and crown) without getting taller
-    const int GrassMin = 5, GrassMax = 9; // grass tufts per 0.16 m² cell, in thinner and lusher patches
+    const int GrassMin = 4, GrassMax = 7; // grass tufts per detail cell (1024 across the terrain), in thinner and lusher patches; Unity caps a cell at 16
     const float GrassDistance = 80f;     // metres from the camera that grass is drawn
     const float GrassFade = 20f;        // the shade plants fade out over the last this-many metres of that distance
     // the grass tufts' tint (times Textures/LawnBlades.png, already green), lush and thinner patches: mown-lawn green
@@ -112,7 +112,7 @@ public static class ParkGenerator
         data.heightmapResolution = HR;
         data.size = new Vector3(W, MaxHeight, D);
         data.alphamapResolution = 1024;
-        data.SetDetailResolution(512, 32);
+        data.SetDetailResolution(1024, 32); // 1024, not 512: a cell holds at most 16 tufts, too few for a thick lawn at 512
 
         // ---- hills: mounds in the lawns, flat next to anything paved so nothing pokes through the paths
         var heights = new float[HR, HR];
@@ -267,7 +267,7 @@ public static class ParkGenerator
         data.wavingGrassAmount = 0.3f;
         data.wavingGrassSpeed = 0.4f;
         data.SetDetailScatterMode(DetailScatterMode.InstanceCountMode);
-        const int DR = 512;
+        const int DR = 1024;
         int[][,] layers = data.detailPrototypes.Select(_ => new int[DR, DR]).ToArray();
         int clumps = 0;
         for (int z = 0; z < DR; z++)
@@ -276,9 +276,9 @@ public static class ParkGenerator
                 float wx = X0 + (x + 0.5f) / DR * W, wz = Z0 + (z + 0.5f) / DR * D;
                 if (Dist(wx, wz) < 0.4f) continue;
                 float lush = Smooth(0.35f, 0.7f, Mathf.PerlinNoise(wx / 25f + 31.7f, wz / 25f + 90.2f));
-                int tufts = Mathf.RoundToInt(Mathf.Lerp(GrassMin, GrassMax, lush) * (1f - 0.5f * shade[z * 2, x * 2])); // thinner in a tree's shade
+                int tufts = Mathf.RoundToInt(Mathf.Lerp(GrassMin, GrassMax, lush) * (1f - 0.5f * shade[z, x])); // thinner in a tree's shade
                 layers[0][z, x] = tufts; clumps += tufts;
-                if (Random.value < shade[z * 2, x * 2] * 0.4f) { layers[grass + Random.Range(0, shadePlants.Length)][z, x]++; clumps++; }
+                if (Random.value < shade[z, x] * 0.1f) { layers[grass + Random.Range(0, shadePlants.Length)][z, x]++; clumps++; } // a quarter the old chance: four times the cells
             }
         for (int i = 0; i < layers.Length; i++) data.SetDetailLayer(0, 0, i, layers[i]);
 

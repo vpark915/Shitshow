@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.AI;
+using System.Linq;
 
 // One person in the park, added by NpcSpawner. The NavMeshAgent moves them and the animation follows its speed.
 // Police are the same thing with officer ticked: instead of running from a gunshot they go after whoever fired it.
@@ -42,11 +43,21 @@ public class Npc : MonoBehaviour
         if (TryGetComponent(out Health health)) health.Died += Die;
     }
 
-    void OnEnable() => Weapon.Fired += OnShot;
-    void OnDisable() => Weapon.Fired -= OnShot;
+    void OnEnable()
+    {
+        Weapon.Fired += OnShot;
+    }
+
+    void OnDisable()
+    {
+        Weapon.Fired -= OnShot;
+    }
 
     void Start()
     {
+        if (officer) // a thin red rim: the outline material added after the body's own, drawing its one submesh again
+            foreach (var body in GetComponentsInChildren<SkinnedMeshRenderer>())
+                body.sharedMaterials = body.sharedMaterials.Append(spawner.OutlineMaterial).ToArray();
         post = transform.position;
         routeStep = Random.value < 0.5f ? 1 : -1;
         if (routeStep < 0) routeIndex++; // spawned between routeIndex and the next point, so running backwards starts by returning to it

@@ -53,6 +53,22 @@ public class NpcSpawner : MonoBehaviour
     [Tooltip("Shown in an officer's hand once they draw")]
     public GameObject policeGun;
     public float policeGunScale = 0.22f;
+    [Tooltip("Colour of the rim drawn round each officer; alpha is how strong it is")]
+    public Color policeOutlineColor = new Color(1f, 0.1f, 0.1f, 0.3f);
+    [Tooltip("Thickness of that rim, metres")]
+    public float policeOutlineWidth = 0.006f;
+    Material outlineMaterial;
+    // one shared material for every officer (Resources/PoliceOutline.shader)
+    public Material OutlineMaterial
+    {
+        get
+        {
+            if (outlineMaterial) return outlineMaterial;
+            outlineMaterial = new Material(Resources.Load<Shader>("PoliceOutline")) { color = policeOutlineColor };
+            outlineMaterial.SetFloat("_Width", policeOutlineWidth);
+            return outlineMaterial;
+        }
+    }
     [Tooltip("Officers within this many metres of a shot go after whoever fired it")]
     public float policeHearing = 60f;
     [Tooltip("They start shooting once they have a clear line inside this distance")]

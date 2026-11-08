@@ -30,6 +30,8 @@ public class Car : Vehicle
     Vector3[] axles;
     float fallSpeed, steer, roll, nextReport;
     bool hasRoad;
+    Collider lastGround;
+    bool lastOnRoad;
 
     void Awake()
     {
@@ -76,7 +78,9 @@ public class Car : Vehicle
             transform.position = new Vector3(transform.position.x, ground.point.y, transform.position.z);
             fallSpeed = 0;
             // a bird driving on the pavement or through the park: the police come, and keep coming while it stays off the road
-            bool onRoad = ground.collider.name.StartsWith(road);
+            // .name allocates a new string each call, so only look it up when the ground under the car changes
+            if (ground.collider != lastGround) { lastGround = ground.collider; lastOnRoad = lastGround.name.StartsWith(road); }
+            bool onRoad = lastOnRoad;
             if (rider && hasRoad && !onRoad && Time.time >= nextReport)
             {
                 nextReport = Time.time + 1f;

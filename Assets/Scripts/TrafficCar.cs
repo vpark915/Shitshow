@@ -57,6 +57,8 @@ public class TrafficCar : MonoBehaviour
     // something in the lane ahead within stopping room worth stopping for: another vehicle, someone on their feet, or
     // anything fixed. Not park birds, bodies, food or other loose things: it drives on through those (Vehicle.RunOver),
     // or one bird on the road would hold up the whole loop. queue: it's traffic, so wait for it however long
+    static readonly RaycastHit[] Hits = new RaycastHit[32]; // ponytail: past 32 things in the box some are missed; it's blocked by then anyway
+
     bool Blocked(out bool queue)
     {
         queue = false;
@@ -65,9 +67,11 @@ public class TrafficCar : MonoBehaviour
         half.x *= 0.8f; // a parked car's mirror at the lane's edge doesn't count
         float room = 3f + Mathf.Max(0, car.Speed) * gap;
         // the box is raised above kerb height, so not the road
-        foreach (RaycastHit hit in Physics.BoxCastAll(transform.TransformPoint(box.center), half, transform.forward, transform.rotation, room, ~0, QueryTriggerInteraction.Ignore))
+        // NonAlloc into one shared buffer: BoxCastAll made a new array per car per frame, the main GC churn behind the stutters
+        int count = Physics.BoxCastNonAlloc(transform.TransformPoint(box.center), half, transform.forward, Hits, transform.rotation, room, ~0, QueryTriggerInteraction.Ignore);
+        for (int i = 0; i < count; i++)
         {
-            Collider thing = hit.collider;
+            Collider thing = Hits[i].collider;
             if (thing.transform.IsChildOf(transform) || thing.GetComponentInParent<BirdFlocks>()) continue;
             if (thing.attachedRigidbody && !thing.attachedRigidbody.isKinematic) continue; // ragdolls, dead birds, tumbling things
             if (thing.GetComponentInParent<FoodItem>() || thing.GetComponentInParent<Pickup>()) continue;

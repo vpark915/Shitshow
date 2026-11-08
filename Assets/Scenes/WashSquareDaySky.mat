@@ -83,7 +83,7 @@ Material:
     - _EnableClouds: 1
     - _EnableMoon: 0
     - _EnableStars: 0
-    - _Exposure: 1
+    - _Exposure: 1.2
     - _GlossMapScale: 1
     - _Glossiness: 0.5
     - _GlossyReflections: 1

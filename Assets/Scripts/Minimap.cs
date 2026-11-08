@@ -142,7 +142,11 @@ public class Minimap : MonoBehaviour
         {
             bool alive = cop && cop.enabled; // a dead officer's Npc is switched off
             dot.gameObject.SetActive(alive);
-            if (alive) dot.anchoredPosition = OnMap(cop.transform.position);
+            if (alive)
+            {
+                dot.anchoredPosition = OnMap(cop.transform.position);
+                dot.rotation = transform.rotation; // upright on screen while the map turns under it
+            }
         }
 
         bool revealed = Time.time < revealUntil && target;

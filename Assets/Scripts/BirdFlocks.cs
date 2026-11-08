@@ -58,8 +58,11 @@ public class BirdFlocks : MonoBehaviour
     {
         public Vector3 centre;
         public float landsAt, movesOnAt;
+        public float scareCheckAt = Random.value * 0.5f; // each flock on its own clock, so the checks don't all land in one frame
         public readonly List<Bird> birds = new List<Bird>();
     }
+
+    static readonly Collider[] Near = new Collider[256]; // ponytail: a crowded spot past 256 colliders misses some; raise if flocks stop noticing bikes
 
     class Bird
     {
@@ -75,7 +78,6 @@ public class BirdFlocks : MonoBehaviour
 
     readonly List<Flock> flocks = new List<Flock>();
     NpcSpawner spots;
-    float nextScareCheck;
     Flock led; // following leader (bread) until leadUntil
     Transform leader;
     float leadUntil;
@@ -229,27 +231,30 @@ public class BirdFlocks : MonoBehaviour
         if (led != null && Time.time >= led.landsAt && Vector3.Distance(Flat(leader.position), Flat(led.centre)) > followGap)
             FlyTo(led, leader.position);
 
-        if (Time.time >= nextScareCheck)
+        foreach (Flock flock in flocks)
         {
-            nextScareCheck = Time.time + 0.5f;
-            foreach (Flock flock in flocks)
+            // every flock still checks twice a second, but staggered: all at once was a 4-5 ms hitch every 0.5 s
+            if (Time.time < flock.scareCheckAt) continue;
+            flock.scareCheckAt = Time.time + 0.5f;
+            if (Time.time >= flock.movesOnAt)
             {
-                if (Time.time >= flock.movesOnAt)
+                flock.movesOnAt = Time.time + Random.Range(restlessness.x, restlessness.y);
+                Startle(flock);
+                continue;
+            }
+            // a bike or car is checked further out the faster it goes, so the flock is up before it arrives
+            int count = Physics.OverlapSphereNonAlloc(flock.centre, scareRadius + vehicleWarning * 20f, Near);
+            for (int i = 0; i < count; i++)
+            {
+                Collider near = Near[i];
+                if ((near is CharacterController body && near.TryGetComponent(out Npc person) && person.Ridden && body.velocity.magnitude > scareSpeed
+                        && Vector3.Distance(near.transform.position, flock.centre) < scareRadius)
+                    || (near.TryGetComponent(out Vehicle ride) && Mathf.Abs(ride.Speed) > scareSpeed
+                        && Vector3.Distance(near.transform.position, flock.centre) < scareRadius + Mathf.Abs(ride.Speed) * vehicleWarning))
                 {
-                    flock.movesOnAt = Time.time + Random.Range(restlessness.x, restlessness.y);
                     Startle(flock);
-                    continue;
+                    break;
                 }
-                // a bike or car is checked further out the faster it goes, so the flock is up before it arrives
-                foreach (Collider near in Physics.OverlapSphere(flock.centre, scareRadius + vehicleWarning * 20f))
-                    if ((near is CharacterController body && near.TryGetComponent(out Npc person) && person.Ridden && body.velocity.magnitude > scareSpeed
-                            && Vector3.Distance(near.transform.position, flock.centre) < scareRadius)
-                        || (near.TryGetComponent(out Vehicle ride) && Mathf.Abs(ride.Speed) > scareSpeed
-                            && Vector3.Distance(near.transform.position, flock.centre) < scareRadius + Mathf.Abs(ride.Speed) * vehicleWarning))
-                    {
-                        Startle(flock);
-                        break;
-                    }
             }
         }
 
