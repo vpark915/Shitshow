@@ -39,7 +39,9 @@ public class TrafficSignal : MonoBehaviour
     static Material FaceMaterial(string art)
     {
         Texture2D tex = StreetFurniture.Art(art);
-        var m = new Material(Shader.Find("Universal Render Pipeline/Unlit")) { name = "Signal " + art, mainTexture = tex };
+        // from Resources/SignalFace (URP Unlit): a material in the build keeps its shader in it; Shader.Find alone found
+        // nothing in builds, where the stripper had left Unlit out
+        var m = new Material(Resources.Load<Material>("SignalFace")) { name = "Signal " + art, mainTexture = tex };
         m.SetTexture("_BaseMap", tex);
         return m;
     }

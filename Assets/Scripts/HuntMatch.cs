@@ -745,7 +745,7 @@ public class HuntMatch : NetworkBehaviour
 
         if (menu)
         {
-            var sign = new Rect(20, 20, 420, 444);
+            var sign = new Rect(20, 20, 420, 488); // title 50, the code box and seven choices 44 each, the status line
             SubwayGUI.Begin(sign);
             SubwayGUI.Title("Pigeon vs Seagull");
             if (SubwayGUI.Button("Host a match")) Host();
@@ -756,6 +756,7 @@ public class HuntMatch : NetworkBehaviour
             if (SubwayGUI.Button("Tutorial (learn the game)", Application.CanStreamedLevelBeLoaded(TutorialScene))) { Tutorial.Begin(); LoadMap(TutorialScene); }
             if (SubwayGUI.Button("Mechanics Gym (practice)", Application.CanStreamedLevelBeLoaded(Gym))) LoadMap(Gym);
             if (SubwayGUI.Button("Settings")) GameSettings.Showing = !GameSettings.Showing;
+            if (SubwayGUI.Button("Quit game")) Quit();
             SubwayGUI.Note(status);
             SubwayGUI.End();
             GameSettings.Panel(sign);
