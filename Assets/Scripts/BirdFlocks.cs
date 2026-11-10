@@ -86,6 +86,24 @@ public class BirdFlocks : MonoBehaviour
     {
         yield return null; // the NPC spawner finds its walkable spots in its own Start
         spots = FindFirstObjectByType<NpcSpawner>();
+        Fill();
+    }
+
+    // fresh flocks (HuntMatch: each new round): the birds there now, alive or dead, gone, and new flocks landed
+    public void Respawn()
+    {
+        foreach (GameObject body in bodies) if (body) Destroy(body);
+        bodies.Clear();
+        flocks.Clear();
+        led = null;
+        leader = null;
+        if (spots) Fill();
+    }
+
+    readonly List<GameObject> bodies = new List<GameObject>(); // every bird made, so a respawn takes the dead too
+
+    void Fill()
+    {
         for (int i = 0; i < pigeonFlocks + seagullFlocks; i++)
         {
             bool isPigeon = i < pigeonFlocks;
@@ -93,6 +111,7 @@ public class BirdFlocks : MonoBehaviour
             for (int n = Random.Range(flockSize.x, flockSize.y + 1); n > 0; n--)
             {
                 GameObject body = Instantiate(isPigeon ? pigeon : seagull, Spot(flock), Quaternion.Euler(0, Random.Range(0f, 360f), 0), transform);
+                bodies.Add(body);
                 body.transform.localScale *= isPigeon ? pigeonScale : seagullScale;
                 var bird = new Bird { body = body.transform, animator = body.GetComponent<Animator>(), hitbox = body.GetComponentInChildren<Collider>(), to = body.transform.position };
                 // shootable (and egg-blastable, and headshots go by its "head" bone): one hit and it's down

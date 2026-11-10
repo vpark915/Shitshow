@@ -179,6 +179,7 @@ public class HuntMatch : NetworkBehaviour
 
     void Start()
     {
+        RoundReset.Remember(); // where the cars and bikes are parked, for each round to put them back
         // the joining game switched to the host's map: join again
         if (rejoin != null) { typedCode = rejoin; rejoin = null; Join(); return; }
         // for testing builds: -hunt-host hosts and -hunt-join CODE joins straight away,
@@ -404,10 +405,9 @@ public class HuntMatch : NetworkBehaviour
         Draw();
         RoundBegan?.Invoke();
         respawnAt = -1;
-        // a clean slate: nobody wanted or chased, nobody panicking, no flock still on someone's tail, and the map back to
-        // just the other's rough area circle (the Pigeon gets a brief exact ping per finished task)
-        Npc.CalmAll();
-        if (FindFirstObjectByType<BirdFlocks>() is BirdFlocks flocks) flocks.StopFollowing();
+        // the park as it was at the start (RoundReset: a fresh crowd and flocks, food, chess pieces, vehicles, no mess), and
+        // the map back to just the other's rough area circle (the Pigeon gets a brief exact ping per finished task)
+        StartCoroutine(RoundReset.Run());
         if (map) map.ResetRound();
     }
 

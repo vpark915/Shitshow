@@ -111,8 +111,16 @@ public class Minimap : MonoBehaviour
         guideText.gameObject.AddComponent<Shadow>();
 
         yield return null; // the NPC spawner fills the park in its own Start
+        FindPolice();
+    }
+
+    // a dot for each officer (again after a new round's new crowd: RoundReset)
+    public void FindPolice()
+    {
+        foreach ((Npc _, RectTransform dot) in police) if (dot) Destroy(dot.gameObject);
+        police.Clear();
         foreach (Npc npc in FindObjectsByType<Npc>(FindObjectsSortMode.None))
-            if (npc.officer) police.Add((npc, Make("Police", world, Vector2.one * dotSize, policeColor, circle)));
+            if (npc.officer && npc.gameObject.activeInHierarchy) police.Add((npc, Make("Police", world, Vector2.one * dotSize, policeColor, circle)));
     }
 
     void LateUpdate()

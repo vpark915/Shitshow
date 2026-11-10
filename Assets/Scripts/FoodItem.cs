@@ -24,7 +24,12 @@ public class FoodItem : MonoBehaviour
         if (respawn > 0) Invoke(nameof(Restock), respawn);
     }
 
-    void Restock() => Show(true);
+    // the next serving, now (also HuntMatch's new round, which puts every food back)
+    public void Restock()
+    {
+        CancelInvoke(nameof(Restock));
+        Show(true);
+    }
 
     void Show(bool on)
     {

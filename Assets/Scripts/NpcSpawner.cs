@@ -134,7 +134,21 @@ public class NpcSpawner : MonoBehaviour
             Vector3 p = roamArea.center + Vector3.Scale(roamArea.extents, new Vector3(Random.Range(-1f, 1f), 0, Random.Range(-1f, 1f)));
             if (OnPath(ref p)) roamPoints.Add(p);
         }
+        SpawnCrowd();
+    }
 
+    // a fresh crowd (HuntMatch: each new round): everyone there now, the living and the dead, gone, and the park filled
+    // again as at the start
+    public void Respawn()
+    {
+        foreach (Npc npc in GetComponentsInChildren<Npc>(true)) Destroy(npc.gameObject);
+        taken.Clear();
+        tableBusyUntil = null;
+        SpawnCrowd();
+    }
+
+    void SpawnCrowd()
+    {
         for (int i = 0; i < walkers; i++) Spawn(Npc.Kind.Walker, civilians, RoamPoint(), walkSpeed);
         for (int i = 0; i < officers; i++) Spawn(Npc.Kind.Walker, police, RoamPoint(), walkSpeed * 0.8f);
         for (int i = 0; i < guards; i++) Spawn(Npc.Kind.Guard, police, RoamPoint(), walkSpeed); // ponytail: posts are random spots on the paths; add a posts list if they should guard particular places

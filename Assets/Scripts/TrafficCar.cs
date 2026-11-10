@@ -28,6 +28,14 @@ public class TrafficCar : MonoBehaviour
     // driving itself round, not taken over or knocked over: worth queueing behind
     public bool Driving => route.Length > 1 && !car.rider && !car.Tumbling;
 
+    // put somewhere new (Vehicle.PutBack): on from the nearest point of its route, nothing waited for
+    public void Restart()
+    {
+        next = -1;
+        waited = 0;
+        pushUntil = 0;
+    }
+
     void Awake()
     {
         car = GetComponent<Car>();

@@ -145,6 +145,7 @@ public class PieceEater : MonoBehaviour
         hover.sharedMaterial = hoverWas;
         hover = null;
         piece.gameObject.SetActive(false);
+        eaten.Add(piece.gameObject);
         Weapon.Done(wallet, "eat chess piece");
         if (pieceRespawn > 0) StartCoroutine(PutBack(piece.gameObject));
         if (map) map.Reveal(revealTime);
@@ -196,5 +197,15 @@ public class PieceEater : MonoBehaviour
     {
         yield return new WaitForSeconds(pieceRespawn);
         piece.SetActive(true);
+        eaten.Remove(piece);
+    }
+
+    readonly System.Collections.Generic.List<GameObject> eaten = new();
+
+    // every piece eaten so far back on its board (HuntMatch: a new round)
+    public void PutBackAll()
+    {
+        foreach (GameObject piece in eaten) if (piece) piece.SetActive(true);
+        eaten.Clear();
     }
 }

@@ -76,6 +76,22 @@ public abstract class Vehicle : MonoBehaviour
         Speed *= (mass - theirMass) / (mass + theirMass); // much lighter than what it hit: bounces back
     }
 
+    // back to a spot, upright, still and drivable (HuntMatch: each new round puts every vehicle back where it started)
+    public void PutBack(Vector3 at, Quaternion turn)
+    {
+        StopAllCoroutines(); // a tumble settling
+        if (TryGetComponent(out Rigidbody body)) { body.isKinematic = true; }
+        if (shell) shell.enabled = false;
+        if (TryGetComponent(out CharacterController walker)) walker.enabled = false;
+        transform.SetPositionAndRotation(at, turn);
+        if (walker) walker.enabled = true;
+        Physics.SyncTransforms();
+        Speed = 0;
+        Tumbling = false;
+        enabled = true;
+        if (TryGetComponent(out TrafficCar traffic)) traffic.Restart();
+    }
+
     // hit by another vehicle: hand it to physics, and set it back on its wheels once it's still
     public void Knock(Vector3 velocity)
     {
