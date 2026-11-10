@@ -125,6 +125,9 @@ public class NpcSpawner : MonoBehaviour
             return;
         }
         anchor = here.position;
+        // a character whose body has no texture draws plain white (one of the PSX pack's models came without its own)
+        civilians = System.Array.FindAll(civilians, Dressed);
+        police = System.Array.FindAll(police, Dressed);
         NavMesh.pathfindingIterationsPerFrame = 500; // the default 100 leaves a whole crowd standing for seconds waiting for routes
         for (int i = 0; i < 600; i++)
         {
@@ -186,8 +189,28 @@ public class NpcSpawner : MonoBehaviour
         return true;
     }
 
+    readonly List<Vector3> taken = new(); // where everyone spawned so far stands
+
+    // p, or the nearest free spot on the paths to it: nobody starts inside someone else (their agents would shove them
+    // apart, or both stand stuck in one spot)
+    Vector3 Clear(Vector3 p)
+    {
+        const float apart = Radius * 2 + 0.2f;
+        bool Free(Vector3 q) => !taken.Exists(t => (t.x - q.x) * (t.x - q.x) + (t.z - q.z) * (t.z - q.z) < apart * apart);
+        for (int tries = 0; tries < 24 && !Free(p); tries++)
+        {
+            // rings further out each try; past a dozen, anywhere on the paths
+            Vector2 step = Random.insideUnitCircle.normalized * apart * (1 + tries / 3);
+            Vector3 q = tries < 12 ? p + new Vector3(step.x, 0, step.y) : RoamPoint();
+            if (OnPath(ref q) && Free(q)) p = q;
+        }
+        taken.Add(p);
+        return p;
+    }
+
     Npc Spawn(Npc.Kind kind, GameObject[] models, Vector3 position, float speed)
     {
+        position = Clear(position);
         GameObject person = Instantiate(models[Random.Range(0, models.Length)], position, Quaternion.Euler(0, Random.Range(0f, 360f), 0), transform);
         var animator = person.GetComponent<Animator>();
         animator.runtimeAnimatorController = controller;
@@ -218,6 +241,15 @@ public class NpcSpawner : MonoBehaviour
         npc.officer = models == police;
         npc.spawner = this;
         return npc;
+    }
+
+    static bool Dressed(GameObject model)
+    {
+        if (!model) return false;
+        foreach (Renderer r in model.GetComponentsInChildren<Renderer>(true))
+            foreach (Material m in r.sharedMaterials)
+                if (!m || !(m.HasProperty("_BaseMap") ? m.GetTexture("_BaseMap") : m.mainTexture)) return false;
+        return true;
     }
 
     public Vector3 RoamPoint() => roamPoints[Random.Range(0, roamPoints.Count)];

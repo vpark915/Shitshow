@@ -27,7 +27,7 @@ MonoBehaviour:
     m_Value: 0
   saturation:
     m_OverrideState: 1
-    m_Value: -8.8
+    m_Value: 9
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -50,7 +50,6 @@ MonoBehaviour:
   - {fileID: 6043248020707744607}
   - {fileID: 8852102559942126101}
   - {fileID: 1568756277872421108}
-  - {fileID: 7956554792740332794}
   - {fileID: 6583334499346598986}
 --- !u!114 &1568756277872421108
 MonoBehaviour:
@@ -75,11 +74,11 @@ MonoBehaviour:
     m_OverrideState: 0
     m_Value: 0
   Fadeout:
-    m_OverrideState: 0
-    m_Value: 100
+    m_OverrideState: 1
+    m_Value: 70.4
   Intensity:
     m_OverrideState: 1
-    m_Value: 1.54
+    m_Value: 2.37
   InjectionPoint:
     m_OverrideState: 0
     m_Value: 1
@@ -526,141 +525,6 @@ MonoBehaviour:
     m_Value: {r: 0.53, g: 0.51, b: 0.48, a: 1}
   balance:
     m_OverrideState: 1
-    m_Value: 0
---- !u!114 &7956554792740332794
-MonoBehaviour:
-  m_ObjectHideFlags: 3
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5f17acff6deb4f089d110375635d4e37, type: 3}
-  m_Name: HTraceSSGIVolume
-  m_EditorClassIdentifier: HTraceSSGI::HTraceSSGI.Scripts.Infrastructure.URP.HTraceSSGIVolume
-  active: 0
-  Enable:
-    m_OverrideState: 1
-    m_Value: 1
-  Preset: 1
-  DebugMode:
-    m_OverrideState: 1
-    m_Value: 0
-  HBuffer:
-    m_OverrideState: 0
-    m_Value: 0
-  ExcludeCastingMask:
-    m_OverrideState: 0
-    m_Value:
-      serializedVersion: 0
-      m_Bits: 0
-  ExcludeReceivingMask:
-    m_OverrideState: 0
-    m_Value:
-      serializedVersion: 0
-      m_Bits: 0
-  FallbackType:
-    m_OverrideState: 1
-    m_Value: 1
-  SkyIntensity:
-    m_OverrideState: 1
-    m_Value: 0.6
-  ViewBias:
-    m_OverrideState: 0
-    m_Value: 0.1
-  NormalBias:
-    m_OverrideState: 0
-    m_Value: 0.25
-  SamplingNoise:
-    m_OverrideState: 0
-    m_Value: 0.1
-  IntensityMultiplier:
-    m_OverrideState: 0
-    m_Value: 1
-  DenoiseFallback:
-    m_OverrideState: 1
-    m_Value: 1
-  MetallicIndirectFallback:
-    m_OverrideState: 0
-    m_Value: 0
-  AmbientOverride:
-    m_OverrideState: 1
-    m_Value: 1
-  Multibounce:
-    m_OverrideState: 1
-    m_Value: 1
-  BackfaceLighting:
-    m_OverrideState: 1
-    m_Value: 0.25
-  MaxRayLength:
-    m_OverrideState: 1
-    m_Value: 100
-  ThicknessMode:
-    m_OverrideState: 1
-    m_Value: 0
-  Thickness:
-    m_OverrideState: 1
-    m_Value: 0.35
-  Intensity:
-    m_OverrideState: 1
-    m_Value: 1.3
-  Falloff:
-    m_OverrideState: 1
-    m_Value: 0
-  RayCount:
-    m_OverrideState: 0
-    m_Value: 2
-  StepCount:
-    m_OverrideState: 0
-    m_Value: 28
-  RefineIntersection:
-    m_OverrideState: 1
-    m_Value: 0
-  FullResolutionDepth:
-    m_OverrideState: 0
-    m_Value: 0
-  Checkerboard:
-    m_OverrideState: 1
-    m_Value: 1
-  RenderScale:
-    m_OverrideState: 1
-    m_Value: 0.5
-  BrightnessClamp:
-    m_OverrideState: 1
-    m_Value: 0
-  MaxValueBrightnessClamp:
-    m_OverrideState: 1
-    m_Value: 7
-  MaxDeviationBrightnessClamp:
-    m_OverrideState: 1
-    m_Value: 3
-  HalfStepValidation:
-    m_OverrideState: 1
-    m_Value: 1
-  SpatialOcclusionValidation:
-    m_OverrideState: 1
-    m_Value: 1
-  TemporalLightingValidation:
-    m_OverrideState: 1
-    m_Value: 0
-  TemporalOcclusionValidation:
-    m_OverrideState: 1
-    m_Value: 0
-  SpatialRadius:
-    m_OverrideState: 1
-    m_Value: 0.65
-  Adaptivity:
-    m_OverrideState: 1
-    m_Value: 0.7
-  RecurrentBlur:
-    m_OverrideState: 1
-    m_Value: 1
-  FireflySuppression:
-    m_OverrideState: 1
-    m_Value: 0
-  ShowBowels:
-    m_OverrideState: 0
     m_Value: 0
 --- !u!114 &8852102559942126101
 MonoBehaviour:

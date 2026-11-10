@@ -1,0 +1,125 @@
+SOUNDS STILL TO IMPORT
+=====================
+
+Already in: shot, police shot, reload, dry fire, body hit, headshot hit, neck snap, body thud,
+npc step, player step, park ambience, menu hover, menu click, kill, double kill, triple kill (9mm pistol shot, Glock reload, rifle dry fire, punch impact, bone break, body
+drop, gravel footsteps, running on dirt road, park, jazzy drums: open hi-hat, vintage snare, low tom).
+
+How to add one:
+- Drop the file in Assets/Sounds. WAV preferred, mono, short; it should start right on the sound
+  (no silence at the start). Claude can trim it for you.
+- Add its credit to "attribution texts.txt" (CC BY sounds must be credited in the game).
+- Put it in its slot in Assets/Resources/SoundBank (the name in the first column below). Several clips in one slot =
+  one picked at random each time.
+- Slots marked (hook) also need a line of code to play them: ask Claude to wire them up.
+
+* = get these first.   "x3" = how many variations to get.
+
+
+GUN AND COMBAT
+  headshot ding        * short bright ding for the Headshot sign (hook)
+  hit marker           * soft tick when your shot hits someone (hook)
+  hurt                 * you take damage (hook)
+  death                * you die (hook)
+  respawn                you come back (hook)
+  bullet whiz            near miss going past you (hook)
+  impact concrete        x3, walls and paving; optional, shots that miss are silent for now (hook)
+  impact metal           x3, cars, poles, signs (hook)
+  impact wood            x2, benches, trees (hook)
+  impact foliage         x2, bushes, leaves (hook)
+  impact water           x2, the fountain (hook)
+
+PIGEON
+  flap                 * x3, takeoff and air jumps (hook)
+  land                 * (hook)
+  footstep grass         x4, the pigeon on the lawn (the dirt-road ones play everywhere for now) (hook)
+  mount                * landing on a head, car roof or bike saddle (hook)
+  dismount             * hopping off (hook)
+  fly wind               loop while flying (hook)
+  coo                    x2, idle (hook)
+
+EATING AND ITEMS
+  eat                  * x3, crunch / gulp (hook)
+  chess eat            * eating a chess piece (hook)
+  target reveal        * the target shows on the minimap (hook)
+  trash rummage        * (hook)
+  found item           * something in the trash can (hook)
+  found nothing        * trash can was empty (hook)
+  pickup collect       * wallet / magazine collected (hook)
+  pickup whoosh          pickup flying to you (hook)
+  cash                   ka-ching (hook)
+  power on               a food power starts (hook)
+  power off              a food power runs out (hook)
+  sprint                 power start (hook)
+  jittery wings          power start (hook)
+  hot sauce lunge        power start (hook)
+  full belly             power start (hook)
+  crowd favourite        power start (hook)
+  low profile            power start (hook)
+  egg throw            * egg bomb laid / thrown (hook)
+  egg crack            * shell bursting (hook)
+  egg splat            * (hook)
+  egg sizzle             loop while the splat shrinks (hook)
+  bagel block          * dull thunk, the bagel stopping a hit (hook)
+  snitch flock         * call + mass flutter (hook)
+
+VEHICLES
+  car engine           * loop, idle to driving; pitched up with speed (hook)
+  car brake            * (hook)
+  car horn             * (hook)
+  car crash            * (hook)
+  run over             * (hook)
+  bike pedal           * loop, pedalling / chain (hook)
+  bike bell            * (hook)
+  bike skid            * (hook)
+
+PEOPLE AND POLICE
+  npc step grass         x4-8, NPC steps on the lawn (the gravel ones play everywhere for now) (hook)
+  npc run                x4, faster/heavier steps for joggers and people fleeing (hook)
+  scream               * x4-6, people fleeing a gunshot (hook)
+  crowd panic          * loop (hook)
+  police freeze        * whistle or "Freeze!" (hook)
+  siren                * loop while you're wanted (hook)
+  police radio           chatter (hook)
+  npc hurt               x3 (hook)
+  npc death              x3 (hook)
+  crowd murmur           loop (hook)
+
+BIRDS
+  flock coo            * loop, flocks pecking (hook)
+  flock takeoff        * big flutter when startled (hook)
+  gull call              x3 (hook)
+  bird hit               (hook)
+
+AMBIENCE (loops unless noted)
+  fountain             * water loop, louder near it (hook)
+  water splash           something dropping in the fountain, one-off (hook)
+  walk signal chirp      NYC accessible walk signal (hook)
+  traffic hum            at the corners (hook)
+  distant siren          one-off, now and then (hook)
+  distant horn           one-off, now and then (hook)
+  subway rumble          one-off, now and then (hook)
+  gym ambience           quieter bed for the Mechanics Gym and Tutorial (hook)
+
+UI AND MATCH (flat, not in the world)
+  sign pop             * sign / prompt appearing (menu hover already plays the hi-hat) (hook)
+  sign burst             E on a prompt (menu clicks already play the hi-hat as "menu click") (hook)
+  menu back            * (hook)
+  round start          * (hook)
+  role reveal          * "you're the Pigeon / Seagull" (hook)
+  countdown tick       * last 10 seconds (hook)
+  round win            * (hook)
+  round lose           * (hook)
+  match win            * (hook)
+  match lose           * (hook)
+  match draw             (hook)
+  task done            * Seagull ticks off a task (hook)
+  all tasks done       * (hook)
+  type key               typing the join code (hook)
+  tutorial next          next tutorial step (hook)
+
+MUSIC
+  menu theme             loop, under the live collage (hook)
+  round tension          loop during a round (hook)
+  win sting              (hook)
+  lose sting             (hook)

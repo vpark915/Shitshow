@@ -1,0 +1,140 @@
+# The fried egg an egg bomb leaves: three shapes (Fried_A/B/C, one picked at random in game), each a lumpy, splashed
+# egg white with a crispy brown lace edge and a domed yolk sitting off-centre. About 2 m across before scaling (the game
+# scales it to the blast). Run: Blender -b -P eggsplat.py -- <out .blend>
+import bpy, bmesh, sys, math, random
+
+out = sys.argv[sys.argv.index("--") + 1]
+bpy.ops.wm.read_factory_settings(use_empty=True)
+
+def srgb(h):
+    c = [int(h[i:i + 2], 16) / 255 for i in (1, 3, 5)]
+    return tuple(((v + 0.055) / 1.055) ** 2.4 if v > 0.04045 else v / 12.92 for v in c)
+
+def mat(name, hexcol, rough, sss=0.0):
+    m = bpy.data.materials.new(name); m.use_nodes = True
+    b = m.node_tree.nodes["Principled BSDF"]
+    b.inputs["Base Color"].default_value = (*srgb(hexcol), 1)
+    b.inputs["Roughness"].default_value = rough
+    if sss: b.inputs["Subsurface Weight"].default_value = sss
+    return m
+
+WHITE = mat("EggWhite", "#FBF7EA", 0.28, 0.2)
+YOLK = mat("EggYolk", "#F7A11A", 0.12, 0.3)
+CRISP = mat("EggCrisp", "#C47F33", 0.6)
+
+SEG = 128
+
+def outline(rng):
+    # a wobbly circle: a few slow lobes, then splashes thrown out in places, then fine ripple
+    waves = [(k, rng.uniform(0.04, 0.13) / (1 + 0.35 * (k - 2)), rng.uniform(0, math.tau)) for k in range(2, 9)]
+    splashes = [(rng.uniform(0, math.tau), rng.uniform(0.15, 0.45), rng.uniform(0.12, 0.3)) for _ in range(rng.randint(2, 4))]
+    def r(a):
+        v = 0.82 + sum(amp * math.sin(k * a + ph) for k, amp, ph in waves)
+        for at, amp, width in splashes:
+            d = math.atan2(math.sin(a - at), math.cos(a - at))
+            v += amp * math.exp(-(d / width) ** 2)
+        v += 0.015 * math.sin(23 * a + waves[0][2]) + 0.01 * math.sin(41 * a)
+        return max(v, 0.5)
+    return r
+
+def disc(name, r, rings, height, mat_, rng, jitter=0.0, fan=True):
+    # a fan of rings out to the outline; height(f) lifts each ring (f = 0 middle, 1 edge)
+    bm = bmesh.new()
+    centre = bm.verts.new((0, 0, height(0))) if fan else None
+    prev = None
+    for f in rings:
+        ring = []
+        for i in range(SEG):
+            a = math.tau * i / SEG
+            rr = r(a) * f * (1 + (rng.uniform(-jitter, jitter) if f >= 1 else 0))
+            z = height(f) + (rng.uniform(-0.002, 0.002) if f < 1 else 0)
+            ring.append(bm.verts.new((rr * math.cos(a), rr * math.sin(a), z)))
+        if prev is None:
+            if fan:
+                for i in range(SEG): bm.faces.new((centre, ring[i], ring[(i + 1) % SEG]))
+        else:
+            for i in range(SEG): bm.faces.new((prev[i], ring[i], ring[(i + 1) % SEG], prev[(i + 1) % SEG]))
+        prev = ring
+    me = bpy.data.meshes.new(name); bm.to_mesh(me); bm.free()
+    for p in me.polygons: p.use_smooth = True
+    o = bpy.data.objects.new(name, me); bpy.context.collection.objects.link(o)
+    o.data.materials.append(mat_)
+    return o
+
+def fried(label, seed, x):
+    rng = random.Random(seed)
+    root = bpy.data.objects.new("Fried_" + label, None); bpy.context.collection.objects.link(root)
+    root.location = (x, 0, 0)
+    r = outline(rng)
+    # the white: domed and puffy in the middle, thin and flat toward the edge, with a few bubbles
+    bubbles = [(rng.uniform(0, math.tau), rng.uniform(0.3, 0.8), rng.uniform(0.006, 0.014)) for _ in range(6)]
+    def white_h(f):
+        return 0.004 + 0.03 * max(0, 1 - f * 1.1) ** 1.6
+    white = disc("White", r, [0.12, 0.25, 0.4, 0.55, 0.7, 0.82, 0.92, 0.97, 1.0], white_h, WHITE, rng)
+    for v in white.data.vertices:  # bubbles, and the edge rolled down onto the ground
+        a = math.atan2(v.co.y, v.co.x); d = math.hypot(v.co.x, v.co.y) / r(a)
+        for ba, bf, bh in bubbles:
+            dx = d - bf; da = math.atan2(math.sin(a - ba), math.cos(a - ba))
+            v.co.z += bh * math.exp(-(dx / 0.08) ** 2 - (da / 0.18) ** 2)
+        if d > 0.985: v.co.z = 0.0015
+    white.parent = root
+    # the crispy lace: a brown frill just past the white's edge, ragged on the outside
+    def crisp_h(f): return 0.0008
+    # just a band round the edge, tucked under the white's rim (a whole disc under the white z-fights through it)
+    lace = disc("Crisp", lambda a: r(a) * 1.0, [0.9, 1.06], crisp_h, CRISP, rng, jitter=0.05, fan=False)
+    lace.parent = root
+    # the yolk: a squashed ball off-centre on the dome
+    ang = rng.uniform(0, math.tau); off = rng.uniform(0.05, 0.22)
+    yx, yy = off * math.cos(ang), off * math.sin(ang)
+    bpy.ops.mesh.primitive_uv_sphere_add(segments=48, ring_count=24, radius=0.25, location=(x + yx, yy, 0))
+    yolk = bpy.context.object; yolk.name = "Yolk"
+    yolk.scale = (rng.uniform(0.95, 1.08), rng.uniform(0.92, 1.05), 0.42)
+    bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
+    # flatten the bottom half into the white and sit it on the dome
+    base = white_h(off / r(ang)) + 0.004
+    for v in yolk.data.vertices:
+        if v.co.z < 0: v.co.z *= 0.15
+        v.co.z += base
+    for p in yolk.data.polygons: p.use_smooth = True
+    yolk.data.materials.append(YOLK)
+    yolk.parent = root
+    yolk.location = (yx, yy, 0)
+    rig(label, root, r, (white, lace), yolk)
+    return root
+
+# bones the game drops onto the ground under them (EggSplat.cs), so the egg drapes over slopes, kerbs and steps: one
+# in the middle, a ring of 8 halfway out and 12 just inside the edge. Each vertex of the white and the lace follows its
+# three nearest bones; the yolk rides the middle one.
+def rig(label, root, r, sheets, yolk):
+    points = [(0.0, 0.0)]
+    for count, f in ((8, 0.45), (12, 0.9)):
+        for i in range(count):
+            a = math.tau * (i + (0.5 if count == 12 else 0)) / count
+            points.append((r(a) * f * math.cos(a), r(a) * f * math.sin(a)))
+    data = bpy.data.armatures.new("Rig_" + label)
+    arm = bpy.data.objects.new("Rig_" + label, data); bpy.context.collection.objects.link(arm)
+    arm.parent = root
+    bpy.context.view_layer.objects.active = arm
+    bpy.ops.object.mode_set(mode="EDIT")
+    for i, (x, y) in enumerate(points):
+        bone = data.edit_bones.new("Bone%02d" % i)
+        bone.head = (x, y, 0); bone.tail = (x, y, 0.08)
+    bpy.ops.object.mode_set(mode="OBJECT")
+    def skin(obj, weights_for):
+        obj.parent = arm
+        groups = [obj.vertex_groups.new(name="Bone%02d" % i) for i in range(len(points))]
+        for v in obj.data.vertices:
+            for i, w in weights_for(v): groups[i].add([v.index], w, "REPLACE")
+        mod = obj.modifiers.new("Rig", "ARMATURE"); mod.object = arm
+    def nearest(v):
+        d = sorted((math.hypot(v.co.x - x, v.co.y - y), i) for i, (x, y) in enumerate(points))[:3]
+        w = [(i, 1 / (dist + 0.05) ** 2) for dist, i in d]
+        total = sum(x for _, x in w)
+        return [(i, x / total) for i, x in w]
+    for sheet in sheets: skin(sheet, nearest)
+    skin(yolk, lambda v: [(0, 1.0)])
+
+for i, (label, seed) in enumerate((("A", 7), ("B", 21), ("C", 52))):
+    fried(label, seed, i * 2.6)
+bpy.ops.wm.save_as_mainfile(filepath=out)
+print("EGG DONE")

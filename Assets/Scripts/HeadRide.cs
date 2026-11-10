@@ -133,6 +133,7 @@ public class HeadRide : MonoBehaviour
     {
         if (!Mount.TryGetComponent(out Health victim) || victim.IsDead) return;
         string kind = Weapon.Kind(Mount);
+        Sfx.Play("neck snap", transform.position);
         victim.TakeDamage(victim.Current + 1, transform.position);
         Weapon.Done(weapon, "assassinate", "assassinate " + kind);
         Weapon.Killed(weapon, victim, true, "silent kill");

@@ -40,6 +40,7 @@ public class Npc : MonoBehaviour
     {
         agent = GetComponent<NavMeshAgent>();
         animator = GetComponent<Animator>();
+        if (!GetComponent<Footsteps>()) gameObject.AddComponent<Footsteps>();
         if (TryGetComponent(out Health health)) health.Died += Die;
     }
 
@@ -280,6 +281,33 @@ public class Npc : MonoBehaviour
         if (!suspect) Next();
     }
 
+    // an officer drops the chase: gun away, back to their pace, and back to the paths
+    void GiveUp()
+    {
+        suspect = null;
+        if (gun) gun.gameObject.SetActive(false);
+        aiming = false;
+        agent.speed = calmSpeed;
+        agent.isStopped = false;
+        agent.updateRotation = true;
+        // the chase may have ended out on the grass or in the road: back to the nearest path first (Update)
+        rejoining = NavMesh.SamplePosition(transform.position, out NavMeshHit path, 50f, NpcSpawner.PathsOnly) && agent.SetDestination(path.position);
+        if (!rejoining) { agent.areaMask = NpcSpawner.PathsOnly; Next(); }
+    }
+
+    // a fresh start (HuntMatch: each new round): nobody's wanted, officers drop their chases and panicked people calm
+    // down where they are
+    public static void CalmAll()
+    {
+        Pardon();
+        foreach (Npc npc in FindObjectsByType<Npc>(FindObjectsSortMode.None))
+        {
+            if (!npc.enabled || !npc.agent || !npc.agent.isOnNavMesh) continue; // down, dead or ridden off the mesh
+            if (npc.suspect) npc.GiveUp();
+            else if (npc.fleeUntil > 0) { npc.fleeUntil = 0; npc.agent.speed = npc.calmSpeed; npc.Next(); }
+        }
+    }
+
     // An officer with a suspect: chase them, firing whenever there's a clear shot inside range, and only stand still
     // once they're within the officer's shooting distance.
     void Pursue()
@@ -290,14 +318,7 @@ public class Npc : MonoBehaviour
         if ((Time.time > calmAt && !IsWanted(suspect)) || (prey && prey.IsDead) || suspect.unseen)
         {
             if (Wanted == suspect && ((prey && prey.IsDead) || suspect.unseen)) Pardon();
-            suspect = null;
-            gun.gameObject.SetActive(false);
-            agent.speed = calmSpeed;
-            agent.isStopped = false;
-            agent.updateRotation = true;
-            // the chase may have ended out on the grass or in the road: back to the nearest path first (Update)
-            rejoining = NavMesh.SamplePosition(transform.position, out NavMeshHit path, 50f, NpcSpawner.PathsOnly) && agent.SetDestination(path.position);
-            if (!rejoining) { agent.areaMask = NpcSpawner.PathsOnly; Next(); }
+            GiveUp();
             return;
         }
 
@@ -341,6 +362,7 @@ public class Npc : MonoBehaviour
             if (struck) struck.TakeDamage(spawner.policeDamage * (struck.Headshot(new Ray(eye, shot)) ? struck.headshotMultiplier : 1), eye);
         }
         suspect.DrawTracer(gun.position, end);
+        Sfx.Play("police shot", gun.position);
     }
 
     // There's no aiming animation: after the Animator has posed the officer, swing the right arm onto the target.

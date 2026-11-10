@@ -55,6 +55,10 @@ public class Minimap : MonoBehaviour
     public Color taskColor = new Color(0.15f, 0.45f, 1f);
     [Tooltip("Show the arrow on screen to the nearest task (HuntMatch: the Seagull, during a round)")]
     public bool guide;
+    [Tooltip("Keep the target faintly lit and thinly outlined (HuntMatch: the Pigeon sees the Seagull, during a round)")]
+    public bool marked;
+    public Color markGlow = new Color(0.35f, 0.12f, 0.05f), markOutline = new Color(1f, 0.45f, 0.25f, 0.8f);
+    public float markWidth = 2f;
 
     Texture picture;
     Sprite circle;
@@ -62,6 +66,7 @@ public class Minimap : MonoBehaviour
     RectTransform pivot, world, zone, exact, offMap;
     float revealUntil;
     Outline glow;
+    bool lit; // the target's Glow is on for marked
     Vector3 zoneCentre;
     bool zonePlaced;
     readonly List<RectTransform> taskMarks = new List<RectTransform>(), taskArrows = new List<RectTransform>();
@@ -98,7 +103,7 @@ public class Minimap : MonoBehaviour
         guideText = Make("Distance", transform, new Vector2(200, 30), null, null).gameObject.AddComponent<Text>();
         guideText.rectTransform.anchorMin = guideText.rectTransform.anchorMax = new Vector2(0.5f, 1);
         guideText.rectTransform.anchoredPosition = new Vector2(0, -112);
-        guideText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        guideText.font = SubwayGUI.Font;
         guideText.fontSize = 20;
         guideText.alignment = TextAnchor.MiddleCenter;
         guideText.color = taskColor;
@@ -152,8 +157,24 @@ public class Minimap : MonoBehaviour
         bool revealed = Time.time < revealUntil && target;
         exact.gameObject.SetActive(revealed);
         if (glow && glow.transform != target) Destroy(glow); // the target changed (online: a new bird)
-        if (revealed && !glow) AddOutline();
-        if (glow) glow.enabled = revealed;
+        bool marking = marked && target;
+        if ((revealed || marking) && !glow) AddOutline();
+        if (glow)
+        {
+            glow.enabled = revealed || marking;
+            // revealed: the bold outline through walls; otherwise just a thin one where it's in sight
+            Outline.Mode mode = revealed ? Outline.Mode.OutlineAll : Outline.Mode.OutlineVisible;
+            if (glow.OutlineMode != mode) glow.OutlineMode = mode;
+            float width = revealed ? 6 : markWidth;
+            if (glow.OutlineWidth != width) glow.OutlineWidth = width;
+            Color color = revealed ? revealColor : markOutline;
+            if (glow.OutlineColor != color) glow.OutlineColor = color;
+        }
+        if (target && (marking || lit))
+        {
+            Glow.On(target).steady = marking ? markGlow : Color.black; // a slight glow from within
+            lit = marking;
+        }
         zone.gameObject.SetActive(target && !revealed);
         offMap.gameObject.SetActive(false);
         if (!target) return;
@@ -204,8 +225,15 @@ public class Minimap : MonoBehaviour
         if (!glow) AddOutline();
     }
 
-    // stop revealing now (online: a new round)
+    // stop revealing now
     public void Hide() => revealUntil = 0;
+
+    // a new round (HuntMatch): no reveal, and the target's circle dropped afresh
+    public void ResetRound()
+    {
+        revealUntil = 0;
+        zonePlaced = false;
+    }
 
     // the outline takes the target's renderers as it's added, so a target that changes its looks (NetBird) removes it
     // and it's added again here

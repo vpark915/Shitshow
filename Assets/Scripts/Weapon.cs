@@ -129,7 +129,8 @@ public class Weapon : MonoBehaviour
     static Material bloodMaterial; // plain blended, so dark red shows (an additive material can only brighten)
     float normalFov;
     Quaternion gunRestRotation;
-    float nextShotTime;
+    float nextShotTime, fireQueuedUntil = -1;
+    const float FireBuffer = 0.15f;
     float aimUntil;
     float recoil; // 1 right after a shot, eases back to 0
     HeadRide ride; // no shooting while driving a Vehicle
@@ -217,7 +218,10 @@ public class Weapon : MonoBehaviour
     void Update()
     {
         if (reloadAction.WasPressedThisFrame() || (Ammo == 0 && fireAction.WasPressedThisFrame())) Reload();
-        if (fireAction.IsPressed()) TryFire();
+        if (fireAction.WasPressedThisFrame() && OutOfAmmo) Sfx.Play("dry fire", transform.position);
+        // one shot per click, no holding to fire; a click just before the gun's ready waits for it rather than being lost
+        if (fireAction.WasPressedThisFrame()) fireQueuedUntil = Time.time + FireBuffer;
+        if (Time.time <= fireQueuedUntil && TryFire()) fireQueuedUntil = -1;
 
         // scope: ease the camera's field of view in while held, back out on release, and keep the gun on the crosshair
         bool scoped = scopeAction.IsPressed();
@@ -238,13 +242,24 @@ public class Weapon : MonoBehaviour
         gun.rotation *= Quaternion.Euler(-recoilAngle * recoil, 0f, 0f);
     }
 
-    // whatever is under the crosshair, ignoring the shooter's own layer
+    static readonly RaycastHit[] AimHits = new RaycastHit[32];
+
+    // whatever is under the crosshair, ignoring the shooter's own layer. Solid things, or a trigger that can be hurt (a
+    // bird flying with its flock: its hitbox goes trigger in the air so a flock overhead doesn't block jumps or the camera)
     Vector3 AimPoint(out RaycastHit hit)
     {
         Ray ray = cam.ViewportPointToRay(new Vector3(0.5f, 0.5f));
-        return Physics.Raycast(ray, out hit, range, ~(1 << gameObject.layer), QueryTriggerInteraction.Ignore)
-            ? hit.point
-            : ray.GetPoint(range);
+        int n = Physics.RaycastNonAlloc(ray, AimHits, range, ~(1 << gameObject.layer), QueryTriggerInteraction.Collide);
+        hit = default;
+        float best = float.MaxValue;
+        for (int i = 0; i < n; i++)
+        {
+            RaycastHit h = AimHits[i];
+            if (h.distance >= best || (h.collider.isTrigger && !h.collider.GetComponentInParent<Health>())) continue;
+            best = h.distance;
+            hit = h;
+        }
+        return hit.collider ? hit.point : ray.GetPoint(range);
     }
 
     public bool TryFire()
@@ -253,12 +268,15 @@ public class Weapon : MonoBehaviour
         nextShotTime = Time.time + fireInterval;
         Ammo--;
 
-        // point the gun at the shot before reading the muzzle position
+        // point the gun at the shot before reading the muzzle position; flying birds are moved by hand, so bring the
+        // physics world up to where everything is drawn before looking
+        Physics.SyncTransforms();
         Vector3 target = AimPoint(out RaycastHit hit);
         aimUntil = Time.time + aimHoldTime;
         recoil = 1f;
         if (gun) gun.rotation = Quaternion.LookRotation(target - gun.position);
         Vector3 origin = (gun ? gun : transform).TransformPoint(muzzleOffset);
+        Sfx.Play("shot", origin);
 
         if (shootAnimation && animator && animator.isActiveAndEnabled)
             animator.CrossFadeInFixedTime(shootAnimation.name, 0.05f, 0, 0f);
@@ -293,6 +311,7 @@ public class Weapon : MonoBehaviour
                 Done(this, "hit", head ? "headshot" : "body shot");
                 if (kind != "") Done(this, "hit " + kind);
             }
+            if (alive) Sfx.Play(head ? "headshot hit" : "body hit", hit.point); // the punch: only on hitting a target
             if (health) health.TakeDamage(dealt, origin);
             float far = Vector3.Distance(transform.position, hit.point);
             Killed(this, health, alive, head ? "headshot kill" : "shot kill", far >= 40 ? "long shot kill" : far <= 3 ? "point blank kill" : "");
@@ -394,6 +413,7 @@ public class Weapon : MonoBehaviour
         IsReloading = true;
         reloadsLeft--;
         Done(this, "reload");
+        Sfx.Play("reload", (gun ? gun : transform).position);
         Changed?.Invoke();
         Invoke(nameof(FinishReload), reloadTime);
     }

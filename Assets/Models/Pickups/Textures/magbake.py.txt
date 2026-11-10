@@ -1,0 +1,66 @@
+# Textures for the magazine pickup (Models/Pickups/pistol_mp_1_mag_loaded.fbx, from a PSX pack whose two PNGs never
+# came with it): baked onto its own UVs at PSX size. pistols_mp_1, the magazine body: dark gunmetal, worn a little
+# lighter on its edges, the base plate at the bottom a shade lighter. ammo_mp_1, the rounds showing at the top: brass
+# casings with copper tips. Run: Blender -b -P magbake.py -- <fbx> <out dir>
+import bpy, sys
+args = sys.argv[sys.argv.index("--") + 1:]
+fbx, out = args
+bpy.ops.wm.read_factory_settings(use_empty=True)
+bpy.ops.import_scene.fbx(filepath=fbx)
+obj = next(o for o in bpy.data.objects if o.type == "MESH")
+sc = bpy.context.scene
+sc.render.engine = "CYCLES"; sc.cycles.samples = 16; sc.cycles.device = "CPU"
+ys = [v.co.y for v in obj.data.vertices]; y0, y1 = min(ys), max(ys)
+
+# colours as linear values: the bake saves the PNG through the sRGB transform, so these come out as the hex values
+def srgb(h):
+    c = [int(h[i:i + 2], 16) / 255 for i in (1, 3, 5)]
+    return tuple(((v + 0.055) / 1.055) ** 2.4 if v > 0.04045 else v / 12.92 for v in c) + (1,)
+
+def setup(mat, stops_y, noise_mix, edge):
+    mat.use_nodes = True
+    nt = mat.node_tree; nt.nodes.clear()
+    outn = nt.nodes.new("ShaderNodeOutputMaterial")
+    emit = nt.nodes.new("ShaderNodeEmission")
+    coord = nt.nodes.new("ShaderNodeTexCoord")
+    sep = nt.nodes.new("ShaderNodeSeparateXYZ")
+    rng = nt.nodes.new("ShaderNodeMapRange"); rng.inputs["From Min"].default_value = y0; rng.inputs["From Max"].default_value = y1
+    ramp = nt.nodes.new("ShaderNodeValToRGB")
+    ramp.color_ramp.interpolation = "CONSTANT"
+    els = ramp.color_ramp.elements
+    els[0].position, els[0].color = 0.0, srgb(stops_y[0][1])
+    els[1].position, els[1].color = stops_y[1][0], srgb(stops_y[1][1])
+    for pos, col in stops_y[2:]:
+        e = els.new(pos); e.color = srgb(col)
+    noise = nt.nodes.new("ShaderNodeTexNoise"); noise.inputs["Scale"].default_value = 60; noise.inputs["Detail"].default_value = 3
+    mixn = nt.nodes.new("ShaderNodeMix"); mixn.data_type = "RGBA"; mixn.blend_type = "MULTIPLY"; mixn.inputs["Factor"].default_value = noise_mix * 0.5
+    geo = nt.nodes.new("ShaderNodeNewGeometry")
+    edge_ramp = nt.nodes.new("ShaderNodeValToRGB")
+    edge_ramp.color_ramp.elements[0].position = 0.62; edge_ramp.color_ramp.elements[0].color = (0, 0, 0, 1)
+    edge_ramp.color_ramp.elements[1].position = 0.8; edge_ramp.color_ramp.elements[1].color = (1, 1, 1, 1)
+    add = nt.nodes.new("ShaderNodeMix"); add.data_type = "RGBA"; add.blend_type = "SCREEN"
+    l = nt.links
+    l.new(coord.outputs["Object"], sep.inputs[0]); l.new(sep.outputs["Y"], rng.inputs["Value"]); l.new(rng.outputs["Result"], ramp.inputs["Fac"])
+    l.new(ramp.outputs["Color"], mixn.inputs["A"]); l.new(noise.outputs["Color"], mixn.inputs["B"])
+    l.new(geo.outputs["Pointiness"], edge_ramp.inputs["Fac"])
+    l.new(mixn.outputs["Result"], add.inputs["A"]); add.inputs["Factor"].default_value = 0.08  # a faint, even sheen (edge wear by pointiness lit nearly every face of so few polygons)
+    add.inputs["B"].default_value = srgb(edge)
+    l.new(add.outputs["Result"], emit.inputs["Color"]); l.new(emit.outputs["Emission"], outn.inputs["Surface"])
+    img = bpy.data.images.new(mat.name, 256, 256)
+    tex = nt.nodes.new("ShaderNodeTexImage"); tex.image = img
+    nt.nodes.active = tex
+    return img
+
+images = []
+for mat in obj.data.materials:
+    if "ammo" in mat.name:
+        img = setup(mat, [(0, "#9C7A2A"), (0.78, "#C9A13B"), (0.9, "#B5652E")], 0.25, "#E8C66A")
+    else:
+        img = setup(mat, [(0, "#3A3D42"), (0.1, "#2B2D30")], 0.3, "#5B6068")
+    images.append(img)
+bpy.context.view_layer.objects.active = obj; obj.select_set(True)
+sc.render.bake.margin = 4
+bpy.ops.object.bake(type="EMIT")
+for img in images:
+    img.filepath_raw = out + "/" + img.name + ".png"; img.file_format = "PNG"; img.save()
+    print("SAVED", img.filepath_raw)

@@ -5,6 +5,8 @@ using UnityEngine.InputSystem;
 // the starting menu (the first scene in the build).
 public class GymMenu : MonoBehaviour
 {
+    [Tooltip("Heading on the Escape menu")]
+    public string title = "Mechanics Gym";
     bool paused;
     MonoBehaviour[] rig; // the bird's input, gun, riding, food and eating: off while paused, so a click doesn't shoot
 
@@ -18,6 +20,7 @@ public class GymMenu : MonoBehaviour
     void Update()
     {
         if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame) Pause(!paused);
+        Music.Open = paused;
     }
 
     void OnDestroy() => Time.timeScale = 1;
@@ -34,13 +37,14 @@ public class GymMenu : MonoBehaviour
     void OnGUI()
     {
         if (!paused) return;
-        float scale = Screen.height / 720f;
-        GUI.matrix = Matrix4x4.Scale(new Vector3(scale, scale, 1));
-        GUILayout.BeginArea(new Rect(20, 20, 360, 200), GUI.skin.box);
-        GUILayout.Label("<b>Mechanics Gym</b>", new GUIStyle(GUI.skin.label) { fontSize = 20, richText = true });
-        if (GUILayout.Button("Resume", GUILayout.Height(36))) Pause(false);
-        if (GUILayout.Button("Back to menu", GUILayout.Height(30))) UnityEngine.SceneManagement.SceneManager.LoadScene(0);
-        if (GUILayout.Button("Quit game", GUILayout.Height(30)))
+        SubwayGUI.Scale();
+        var sign = new Rect(20, 20, 380, 284);
+        SubwayGUI.Begin(sign);
+        SubwayGUI.Title(title);
+        if (SubwayGUI.Button("Resume")) Pause(false);
+        if (SubwayGUI.Button("Settings")) GameSettings.Showing = !GameSettings.Showing;
+        if (SubwayGUI.Button("Back to menu")) Loading.Load(0);
+        if (SubwayGUI.Button("Quit game"))
         {
 #if UNITY_EDITOR
             UnityEditor.EditorApplication.isPlaying = false;
@@ -48,6 +52,7 @@ public class GymMenu : MonoBehaviour
             Application.Quit();
 #endif
         }
-        GUILayout.EndArea();
+        SubwayGUI.End();
+        GameSettings.Panel(sign);
     }
 }

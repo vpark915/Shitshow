@@ -1,0 +1,172 @@
+# NYC traffic signal post and pedestrian (walk) signal post, for Wash Square. Run headless:
+#   Blender -b -P signals.py -- <out dir>
+# Metres, Z up; signal faces look down -Y (Blender's front). Parts the game lights up are their own objects with
+# their own materials: Lens_Red / Lens_Yellow / Lens_Green (each head) and Face (each ped head).
+import bpy, bmesh, sys, math
+from mathutils import Vector, Matrix
+
+out = sys.argv[sys.argv.index("--") + 1]
+
+def reset():
+    bpy.ops.wm.read_factory_settings(use_empty=True)
+
+def mat(name, rgb, metal=0.0, rough=0.5):
+    m = bpy.data.materials.get(name) or bpy.data.materials.new(name)
+    m.use_nodes = True
+    b = m.node_tree.nodes["Principled BSDF"]
+    b.inputs["Base Color"].default_value = (*rgb, 1)
+    b.inputs["Metallic"].default_value = metal
+    b.inputs["Roughness"].default_value = rough
+    return m
+
+def srgb(h):  # hex -> linear
+    c = [int(h[i:i + 2], 16) / 255 for i in (1, 3, 5)]
+    return tuple(((v + 0.055) / 1.055) ** 2.4 if v > 0.04045 else v / 12.92 for v in c)
+
+def finish(obj, m, bevel=0.0, segments=2, smooth=True, parent=None):
+    obj.data.materials.clear()
+    obj.data.materials.append(m)
+    if bevel:
+        mod = obj.modifiers.new("Bevel", "BEVEL")
+        mod.width = bevel
+        mod.segments = segments
+        mod.limit_method = "ANGLE"
+    if smooth:
+        for p in obj.data.polygons: p.use_smooth = True
+        mod = obj.modifiers.new("Normals", "WEIGHTED_NORMAL")
+        mod.keep_sharp = True
+    if parent: obj.parent = parent
+    return obj
+
+def cyl(name, r, depth, loc, rot=(0, 0, 0), verts=24, r2=None):
+    if r2 is None:
+        bpy.ops.mesh.primitive_cylinder_add(vertices=verts, radius=r, depth=depth, location=loc, rotation=rot)
+    else:
+        bpy.ops.mesh.primitive_cone_add(vertices=verts, radius1=r, radius2=r2, depth=depth, location=loc, rotation=rot)
+    o = bpy.context.object; o.name = name; return o
+
+def box(name, size, loc, rot=(0, 0, 0)):
+    bpy.ops.mesh.primitive_cube_add(size=1, location=loc, rotation=rot)
+    o = bpy.context.object; o.name = name; o.scale = size
+    bpy.ops.object.transform_apply(scale=True)
+    return o
+
+def plane(name, w, h, loc, rot):
+    bpy.ops.mesh.primitive_plane_add(size=1, location=loc, rotation=rot)
+    o = bpy.context.object; o.name = name; o.scale = (w, h, 1)
+    bpy.ops.object.transform_apply(scale=True)
+    return o
+
+def visor(name, r, length, loc):
+    # a hood over a lens: the top two-thirds of a thin tube, sticking out toward -Y
+    bm = bmesh.new()
+    seg = 20
+    a0, a1 = math.radians(-40), math.radians(220)
+    rings = []
+    for y in (0, -length):
+        ring = []
+        for i in range(seg + 1):
+            a = a0 + (a1 - a0) * i / seg
+            ring.append(bm.verts.new((r * math.cos(a), y, r * math.sin(a))))
+        rings.append(ring)
+    for i in range(seg):
+        bm.faces.new((rings[0][i], rings[0][i + 1], rings[1][i + 1], rings[1][i]))
+    me = bpy.data.meshes.new(name); bm.to_mesh(me); bm.free()
+    o = bpy.data.objects.new(name, me); bpy.context.collection.objects.link(o)
+    o.location = loc
+    mod = o.modifiers.new("Thickness", "SOLIDIFY"); mod.thickness = 0.008
+    return o
+
+M = {}
+def materials():
+    M["pole"] = mat("SignalPole", srgb("#9A9D9F"), metal=0.8, rough=0.45)
+    M["yellow"] = mat("SignalYellow", srgb("#E9B10C"), metal=0.0, rough=0.42)
+    M["black"] = mat("SignalBlack", srgb("#141414"), metal=0.0, rough=0.6)
+    M["clamp"] = mat("SignalClamp", srgb("#B8BBBD"), metal=0.9, rough=0.35)
+    M["red"] = mat("LensRed", srgb("#5A0B08"), rough=0.15)
+    M["amber"] = mat("LensYellow", srgb("#5A3A05"), rough=0.15)
+    M["green"] = mat("LensGreen", srgb("#05402A"), rough=0.15)
+    M["face"] = mat("SignalFace", srgb("#1A1A1A"), rough=0.2)
+
+def pole(root, height, r=0.075):
+    finish(cyl("Pole", r, height, (0, 0, height / 2), verts=32), M["pole"], parent=root)
+    finish(cyl("Base", r * 2.1, 0.35, (0, 0, 0.175), verts=32, r2=r * 1.35), M["pole"], bevel=0.01, parent=root)
+    finish(cyl("Cap", r * 1.15, 0.06, (0, 0, height + 0.03), verts=32), M["pole"], bevel=0.015, parent=root)
+    # the banding clamps signs and brackets hang from
+    for z in (2.2, 2.9, 3.4, 3.9):
+        if z < height - 0.2:
+            finish(cyl("Band", r + 0.008, 0.035, (0, 0, z), verts=32), M["clamp"], bevel=0.004, parent=root)
+
+def signal_head(root, loc, name="Head"):
+    # three-section 12" head: yellow body, black faces with lenses, yellow visors; centre at loc, facing -Y
+    head = bpy.data.objects.new(name, None); bpy.context.collection.objects.link(head)
+    head.location = loc; head.parent = root
+    h_sec = 0.36
+    body = box("Body", (0.38, 0.26, h_sec * 3 + 0.04), (0, 0.02, 0)); finish(body, M["yellow"], bevel=0.035, segments=3, parent=head)
+    back = box("Backplate", (0.62, 0.02, h_sec * 3 + 0.3), (0, 0.16, 0)); finish(back, M["black"], bevel=0.03, parent=head)
+    for i, (key, lens) in enumerate((("red", "Lens_Red"), ("amber", "Lens_Yellow"), ("green", "Lens_Green"))):
+        z = h_sec * (1 - i)
+        face = box("Door", (0.36, 0.02, h_sec - 0.02), (0, -0.115, z)); finish(face, M["yellow"], bevel=0.01, parent=head)
+        ring = cyl("LensRing", 0.15, 0.03, (0, -0.13, z), rot=(math.pi / 2, 0, 0), verts=32); finish(ring, M["black"], bevel=0.006, parent=head)
+        l = cyl(lens, 0.135, 0.03, (0, -0.14, z), rot=(math.pi / 2, 0, 0), verts=32)
+        # a slight dome on the lens
+        finish(l, M[key], bevel=0.02, segments=4, parent=head)
+        finish(visor("Visor", 0.155, 0.24, (0, -0.13, z)), M["yellow"], parent=head)
+    # top and bottom hubs where it hangs
+    finish(cyl("Hub", 0.05, 0.12, (0, 0.02, h_sec * 1.5 + 0.08)), M["yellow"], bevel=0.01, parent=head)
+    finish(cyl("Hub", 0.05, 0.12, (0, 0.02, -h_sec * 1.5 - 0.08)), M["yellow"], bevel=0.01, parent=head)
+    return head
+
+def ped_head(root, loc, yaw, name="PedHead"):
+    # 16" pedestrian head: yellow housing, black egg-crate face, hand above-left and walker right (one face each, swapped by the game)
+    head = bpy.data.objects.new(name, None); bpy.context.collection.objects.link(head)
+    head.location = loc; head.rotation_euler = (0, 0, yaw); head.parent = root
+    finish(box("Housing", (0.46, 0.24, 0.46), (0, 0, 0)), M["yellow"], bevel=0.03, segments=3, parent=head)
+    finish(box("FaceFrame", (0.44, 0.02, 0.44), (0, -0.125, 0)), M["black"], bevel=0.008, parent=head)
+    # one face, as on the real heads (hand and walker share it): the game swaps its texture
+    face = plane("Face", 0.38, 0.38, (0, -0.137, 0), (math.pi / 2, 0, 0)); finish(face, M["face"], smooth=False, parent=head)
+    # visor across the top
+    finish(box("Visor", (0.46, 0.16, 0.012), (0, -0.2, 0.225), (math.radians(-12), 0, 0)), M["yellow"], bevel=0.004, parent=head)
+    # bracket: yellow clamshell arms to the pole, which is at +X 0.36 from the head's back
+    for z in (0.17, -0.17):
+        finish(box("Arm", (0.3, 0.06, 0.05), (0.33, 0.06, z)), M["yellow"], bevel=0.012, parent=head)
+    finish(cyl("Collar", 0.09, 0.42, (0.47, 0.06, 0), verts=24), M["yellow"], bevel=0.01, parent=head)
+    return head
+
+def mast_arm(root, z, length, r=0.06):
+    arm = cyl("MastArm", r, length, (length / 2, 0, z), rot=(0, math.pi / 2, 0), verts=24, r2=r * 0.6)
+    finish(arm, M["pole"], parent=root)
+    finish(box("ArmPlate", (0.2, 0.2, 0.4), (0.06, 0, z)), M["pole"], bevel=0.02, parent=root)
+    # the tie rod up to the pole
+    a = Vector((0, 0, z + 0.9)); b = Vector((length * 0.55, 0, z))
+    rod = cyl("TieRod", 0.012, (b - a).length, (a + b) / 2, verts=8)
+    rod.rotation_euler = (0, math.atan2(b.x - a.x, b.z - a.z), 0)
+    finish(rod, M["pole"], parent=root)
+
+def save(path):
+    for o in bpy.data.objects:
+        if o.type == "MESH":
+            o.select_set(True)
+    bpy.ops.wm.save_as_mainfile(filepath=path)
+
+# ---- traffic signal post: 5.6 m pole, 4.5 m mast arm over the road with a head hanging, a head on the pole facing
+# the near lane, a ped head at 2.7 m ----
+reset(); materials()
+root = bpy.data.objects.new("TrafficSignalPost", None); bpy.context.collection.objects.link(root)
+pole(root, 5.6)
+mast_arm(root, 5.25, 4.6)
+signal_head(root, (4.3, -0.02, 4.55), "Head_Mast")
+finish(cyl("Hanger", 0.02, 0.35, (4.3, 0.0, 5.1), verts=8), M["pole"], parent=root)
+signal_head(root, (0.0, -0.32, 3.7), "Head_Pole")
+finish(box("PoleBracket", (0.06, 0.24, 0.06), (0, -0.16, 3.7)), M["yellow"], bevel=0.01, parent=root)
+ped_head(root, (-0.47, -0.06, 2.7), 0, "PedHead")
+save(out + "/trafficSignal.blend")
+
+# ---- walk signal post: 3.6 m pole with two ped heads at right angles (one per crossing) ----
+reset(); materials()
+root = bpy.data.objects.new("WalkSignalPost", None); bpy.context.collection.objects.link(root)
+pole(root, 3.6)
+ped_head(root, (-0.47, -0.06, 2.75), 0, "PedHead_A")
+ped_head(root, (0.06, -0.47, 2.75), math.pi / 2, "PedHead_B")
+save(out + "/walkSignal.blend")
+print("SIGNALS DONE")

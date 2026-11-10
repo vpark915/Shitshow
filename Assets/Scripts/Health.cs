@@ -12,6 +12,8 @@ public class Health : MonoBehaviour
     public Color hitFlash = new Color(3f, 0.1f, 0.05f);
     public Color blockedFlash = new Color(0.2f, 0.8f, 3f);
     public float flashTime = 0.2f;
+    [Tooltip("Seconds after going limp that the body hits the ground (the body thud)")]
+    public float thudDelay = 0.45f;
     [Tooltip("Damage times this for a shot through the head")]
     public float headshotMultiplier = 3f;
     [Tooltip("Radius of the head, metres; 0 works it out from the body's height (12% of it)")]
@@ -19,7 +21,7 @@ public class Health : MonoBehaviour
 
     [HideInInspector] public float damageScale = 1f; // under 1 while a food ability (Full belly) softens hits
     [HideInInspector] public int shields; // bagels (FoodPowers): each one soaks up a whole hit
-    [HideInInspector] public bool noRestart; // online (HuntMatch): the match revives the player instead of reloading the scene
+    [HideInInspector] public bool noRestart; // HuntMatch: the match revives the player instead of reloading the scene
     // online: this is the other player's bird (NetBird), so hits are sent to their game instead of landing here
     public Action<float, Vector3> forward;
 
@@ -66,7 +68,7 @@ public class Health : MonoBehaviour
         Hurt?.Invoke(from);
         if (!IsDead) return;
         RagdollToggle ragdoll = GetComponentInChildren<RagdollToggle>();
-        if (ragdoll) ragdoll.SetRagdoll(true);
+        if (ragdoll) { ragdoll.SetRagdoll(true); Invoke(nameof(Thud), thudDelay); }
         Died?.Invoke();
         if (TryGetComponent(out Weapon self) && Npc.Wanted == self) Npc.Pardon(); // a new life starts with a clean slate
         if (restartDelay <= 0) return;
@@ -83,7 +85,7 @@ public class Health : MonoBehaviour
         if (!IsDead) damageTaken = Mathf.Max(0, damageTaken - amount);
     }
 
-    // back to full health and on its feet (online respawn and new rounds; offline the scene just reloads)
+    // back to full health and on its feet (HuntMatch respawns and new rounds; elsewhere the scene just reloads)
     public void Revive()
     {
         CancelInvoke(nameof(Restart));
@@ -97,5 +99,13 @@ public class Health : MonoBehaviour
     }
 
     // the scene has to be in the build settings
-    void Restart() => SceneManager.LoadScene(SceneManager.GetActiveScene().path);
+    // the body landing: where its heaviest part has fallen to
+    void Thud()
+    {
+        Rigidbody body = null;
+        foreach (Rigidbody r in GetComponentsInChildren<Rigidbody>()) if (!body || r.mass > body.mass) body = r;
+        Sfx.Play("body thud", body ? body.position : transform.position);
+    }
+
+    void Restart() => Loading.Load(SceneManager.GetActiveScene().path);
 }

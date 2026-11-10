@@ -1,0 +1,10 @@
+Glock19_reload.wav by Fr3yr -- https://freesound.org/s/100804/ -- License: Attribution 3.0
+9mm pistol shot by michorvath -- https://freesound.org/s/427592/ -- License: Creative Commons 0
+
+Punch impact hit by Universfield -- https://pixabay.com/ (sound 567196) -- License: Pixabay Content License
+Bone break 5 by floraphonic -- https://pixabay.com/ (sound 218513) -- License: Pixabay Content License
+22 rifle dryfiring by freesound_community -- https://pixabay.com/ (sound 87480) -- License: Pixabay Content License
+Impossible horror body drop by imagne -- https://pixabay.com/ (sound 152091) -- License: Pixabay Content License
+Footsteps dirt gravel by freesound_community -- https://pixabay.com/ (sound 6823) -- License: Pixabay Content License (cut into NPC Footsteps/npc_step_01-08)
+Running on dirt road by spinopel -- https://pixabay.com/ (sound 345729) -- License: Pixabay Content License (cut into Player Footsteps/player_step_01-08)
+Park by freesound_community -- https://pixabay.com/ (sound 6026) -- License: Pixabay Content License (looped as park_ambience_loop.ogg)

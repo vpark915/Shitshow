@@ -4,7 +4,8 @@ using UnityEngine.UI;
 
 // The HUD as NYC subway signs (made in Figma, file "Subway Signage"; exports in Resources/SubwayHUD): every number is a
 // row of line bullets. Ammo and jumps bottom right, health and cash top right, and while the police hunt this bird an NYPD
-// sign top left. Each digit takes the colour of the real subway line it names (4 is green like the 4/5/6). Firing kicks the signs, a headshot bursts the Headshot sign over the crosshair, and when nothing's going
+// sign top left. Each digit takes the colour of the real subway line it names (4 is green like the 4/5/6). Firing kicks the signs, a headshot bursts the Headshot sign over the crosshair
+// (a kill bursts a Kill sign there instead, in the same style), and when nothing's going
 // on the signs sway a little so the HUD never sits dead still.
 // The scene's old Text fields are kept for their font and for the ride prompt; the number texts are hidden.
 public class WeaponHUD : MonoBehaviour
@@ -43,8 +44,9 @@ public class WeaponHUD : MonoBehaviour
 
     Sign ammo, life, jumps, cash, wanted;
     Sign[] signs;
+    Sign kill; // built like the Headshot sign, red X bullet and all: "Kill", "Double kill", "Triple kill"
     RawImage headshot;
-    float headshotAt = -10, lastShot = -10, markerUntil, markerStart;
+    float headshotAt = -10, killAt = -10, lastShot = -10, markerUntil, markerStart;
     int shownJumps = -1, shownHealth = -1;
     RectTransform marker; // the hitmarker: four short strokes in an X round the crosshair
     Image[] strokes;
@@ -52,8 +54,19 @@ public class WeaponHUD : MonoBehaviour
 
     static Color Hex(int rgb) => new Color((rgb >> 16 & 255) / 255f, (rgb >> 8 & 255) / 255f, (rgb & 255) / 255f);
 
-    void OnEnable() { weapon.Changed += Refresh; weapon.Hit += OnHit; Weapon.Fired += OnFired; }
-    void OnDisable() { weapon.Changed -= Refresh; weapon.Hit -= OnHit; Weapon.Fired -= OnFired; }
+    void OnEnable() { weapon.Changed += Refresh; weapon.Hit += OnHit; Weapon.Fired += OnFired; Weapon.Did += OnDid; }
+    void OnDisable() { weapon.Changed -= Refresh; weapon.Hit -= OnHit; Weapon.Fired -= OnFired; Weapon.Did -= OnDid; }
+
+    // every kind of kill (shot, roadkill, egg, silent) is a "kill" deed; a streak's deed follows it in the same frame
+    void OnDid(Weapon who, string deed)
+    {
+        if (who != weapon || kill == null) return;
+        if (deed == "assassinate") SubwayGUI.Burst(rideText); // E on the ride prompt's Silent kill
+        // the snare on every kill; a streak adds the low tom over it (higher for a triple)
+        if (deed == "kill") { killAt = Time.time; headshotAt = -10; kill.Show("Kill", "x"); Sfx.Play("kill"); } // a headshot kill shows only Kill
+        else if (deed == "double kill") { kill.Show("Double kill", "x"); Sfx.Play("double kill"); }
+        else if (deed == "triple kill") { kill.Show("Triple kill", "x"); Sfx.Play("triple kill"); }
+    }
 
     void OnFired(Weapon who)
     {
@@ -64,7 +77,7 @@ public class WeaponHUD : MonoBehaviour
 
     void OnHit(bool head)
     {
-        if (head) headshotAt = Time.time;
+        if (head) { headshotAt = Time.time; killAt = -10; } // they share the spot: the newest sign wins
         markerStart = Time.time;
         markerUntil = Time.time + (head ? 0.35f : 0.2f);
         if (strokes != null) foreach (Image stroke in strokes) stroke.color = head ? new Color(1f, 0.2f, 0.15f) : Color.white;
@@ -74,6 +87,7 @@ public class WeaponHUD : MonoBehaviour
     {
         if (player) health = player.GetComponentInParent<Health>();
         if (rideText) rideText.verticalOverflow = VerticalWrapMode.Overflow; // room for the silent kill line
+        SubwayGUI.Back(rideText);
         Transform canvas = healthText.transform.parent;
         Font font = healthText.font;
         foreach (Text old in new[] { ammoText, reloadsText, jumpsText, healthText, moneyText }) if (old) old.enabled = false;
@@ -98,7 +112,11 @@ public class WeaponHUD : MonoBehaviour
         r.anchorMin = r.anchorMax = new Vector2(0.5f, 0.5f);
         r.anchoredPosition = new Vector2(0, 110);
         r.sizeDelta = new Vector2(art.width, art.height) * (bulletSize / 96f) * 0.5f * 0.7f; // export is 2x the Figma sign, whose bullets are 96
-        headshot.enabled = false;
+        headshot.gameObject.SetActive(false);
+
+        kill = new Sign(canvas, new Vector2(0.5f, 0.5f), Black, White, font, bulletSize * 0.7f); // the Headshot sign's scale
+        kill.root.anchoredPosition = new Vector2(0, 110);
+        kill.root.gameObject.SetActive(false);
 
         marker = new GameObject("HitMarker", typeof(RectTransform)).GetComponent<RectTransform>();
         marker.SetParent(canvas, false);
@@ -134,7 +152,8 @@ public class WeaponHUD : MonoBehaviour
             marker.gameObject.SetActive(Time.time < markerUntil);
             marker.localScale = Vector3.one * Mathf.Lerp(1.4f, 1f, (Time.time - markerStart) / 0.1f); // pops in, then holds
         }
-        AnimateHeadshot(Time.time - headshotAt);
+        Burst(headshot.rectTransform, Time.time - headshotAt);
+        Burst(kill.root, Time.time - killAt, 0.7f);
 
         bool isWanted = Npc.IsWanted(weapon);
         wanted.root.gameObject.SetActive(isWanted);
@@ -169,17 +188,17 @@ public class WeaponHUD : MonoBehaviour
         for (int i = 0; i < signs.Length; i++) signs[i].Animate(idle, swayAngle, i * 1.7f);
     }
 
-    // pops in big, overshoots, settles, then shrinks away; 0.4 s all told
-    void AnimateHeadshot(float t)
+    // pops in big, overshoots, settles, holds, then shrinks away (0.4 s all told at the default hold)
+    static void Burst(RectTransform r, float t, float hold = 0.32f)
     {
-        const float pop = 0.05f, settle = 0.11f, hold = 0.32f, outTime = 0.08f;
-        headshot.enabled = t < hold + outTime;
-        if (!headshot.enabled) return;
+        const float pop = 0.05f, settle = 0.11f, outTime = 0.08f;
+        bool on = t < hold + outTime;
+        if (r.gameObject.activeSelf != on) r.gameObject.SetActive(on);
+        if (!on) return;
         float s = t < pop ? Mathf.Lerp(0.3f, 1.3f, t / pop)
                 : t < settle ? Mathf.Lerp(1.3f, 1f, (t - pop) / (settle - pop))
                 : t < hold ? 1f
                 : Mathf.Lerp(1f, 0f, (t - hold) / outTime);
-        RectTransform r = headshot.rectTransform;
         r.localScale = Vector3.one * s;
         r.localRotation = Quaternion.Euler(0, 0, Mathf.Lerp(-6f, 0f, t / settle));
     }
@@ -280,7 +299,7 @@ public class WeaponHUD : MonoBehaviour
             return t;
         }
 
-        // digits become bullets in their line's colour; $ : / sit between them bare
+        // digits become bullets in their line's colour, x a red cross bullet; $ : / sit between them bare
         public void Show(string label, string number)
         {
             title.text = label;
@@ -290,14 +309,14 @@ public class WeaponHUD : MonoBehaviour
             for (int i = row.childCount - 1; i >= 0; i--) Object.DestroyImmediate(row.GetChild(i).gameObject); // not Destroy: the old bullets would show for a frame beside the new
             foreach (char c in number)
             {
-                bool bare = c < '0' || c > '9';
+                bool cross = c == 'x', bare = !cross && (c < '0' || c > '9'); // x: the red cross bullet off the Headshot sign
                 var spot = Make("Bullet " + c, row, typeof(RawImage), typeof(LayoutElement));
                 var e = spot.GetComponent<LayoutElement>();
                 e.preferredWidth = bare ? size * 0.45f : size;
                 e.preferredHeight = size;
                 var disc = spot.GetComponent<RawImage>();
                 disc.texture = circle;
-                if (!bare) disc.color = LineColor[c - '0'];
+                if (!bare) disc.color = cross ? Red : LineColor[c - '0'];
                 disc.enabled = !bare;
                 disc.raycastTarget = false;
                 var g = Make("Glyph", spot, typeof(RawImage)).GetComponent<RawImage>();

@@ -1,0 +1,191 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 527d6382470ce4cac969f78a94a71279, type: 3}
+  m_Name: SoundBank
+  m_EditorClassIdentifier: Assembly-CSharp::SoundBank
+  sounds:
+  - name: shot
+    clips:
+    - {fileID: 8300000, guid: 4070838a499964ade82bf2590795db66, type: 3}
+    volume: 0.42
+    pitch: {x: 0.59, y: 1.41}
+    distance: {x: 3, y: 150}
+    cooldown: 0.03
+    background: 0
+  - name: police shot
+    clips:
+    - {fileID: 8300000, guid: 4070838a499964ade82bf2590795db66, type: 3}
+    volume: 0.05
+    pitch: {x: 0.61, y: 1.41}
+    distance: {x: 3, y: 120}
+    cooldown: 0.03
+    background: 0
+  - name: dry fire
+    clips:
+    - {fileID: 8300000, guid: f0a85f5fadb2a4da7b0a5e2895291305, type: 3}
+    volume: 0.7
+    pitch: {x: 0.95, y: 1.05}
+    distance: {x: 2, y: 15}
+    cooldown: 0.03
+    background: 0
+  - name: reload
+    clips:
+    - {fileID: 8300000, guid: 3fab088b5c8da4adcaef334c986c916e, type: 3}
+    volume: 0.8
+    pitch: {x: 0.97, y: 1.03}
+    distance: {x: 1, y: 20}
+    cooldown: 0.03
+    background: 0
+  - name: body hit
+    clips:
+    - {fileID: 8300000, guid: f9dd55a3777f04d1c99385714fd2af6d, type: 3}
+    volume: 0.56
+    pitch: {x: 0.9, y: 1.05}
+    distance: {x: 12, y: 100}
+    cooldown: 0.03
+    background: 0
+  - name: headshot hit
+    clips:
+    - {fileID: 8300000, guid: f9dd55a3777f04d1c99385714fd2af6d, type: 3}
+    volume: 0.51
+    pitch: {x: 1.15, y: 1.25}
+    distance: {x: 12, y: 100}
+    cooldown: 0.03
+    background: 0
+  - name: neck snap
+    clips:
+    - {fileID: 8300000, guid: f16af960f08fe4d13bb806aafcd41e49, type: 3}
+    volume: 0.8
+    pitch: {x: 0.95, y: 1.08}
+    distance: {x: 3, y: 18}
+    cooldown: 0.03
+    background: 0
+  - name: body thud
+    clips:
+    - {fileID: 8300000, guid: bed6c1c32b8d048c9be44869d1d7d1ad, type: 3}
+    volume: 0.9
+    pitch: {x: 0.9, y: 1.05}
+    distance: {x: 4, y: 40}
+    cooldown: 0.03
+    background: 0
+  - name: npc step
+    clips:
+    - {fileID: 8300000, guid: 8dafffa76723440de96165d9c599d1f8, type: 3}
+    - {fileID: 8300000, guid: 4eeb6b430ae45486086869eb35b3828a, type: 3}
+    - {fileID: 8300000, guid: efc1d0c2d012f4851865e9e4d1cd91d5, type: 3}
+    - {fileID: 8300000, guid: f05512d515a434f53b217c9c1e285d39, type: 3}
+    - {fileID: 8300000, guid: b5b65204c4af549068dc383531e741c2, type: 3}
+    - {fileID: 8300000, guid: 4a6ab4c89a22742f385cf9b2c8d1736d, type: 3}
+    - {fileID: 8300000, guid: cfe53136b2e7044f79b071e7d0c125af, type: 3}
+    - {fileID: 8300000, guid: 474e954d4bacf4988a4f0092eeaa643f, type: 3}
+    volume: 0.08
+    pitch: {x: 0.9, y: 1.1}
+    distance: {x: 1.5, y: 18}
+    cooldown: 0
+    background: 1
+  - name: player step
+    clips:
+    - {fileID: 8300000, guid: d6f3aa1044ef74e00b23885881940381, type: 3}
+    - {fileID: 8300000, guid: baa265d5cc53942f3baea41a98e9bd58, type: 3}
+    - {fileID: 8300000, guid: 29f217e1c15774875a3bce2bdcd11d0e, type: 3}
+    - {fileID: 8300000, guid: 5a6fbf784dfed4f44821e516c6260aaf, type: 3}
+    - {fileID: 8300000, guid: 0a4473b03aafb4e28983191ae75f94a9, type: 3}
+    - {fileID: 8300000, guid: 692e7fb9a9b8649f984c9bf80ad69be1, type: 3}
+    - {fileID: 8300000, guid: c341a23798b024361ba07823b5a30986, type: 3}
+    - {fileID: 8300000, guid: ce6258decc2c8441090745d473f01ff4, type: 3}
+    volume: 0.06
+    pitch: {x: 1.1, y: 1.3}
+    distance: {x: 2, y: 12}
+    cooldown: 0.08
+    background: 0
+  - name: park ambience
+    clips:
+    - {fileID: 8300000, guid: 402657cca2ae344ada7daac69f29cb85, type: 3}
+    volume: 0.66
+    pitch: {x: 1, y: 1}
+    distance: {x: 0, y: 0}
+    cooldown: 0.03
+    background: 0
+  - name: menu music
+    clips:
+    - {fileID: 8300000, guid: 0470469150b8e4b6d89b5e9d367b2bd7, type: 3}
+    volume: 0.25
+    pitch: {x: 1, y: 1}
+    distance: {x: 0, y: 0}
+    cooldown: 0.03
+    background: 0
+  - name: game music
+    clips:
+    - {fileID: 8300000, guid: d4e02f187d1774cb884967139724efde, type: 3}
+    volume: 0.2
+    pitch: {x: 1, y: 1}
+    distance: {x: 0, y: 0}
+    cooldown: 0.03
+    background: 0
+  - name: menu click
+    clips:
+    - {fileID: 8300000, guid: 32c534d1f18694f498d2acb10bbf0a2d, type: 3}
+    - {fileID: 8300000, guid: 3f8fa431363b941e4aa4cefd3af58222, type: 3}
+    - {fileID: 8300000, guid: c29fae2280c0642f2a6f281e3bb0e8c3, type: 3}
+    volume: 1
+    pitch: {x: 0.96, y: 1.04}
+    distance: {x: 0, y: 0}
+    cooldown: 0.05
+    background: 0
+  - name: menu open
+    clips:
+    - {fileID: 8300000, guid: 71076df5d18dc409fa333857a3a82d72, type: 3}
+    volume: 0.6
+    pitch: {x: 1, y: 1}
+    distance: {x: 0, y: 0}
+    cooldown: 0.05
+    background: 0
+  - name: objective done
+    clips:
+    - {fileID: 8300000, guid: 0c4bbe0a3544c4595be7e14b5672215e, type: 3}
+    volume: 0.7
+    pitch: {x: 1, y: 1}
+    distance: {x: 0, y: 0}
+    cooldown: 0.05
+    background: 0
+  - name: kill
+    clips:
+    - {fileID: 8300000, guid: c29fae2280c0642f2a6f281e3bb0e8c3, type: 3}
+    volume: 0.7
+    pitch: {x: 0.97, y: 1.03}
+    distance: {x: 0, y: 0}
+    cooldown: 0.05
+    background: 0
+  - name: double kill
+    clips:
+    - {fileID: 8300000, guid: 3f8fa431363b941e4aa4cefd3af58222, type: 3}
+    volume: 0.8
+    pitch: {x: 1, y: 1}
+    distance: {x: 0, y: 0}
+    cooldown: 0.05
+    background: 0
+  - name: triple kill
+    clips:
+    - {fileID: 8300000, guid: 3f8fa431363b941e4aa4cefd3af58222, type: 3}
+    volume: 0.8
+    pitch: {x: 1.26, y: 1.26}
+    distance: {x: 0, y: 0}
+    cooldown: 0.05
+    background: 0
+  - name: menu hover
+    clips:
+    - {fileID: 8300000, guid: 71076df5d18dc409fa333857a3a82d72, type: 3}
+    volume: 0.6
+    pitch: {x: 1.05, y: 1.15}
+    distance: {x: 0, y: 0}
+    cooldown: 0.04
+    background: 0

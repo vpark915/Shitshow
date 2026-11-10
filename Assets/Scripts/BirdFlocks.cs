@@ -68,7 +68,7 @@ public class BirdFlocks : MonoBehaviour
     {
         public Transform body;
         public Animator animator;
-        public Collider hitbox; // off while flying, so a flock overhead doesn't block shots, jumps or the camera
+        public Collider hitbox; // a trigger while flying, so a flock overhead doesn't block jumps or the camera but still takes shots
         public string state;
         public Vector3 from, to, burst, hitFrom;
         public Health health;
@@ -220,7 +220,7 @@ public class BirdFlocks : MonoBehaviour
             bird.takeOff = Time.time + Random.Range(0f, 0.8f); // not all on the same frame
             bird.landing = bird.takeOff + Vector3.Distance(bird.from, bird.to) / (flySpeed * Random.Range(0.9f, 1.1f));
             bird.flying = true;
-            if (bird.hitbox) bird.hitbox.enabled = false;
+            if (bird.hitbox) bird.hitbox.isTrigger = true; // still shootable (Weapon aims at hurtable triggers)
             flock.landsAt = Mathf.Max(flock.landsAt, bird.landing);
         }
     }
@@ -279,7 +279,7 @@ public class BirdFlocks : MonoBehaviour
         Play(bird, "Fly");
         if (t < 1) return;
         bird.flying = false;
-        if (bird.hitbox) bird.hitbox.enabled = true;
+        if (bird.hitbox) bird.hitbox.isTrigger = false;
     }
 
     // peck, and now and then stroll to another spot in the patch

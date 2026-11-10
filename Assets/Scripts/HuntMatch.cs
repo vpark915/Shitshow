@@ -71,7 +71,7 @@ public class HuntMatch : NetworkBehaviour
     }
 
     // the maps the starting menu offers: scene name, and what it's called
-    const string Gym = "MechanicsGym";
+    const string Gym = "MechanicsGym", TutorialScene = "Tutorial";
     // a join code to use again once the host's map has loaded
     static string rejoin;
 
@@ -136,6 +136,8 @@ public class HuntMatch : NetworkBehaviour
     Vector3 lastAt;
     StarterAssets.ThirdPersonController mover;
     float respawnAt = -1;
+    Vector3 homeAt; // where the bird starts: offline and in the waiting room, a death comes back here
+    Quaternion homeTurn;
     int lastRound;
 
     void Awake()
@@ -147,6 +149,9 @@ public class HuntMatch : NetworkBehaviour
         powers = FindFirstObjectByType<FoodPowers>();
         rig = powers.gameObject;
         rig.TryGetComponent(out health);
+        health.noRestart = true; // a death respawns the bird (RespawnWhenDead, or the round's own respawns): never reload the scene, which brings the menu back
+        homeAt = rig.transform.position;
+        homeTurn = rig.transform.rotation;
         rig.TryGetComponent(out weapon);
         rig.TryGetComponent(out ride);
         rig.TryGetComponent(out input);
@@ -159,6 +164,7 @@ public class HuntMatch : NetworkBehaviour
         keys = all.ToArray();
         rigLooks = rig.GetComponentsInChildren<Renderer>(true);
         map = FindFirstObjectByType<Minimap>();
+        if (!GetComponent<MenuShowcase>()) gameObject.AddComponent<MenuShowcase>();
         rig.TryGetComponent(out mover);
         if (!pool) pool = HuntTasks.Load();
         Weapon.Did += Deed;
@@ -221,7 +227,7 @@ public class HuntMatch : NetworkBehaviour
                 session = null;
                 if (NetworkManager.Singleton) NetworkManager.Singleton.Shutdown();
                 rejoin = typedCode;
-                UnityEngine.SceneManagement.SceneManager.LoadScene(map.Value);
+                Loading.Load(map.Value);
                 return;
             }
             joinCode = typedCode;
@@ -247,11 +253,13 @@ public class HuntMatch : NetworkBehaviour
     void Online()
     {
         CloseMenu();
-        health.noRestart = true;
         if (dummySeagull) dummySeagull.SetActive(false);
     }
 
     void CloseMenu() => menu = false;
+
+    // the starting menu is up (MenuShowcase plays the park behind it)
+    public bool InStartMenu => menu;
 
     // the Escape menu; offline it also stops the game (online the other player's game keeps going)
     void Pause(bool on)
@@ -289,9 +297,12 @@ public class HuntMatch : NetworkBehaviour
     {
         if (!menu && Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame) Pause(!paused);
         bool open = menu || paused;
+        Music.Open = open;
         // every frame while open: a revive re-enables the gun, and with it its keys
         if (open || wasOpen) Controls(!open);
         wasOpen = open;
+        // offline, or online waiting for the other player: nothing's at stake, so a death just respawns
+        if (!menu && (!IsSpawned || phase.Value == Phase.Waiting)) RespawnWhenDead();
         if (!IsSpawned) return;
         if (IsServer) RunClock();
         if (round.Value != lastRound && phase.Value == Phase.Playing) { lastRound = round.Value; BeginRound(); }
@@ -302,6 +313,7 @@ public class HuntMatch : NetworkBehaviour
         {
             map.tasksDone = Playing ? tasksDone.Value : ~0;
             map.guide = Playing && !IAmHunter;
+            map.marked = Playing && IAmHunter; // the Pigeon always sees the Seagull faintly lit and outlined
             if (Playing) Marks();
         }
     }
@@ -392,8 +404,27 @@ public class HuntMatch : NetworkBehaviour
         Draw();
         RoundBegan?.Invoke();
         respawnAt = -1;
-        // both birds see only the other's rough area circle; the Pigeon gets a brief exact ping per finished task
-        if (map) map.Hide();
+        // a clean slate: nobody wanted or chased, nobody panicking, no flock still on someone's tail, and the map back to
+        // just the other's rough area circle (the Pigeon gets a brief exact ping per finished task)
+        Npc.CalmAll();
+        if (FindFirstObjectByType<BirdFlocks>() is BirdFlocks flocks) flocks.StopFollowing();
+        if (map) map.ResetRound();
+    }
+
+    // dead: back where it started after a moment, on its feet, rearmed and with no status (like a Pigeon in a round)
+    void RespawnWhenDead()
+    {
+        if (health.IsDead && respawnAt < 0) respawnAt = Time.time + pigeonRespawn;
+        if (respawnAt < 0 || Time.time < respawnAt) return;
+        respawnAt = -1;
+        if (ride && ride.Riding) ride.Dismount();
+        health.Revive();
+        if (weapon) weapon.Rearm();
+        powers.Clear();
+        var body = rig.GetComponent<CharacterController>();
+        body.enabled = false;
+        rig.transform.SetPositionAndRotation(homeAt, homeTurn);
+        body.enabled = true;
     }
 
     void Place(Transform spawn)
@@ -484,7 +515,9 @@ public class HuntMatch : NetworkBehaviour
         visited[i].Clear();
         times[i].Clear();
         if (step[i] < parts[i].Length - 1) { step[i]++; StepRpc(i, step[i]); return; }
-        if (!Finished(i)) TaskDoneRpc(i); // the server ignores a repeat that crosses with its update
+        if (Finished(i)) return;
+        TaskDoneRpc(i); // the server ignores a repeat that crosses with its update
+        Sfx.Play("objective done"); // the sax, for the Seagull who did it
     }
 
     // each unfinished task's marker on the minimap: the nearest place of its current step not done yet (none if the
@@ -708,66 +741,69 @@ public class HuntMatch : NetworkBehaviour
 
     void OnGUI()
     {
-        float scale = Screen.height / 720f;
-        GUI.matrix = Matrix4x4.Scale(new Vector3(scale, scale, 1));
-        var box = new GUIStyle(GUI.skin.box) { fontSize = 18, alignment = TextAnchor.UpperLeft, wordWrap = true };
-        var big = new GUIStyle(GUI.skin.label) { fontSize = 22, alignment = TextAnchor.MiddleCenter };
+        SubwayGUI.Scale();
 
         if (menu)
         {
-            GUILayout.BeginArea(new Rect(20, 20, 360, 320), GUI.skin.box);
-            GUILayout.Label("<b>Pigeon vs Seagull: online</b>", new GUIStyle(GUI.skin.label) { fontSize = 20, richText = true });
-            if (GUILayout.Button("Host a match", GUILayout.Height(36))) Host();
-            GUILayout.BeginHorizontal();
-            typedCode = GUILayout.TextField(typedCode, 12, new GUIStyle(GUI.skin.textField) { fontSize = 20 }, GUILayout.Height(36));
-            if (GUILayout.Button("Join", GUILayout.Width(80), GUILayout.Height(36))) Join();
-            GUILayout.EndHorizontal();
-            if (GUILayout.Button("Play offline", GUILayout.Height(30))) CloseMenu();
+            var sign = new Rect(20, 20, 420, 444);
+            SubwayGUI.Begin(sign);
+            SubwayGUI.Title("Pigeon vs Seagull");
+            if (SubwayGUI.Button("Host a match")) Host();
+            typedCode = SubwayGUI.Field(typedCode, 12, "Join code");
+            if (SubwayGUI.Button("Join with that code")) Join();
+            if (SubwayGUI.Button("Play offline")) CloseMenu();
             // every mechanic, one station each, offline (GymMenu there comes back here)
-            GUI.enabled = Application.CanStreamedLevelBeLoaded(Gym);
-            if (GUILayout.Button("Mechanics Gym (practice)", GUILayout.Height(30))) LoadMap(Gym);
-            GUI.enabled = true;
-            GUILayout.Label(status, new GUIStyle(GUI.skin.label) { fontSize = 15, wordWrap = true });
-            GUILayout.EndArea();
+            if (SubwayGUI.Button("Tutorial (learn the game)", Application.CanStreamedLevelBeLoaded(TutorialScene))) { Tutorial.Begin(); LoadMap(TutorialScene); }
+            if (SubwayGUI.Button("Mechanics Gym (practice)", Application.CanStreamedLevelBeLoaded(Gym))) LoadMap(Gym);
+            if (SubwayGUI.Button("Settings")) GameSettings.Showing = !GameSettings.Showing;
+            SubwayGUI.Note(status);
+            SubwayGUI.End();
+            GameSettings.Panel(sign);
             return;
         }
         if (paused)
         {
-            GUILayout.BeginArea(new Rect(20, 20, 360, 240), GUI.skin.box);
-            GUILayout.Label("<b>Paused</b>", new GUIStyle(GUI.skin.label) { fontSize = 20, richText = true });
-            if (GUILayout.Button("Resume", GUILayout.Height(36))) Pause(false);
-            if (GUILayout.Button("Quit to menu", GUILayout.Height(30))) ToMenu();
-            if (GUILayout.Button("Quit game", GUILayout.Height(30))) Quit();
-            GUILayout.Label(IsSpawned && joinCode != "" ? "Join code: " + joinCode : "Esc to resume", new GUIStyle(GUI.skin.label) { fontSize = 15 });
-            GUILayout.EndArea();
+            var sign = new Rect(20, 20, 380, 304);
+            SubwayGUI.Begin(sign);
+            SubwayGUI.Title("Paused");
+            if (SubwayGUI.Button("Resume")) Pause(false);
+            if (SubwayGUI.Button("Settings")) GameSettings.Showing = !GameSettings.Showing;
+            if (SubwayGUI.Button("Quit to menu")) ToMenu();
+            if (SubwayGUI.Button("Quit game")) Quit();
+            SubwayGUI.Note(IsSpawned && joinCode != "" ? "Join code: " + joinCode : "Esc to resume");
+            SubwayGUI.End();
+            GameSettings.Panel(sign);
             return;
         }
+        if ((!IsSpawned || phase.Value == Phase.Waiting) && respawnAt > 0) SubwayGUI.Banner(300, "Respawning...");
         if (!IsSpawned) return;
 
-        string text;
+        string heading, text;
         switch (phase.Value)
         {
             case Phase.Waiting:
-                text = "Join code: <b>" + joinCode + "</b>\nWaiting for the other player...";
+                heading = "Join code: " + joinCode;
+                text = "Waiting for the other player...";
                 break;
             case Phase.Playing:
                 int left = active.Length - Bits(tasksDone.Value);
-                text = "Round " + round.Value + "/2   " + Clock(timeLeft.Value) + "\n" +
-                       (IAmHunter ? "You're the <b>PIGEON</b>: kill the Seagull. Its tasks (" + left + " left, blue on the map):\n" + TaskList()
-                                  : "You're the <b>SEAGULL</b>: finish your tasks and survive. Tasks unfinished at 0:00 and you <b>lose the match</b>. Shooting the Pigeon buys you time.\n" + TaskList());
-                if (IAmHunter && respawnAt >= 0) GUI.Label(new Rect(0, 300, 1280, 40), "Respawning...", big);
+                heading = "Round " + round.Value + "/2   " + Clock(timeLeft.Value);
+                text = (IAmHunter ? "<b>PIGEON</b>: kill the Seagull. Its tasks (" + left + " left, blue on map):\n" + TaskList()
+                                  : "<b>SEAGULL</b>: finish by 0:00 or lose. Stay alive.\n" + TaskList()).TrimEnd();
+                if (IAmHunter && respawnAt >= 0) SubwayGUI.Banner(300, "Respawning...");
                 break;
             case Phase.Between:
-                text = "Round " + round.Value + ": " + Result(round.Value == 1 ? kill1.Value : kill2.Value) + "\nNext round soon; roles swap.";
+                heading = "Round " + round.Value + " over";
+                text = Result(round.Value == 1 ? kill1.Value : kill2.Value) + "\nNext round soon; roles swap.";
                 break;
             default:
-                text = "Round 1: " + Result(kill1.Value) + "\nRound 2: " + Result(kill2.Value) + "\n<b>" + Winner() + "</b>";
+                heading = Winner();
+                text = "Round 1: " + Result(kill1.Value) + "\nRound 2: " + Result(kill2.Value);
                 break;
         }
-        box.richText = true;
-        int lines = active.Length;
-        for (int i = 0; i < active.Length; i++) if (parts[i].Length > 1 && !Finished(i)) lines++;
-        GUI.Box(new Rect(20, 20, 460, phase.Value == Phase.Playing ? 80 + lines * 24 + 40 : 110), text, box);
+        // small, in the corner: it stays up the whole round
+        const float boardWidth = 330;
+        SubwayGUI.SmallBoard(new Rect(20, 20, boardWidth, 54 + SubwayGUI.SmallBodyHeight(text, boardWidth)), heading, text);
     }
 
     // leave the match (if online) and start the scene over, which brings the starting menu back
@@ -777,13 +813,13 @@ public class HuntMatch : NetworkBehaviour
         if (session != null) _ = session.LeaveAsync();
         if (NetworkManager.Singleton) NetworkManager.Singleton.Shutdown();
         Time.timeScale = 1;
-        UnityEngine.SceneManagement.SceneManager.LoadScene(gameObject.scene.name);
+        Loading.Load(gameObject.scene.name);
     }
 
     static void LoadMap(string scene)
     {
         Time.timeScale = 1;
-        UnityEngine.SceneManagement.SceneManager.LoadScene(scene);
+        Loading.Load(scene);
     }
 
     static void Quit()
@@ -801,7 +837,7 @@ public class HuntMatch : NetworkBehaviour
         for (int i = 0; i < active.Length; i++)
         {
             list += (Finished(i) ? "[x] " : "[ ] ") + active[i].description + (Finished(i) ? "" : Progress(i)) + "\n";
-            if (parts[i].Length > 1 && !Finished(i)) list += "      step " + (step[i] + 1) + "/" + parts[i].Length + ": " + Now(i).description + "\n";
+            if (parts[i].Length > 1 && !Finished(i)) list += "     " + (step[i] + 1) + "/" + parts[i].Length + ": " + Now(i).description + "\n";
         }
         return list;
     }

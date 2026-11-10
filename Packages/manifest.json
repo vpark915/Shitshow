@@ -1,7 +1,6 @@
 {
   "dependencies": {
     "com.cqf.urpvolumetricfog": "https://github.com/CristianQiu/Unity-URP-Volumetric-Light.git#613d1e8e553054cd5130b3c2b27da75a8b41ff33",
-    "com.jiaozi158.unityssgiurp": "https://github.com/jiaozi158/UnitySSGIURP.git#8450297537b658218be1abbc973e9240a2aab71c",
     "com.sinnwrig.fogvolumes": "https://github.com/sinnwrig/URP-Fog-Volumes.git",
     "com.unity.ai.assistant": "2.19.0-pre.1",
     "com.unity.ai.navigation": "2.0.10",

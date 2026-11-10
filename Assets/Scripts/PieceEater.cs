@@ -44,6 +44,7 @@ public class PieceEater : MonoBehaviour
 
     void Start()
     {
+        SubwayGUI.Back(prompt); // on a subway sign, like the HUD
         TryGetComponent(out health);
         TryGetComponent(out powers);
         TryGetComponent(out wallet);
@@ -111,6 +112,7 @@ public class PieceEater : MonoBehaviour
             if (eat && afford && (price == 0 || wallet.Spend(price)))
             {
                 if (!vendor) { lit.steady = Color.black; lit = null; } // gone; a vendor stays lit while still looked at
+                SubwayGUI.Burst(prompt);
                 food.Eat();
                 Weapon.Done(wallet, "eat", "eat " + food.label.ToLowerInvariant());
                 if (price > 0) Weapon.Done(wallet, "buy");
@@ -125,7 +127,7 @@ public class PieceEater : MonoBehaviour
                 prompt.enabled = true;
                 prompt.text = can == foundIn && Time.time < foundUntil ? found : can.Searched ? "Trash can: empty" : eatKey + ": Search trash can";
             }
-            if (eat && !can.Searched) Search(can);
+            if (eat && !can.Searched) { SubwayGUI.Burst(prompt); Search(can); }
         }
         else if (prompt) prompt.text = eatKey + ": Eat";
 
@@ -138,6 +140,7 @@ public class PieceEater : MonoBehaviour
         }
         if (prompt && !food && !can) prompt.enabled = piece;
         if (!piece || !eat) return;
+        SubwayGUI.Burst(prompt);
 
         hover.sharedMaterial = hoverWas;
         hover = null;

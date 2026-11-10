@@ -44,6 +44,11 @@ public class NetBird : NetworkBehaviour
         rigHealth = rig.GetComponent<Health>();
         rigWeapon = rig.GetComponent<Weapon>();
         if (IsOwner) Weapon.Did += Acted;
+        // feet on the ground: it stands where the pigeon rig stands, so its models drop as far as the rig's did
+        pigeonModel.transform.localPosition -= Vector3.up * BirdFeet.RigDrop;
+        seagullModel.transform.localPosition -= Vector3.up * BirdFeet.RigDrop;
+        BirdOutfit.Dress(pigeonModel, BirdOutfit.Look.DetectiveHat);
+        BirdOutfit.Dress(seagullModel, BirdOutfit.Look.Headband);
         foreach (GameObject model in new[] { pigeonModel, seagullModel })
         {
             foreach (Collider part in model.GetComponentsInChildren<Collider>(true)) part.enabled = false; // the root capsule is the hitbox
@@ -72,7 +77,13 @@ public class NetBird : NetworkBehaviour
         string state = deed == "shoot" && who.shootAnimation ? who.shootAnimation.name
             : deed == "eat" || deed == "eat chess piece" ? "Eat" : deed == "assassinate" ? "Attack" : null;
         if (state != null) ActRpc(state);
+        string sound = deed == "shoot" ? "shot" : deed == "reload" ? "reload" : deed == "assassinate" ? "neck snap" : null;
+        if (sound != null) SoundRpc(sound, who.transform.position);
     }
+
+    // the other player hears what this bird does (the owner's own game plays it through Weapon and HeadRide)
+    [Rpc(SendTo.NotOwner)]
+    void SoundRpc(string sound, Vector3 at) => Sfx.Play(sound, at);
 
     [Rpc(SendTo.Everyone)]
     void ActRpc(string state)
@@ -90,6 +101,7 @@ public class NetBird : NetworkBehaviour
         if (IsOwner && rig)
         {
             transform.SetPositionAndRotation(rig.position, rig.rotation);
+            transform.localScale = rig.localScale; // a gyro shrinks the bird (FoodPowers)
             Vector3 v = rigBody.velocity;
             speed.Value = new Vector2(v.x, v.z).magnitude;
             airborne.Value = rigMover && !rigMover.Grounded;

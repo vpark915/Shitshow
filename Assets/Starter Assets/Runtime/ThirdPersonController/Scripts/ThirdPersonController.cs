@@ -424,6 +424,8 @@ namespace StarterAssets
 
         // leave the ground now, whatever the jump timeout says (HeadRide hopping off a head)
         public void Jump() => Launch(JumpHeight);
+        // every air jump back, as on landing (the egg bomb's blast)
+        public void RefillJumps() => ExtraJumpsLeft = ExtraJumps;
 
         // straight up to this many metres above here
         public void Launch(float height) => _verticalVelocity = Mathf.Sqrt(height * -2f * Gravity);

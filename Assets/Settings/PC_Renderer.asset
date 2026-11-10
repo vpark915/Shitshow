@@ -71,12 +71,10 @@ MonoBehaviour:
   - {fileID: 7095028761235743110}
   - {fileID: 5172839406172839415}
   - {fileID: 3501078370398156476}
-  - {fileID: 5928374615283746191}
   - {fileID: 4417306204921835521}
   - {fileID: -5892571760887733824}
   - {fileID: 7599437447948126470}
-  - {fileID: 4835890043274277592}
-  m_RendererFeatureMap: ad6b866f10d7b46ca5b0780a2e30ec8786e1a238119b7662f71d1375089ec947bcb662763a5496308f456e7f4dd1455201b07ee8966c4d3dc0e1c922346139ae06c9bf6918a07669d832366a5f881c43
+  m_RendererFeatureMap: ad6b866f10d7b46ca5b0780a2e30ec8786e1a238119b7662f71d1375089ec947bcb662763a54963001b07ee8966c4d3dc0e1c922346139ae06c9bf6918a07669
   m_UseNativeRenderPass: 1
   xrSystemData: {fileID: 0}
   postProcessData: {fileID: 11400000, guid: 41439944d30ece34e96484bdb6645b55, type: 2}
@@ -143,20 +141,6 @@ MonoBehaviour:
     DirectLightingStrength: 1
     Radius: 2.27
     SampleCount: 2
---- !u!114 &4835890043274277592
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 43a84b065505d8f41b624b74c882ed4b, type: 3}
-  m_Name: HTrace Screen Space Global Illumination
-  m_EditorClassIdentifier: HTraceSSGI::HTraceSSGI.Scripts.Infrastructure.URP.HTraceSSGIRendererFeature
-  m_Active: 0
-  UseVolumes: 1
 --- !u!114 &5172839406172839415
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -176,25 +160,6 @@ MonoBehaviour:
     BlurWidth: 0.85
     SunRadius: 1.6
   shader: {fileID: 4800000, guid: 82a814139b194907bd485497d7a3bf22, type: 3}
---- !u!114 &5928374615283746191
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c8826dbbd2f20a84180629a9ae196e22, type: 3}
-  m_Name: ScreenSpaceGlobalIlluminationURP
-  m_EditorClassIdentifier: 
-  m_Active: 0
-  m_Shader: {fileID: 4800000, guid: 052b080a79c052c4993acc96081d70b1, type: 3}
-  m_RenderingDebugger: 1
-  m_ReflectionProbes: 0
-  m_HighQualityUpscaling: 0
-  m_OverrideAmbientLighting: 0
-  m_BackfaceLighting: 0
 --- !u!114 &7095028761235743110
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -276,17 +241,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f62c9c65cf3354c93be831c8bc075510, type: 3}
   m_Name: ScreenSpaceAmbientOcclusion
   m_EditorClassIdentifier: 
-  m_Active: 0
+  m_Active: 1
   m_Settings:
     AOMethod: 1
     Downsample: 0
     AfterOpaque: 1
     Source: 1
     NormalSamples: 1
-    Intensity: 1
-    DirectLightingStrength: 0.411
-    Radius: 0.64
+    Intensity: 3.27
+    DirectLightingStrength: 0.43
+    Radius: 0.06
     Samples: 0
     BlurQuality: 0
-    Falloff: 3.16
+    Falloff: 4.6
     SampleCount: -1

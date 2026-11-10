@@ -1,0 +1,285 @@
+# Outfits for the two players' birds, modelled round the Quirky Series meshes themselves (imported for reference, then
+# removed): the Seagull's red headband, whose two tails are bone chains that stream behind it, and the Pigeon's
+# deerstalker detective hat.
+# Coordinates are the birds' own (facing -Y, Z up, metres), so in Unity the outfit sits in the bird's model space
+# (BirdOutfit.cs lines it up through the bird's bind pose). Every simulated bone has a child (an *_end bone at the
+# tip) so the game can aim it.
+# Run: Blender -b -P outfits.py -- <pigeon fbx> <seagull fbx> <out dir> [hat | headband]
+import bpy, bmesh, sys, math
+from mathutils import Vector
+
+args = sys.argv[sys.argv.index("--") + 1:]
+PIGEON, SEAGULL, OUT = args[:3]
+ONLY = args[3] if len(args) > 3 else None  # "hat" or "headband": just that one
+
+def srgb(h):
+    c = [int(h[i:i + 2], 16) / 255 for i in (1, 3, 5)]
+    return tuple(((v + 0.055) / 1.055) ** 2.4 if v > 0.04045 else v / 12.92 for v in c)
+
+def mat(name, hexcol, rough=0.7):
+    m = bpy.data.materials.new(name); m.use_nodes = True
+    b = m.node_tree.nodes["Principled BSDF"]
+    b.inputs["Base Color"].default_value = (*srgb(hexcol), 1); b.inputs["Roughness"].default_value = rough
+    return m
+
+def load_bird(path):
+    bpy.ops.wm.read_factory_settings(use_empty=True)
+    bpy.ops.import_scene.fbx(filepath=path)
+    mesh = next(o for o in bpy.data.objects if o.type == "MESH")
+    arm = next(o for o in bpy.data.objects if o.type == "ARMATURE")
+    verts = [mesh.matrix_world @ v.co for v in mesh.data.vertices]
+    bones = {b.name: (arm.matrix_world @ b.head_local, arm.matrix_world @ b.tail_local) for b in arm.data.bones}
+    for o in list(bpy.data.objects): bpy.data.objects.remove(o)
+    return verts, bones
+
+def profile(verts, z, cy, n, band=0.02):
+    # the mesh's outline round (0, cy) at height z: the furthest vertex in each of n slices of angle
+    r = [0.0] * n
+    for v in verts:
+        if abs(v.z - z) > band: continue
+        a = math.atan2(v.y - cy, v.x) % math.tau
+        i = int(a / math.tau * n) % n
+        r[i] = max(r[i], math.hypot(v.x, v.y - cy))
+    # fill empty slices from neighbours, then smooth
+    for _ in range(n):
+        for i in range(n):
+            if r[i] == 0: r[i] = max(r[(i - 1) % n], r[(i + 1) % n])
+    return [(r[(i - 1) % n] + 2 * r[i] + r[(i + 1) % n]) / 4 for i in range(n)]
+
+def centre_y(verts, z, band=0.02):
+    ys = [v.y for v in verts if abs(v.z - z) < band]
+    return (min(ys) + max(ys)) / 2
+
+def new_obj(name, bm, material):
+    me = bpy.data.meshes.new(name); bm.to_mesh(me); bm.free()
+    for p in me.polygons: p.use_smooth = True
+    o = bpy.data.objects.new(name, me); bpy.context.collection.objects.link(o)
+    o.data.materials.append(material)
+    return o
+
+def armature(name, bones):
+    # bones: [(name, head, tail, parent name or None)]
+    data = bpy.data.armatures.new(name)
+    arm = bpy.data.objects.new(name, data); bpy.context.collection.objects.link(arm)
+    bpy.context.view_layer.objects.active = arm
+    bpy.ops.object.mode_set(mode="EDIT")
+    made = {}
+    for bname, head, tail, parent in bones:
+        b = data.edit_bones.new(bname); b.head = head; b.tail = tail
+        if parent: b.parent = made[parent]; b.use_connect = False
+        made[bname] = b
+    bpy.ops.object.mode_set(mode="OBJECT")
+    return arm
+
+def skin(obj, arm, weights_for):
+    obj.parent = arm
+    groups = {}
+    for v in obj.data.vertices:
+        for bname, w in weights_for(v.co):
+            if w <= 0: continue
+            if bname not in groups: groups[bname] = obj.vertex_groups.new(name=bname)
+            groups[bname].add([v.index], w, "REPLACE")
+    mod = obj.modifiers.new("Rig", "ARMATURE"); mod.object = arm
+
+def save(path):
+    bpy.ops.wm.save_as_mainfile(filepath=path)
+
+# =============================== the Seagull's headband ===============================
+def headband():
+    verts, bones = load_bird(SEAGULL)
+    h0, h1 = bones["head"]
+    zc = h0.z + (h1.z - h0.z) * 0.9 + 0.02  # high on the forehead, well clear of the eyes
+    cy = centre_y(verts, zc, 0.012)
+    N = 64
+    prof = profile(verts, zc, cy, N, 0.012)
+    RED = mat("HeadbandRed", "#D41E1E", 0.55)
+    bm = bmesh.new()
+    H, T = 0.05, 0.012  # ribbon height and thickness
+    rings = []
+    for k, (dz, dr) in enumerate(((-H / 2, 0.006), (H / 2, 0.006), (H / 2, 0.006 + T), (-H / 2, 0.006 + T))):
+        ring = []
+        for i in range(N):
+            a = (i + 0.5) / N * math.tau
+            r = prof[i] + dr
+            # tilt: a touch lower at the back, as a headband rides
+            back = max(0, math.sin(a))  # +Y is the back
+            ring.append(bm.verts.new((r * math.cos(a), cy + r * math.sin(a), zc + dz - 0.012 * back)))
+        rings.append(ring)
+    for k in range(4):
+        a_, b_ = rings[k], rings[(k + 1) % 4]
+        for i in range(N):
+            bm.faces.new((a_[i], a_[(i + 1) % N], b_[(i + 1) % N], b_[i]))
+    band = new_obj("Headband", bm, RED)
+    # the knot at the back
+    back_r = prof[N // 4]
+    knot_at = Vector((0, cy + back_r + 0.02, zc - 0.012))
+    bpy.ops.mesh.primitive_uv_sphere_add(segments=16, ring_count=10, radius=0.028, location=knot_at)
+    knot = bpy.context.object; knot.name = "Knot"; knot.scale = (1.3, 0.8, 1.0)
+    bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
+    for p in knot.data.polygons: p.use_smooth = True
+    knot.data.materials.append(RED)
+    # two tails from the knot, back and down, spread a little; each a chain of 5 bones plus an end
+    SEG, LEN, W = 5, 0.36, 0.05
+    chains = []
+    tails = []
+    for side in (1, -1):
+        start = knot_at + Vector((0.012 * side, 0.01, 0))
+        direction = Vector((0.22 * side, 0.75, -0.62)).normalized()
+        pts = [start + direction * (LEN * i / SEG) + Vector((0, 0, -0.04 * (i / SEG) ** 2)) for i in range(SEG + 1)]
+        bm = bmesh.new()
+        across = Vector((1, 0, 0)) if side else Vector((1, 0, 0))
+        rows = []
+        steps = SEG * 4
+        for j in range(steps + 1):
+            f = j / steps
+            i = min(int(f * SEG), SEG - 1); t = f * SEG - i
+            p = pts[i].lerp(pts[i + 1], t)
+            w = W * (1 - 0.25 * f)
+            twist = 0.35 * side * f  # a little twist down its length
+            ax = Vector((math.cos(twist), 0, math.sin(twist)))
+            rows.append((bm.verts.new(p - ax * w / 2), bm.verts.new(p + ax * w / 2)))
+        # a V cut in the end, as a ribbon is cut
+        end_l, end_r = rows[-1]
+        mid = bm.verts.new((end_l.co + end_r.co) / 2 + (pts[-1] - pts[-2]).normalized() * -0.02)
+        for j in range(steps):
+            bm.faces.new((rows[j][0], rows[j][1], rows[j + 1][1], rows[j + 1][0]))
+        tail = new_obj("Tail_" + ("L" if side > 0 else "R"), bm, RED)
+        sol = tail.modifiers.new("Thickness", "SOLIDIFY"); sol.thickness = 0.006
+        tails.append((tail, pts, side))
+        chains.append(("L" if side > 0 else "R", pts))
+    spec = [("Band", h0.copy(), h1.copy(), None)]
+    for label, pts in chains:
+        prev = "Band"
+        for i in range(SEG):
+            name = "Tail%s%d" % (label, i + 1)
+            spec.append((name, pts[i], pts[i + 1], prev)); prev = name
+        tip = pts[-1] + (pts[-1] - pts[-2]) * 0.5
+        spec.append(("Tail%s_end" % label, pts[-1], tip, prev))
+    arm = armature("HeadbandRig", spec)
+    skin(band, arm, lambda co: [("Band", 1.0)])
+    skin(knot, arm, lambda co: [("Band", 1.0)])
+    for tail, pts, side in tails:
+        label = "L" if side > 0 else "R"
+        def w(co, pts=pts, label=label):
+            # nearest point along the chain: split between the two bones either side of it
+            best, bi, bt = 1e9, 0, 0
+            for i in range(SEG):
+                a_, b_ = pts[i], pts[i + 1]
+                ab = b_ - a_; t = max(0, min(1, (co - a_).dot(ab) / ab.length_squared))
+                d = (a_ + ab * t - co).length
+                if d < best: best, bi, bt = d, i, t
+            names = ["Band"] + ["Tail%s%d" % (label, i + 1) for i in range(SEG)]
+            # bone bi+1 runs from pts[bi] to pts[bi+1]; near its start, lean on its parent
+            return [(names[bi + 1], 0.5 + 0.5 * bt), (names[bi], 0.5 - 0.5 * bt)]
+        skin(tail, arm, w)
+    save(OUT + "/seagullHeadband.blend")
+
+# =============================== the Pigeon's deerstalker ===============================
+def hat():
+    # the detective's hat, a deerstalker: a six-panel crown with a button on top, a band, a peak front and back, and the
+    # ear flaps folded up the sides and tied in a bow over the top. Built on a smooth oval fitted to the head (not the
+    # head's own outline, which is lumpy with the feather tuft and made the hat lumpy too), so every part is clean and
+    # symmetric. Rigid: one bone, riding the bird's head. The seven part names are what Resources/Outfits/PigeonHat uses.
+    verts, bones = load_bird(PIGEON)
+    h0, h1 = bones["head"]
+    top = max(v.z for v in verts)
+    zb = top - 0.075  # the hat's rim, on the head's upper curve
+    cy = centre_y(verts, zb, 0.01)
+    prof = profile(verts, zb, cy, 72, 0.01)
+    # the oval: as wide as the head at the sides, as deep as it at the front (the back has the tuft; mirrored from the front)
+    def widest(centre, spread=0.4):
+        return max(r for i, r in enumerate(prof) if abs((((i + 0.5) / 72 * math.tau - centre) + math.pi) % math.tau - math.pi) < spread)
+    RX = max(widest(0), widest(math.pi)) + 0.012
+    RY = widest(-math.pi / 2) + 0.012
+    H = top - zb + 0.05  # crown height above the rim
+    def rim(a): return Vector((RX * math.cos(a), cy + RY * math.sin(a), zb))
+    # the crown's surface: f from 0 at the rim to 1 at the top; a full, slightly squarish dome like a cloth cap's
+    def crown_at(a, f, grow=0.0):
+        s = math.cos(f * math.pi / 2) ** 0.85
+        z = zb + H * math.sin(f * math.pi / 2) + grow * f
+        return Vector(((RX + grow) * s * math.cos(a), cy + (RY + grow) * s * math.sin(a), z))
+    TWEED, BAND = mat("HatTweed", "#9A7A4E", 0.85), mat("HatBand", "#5A4329", 0.8)
+
+    def grid(name, rows, material, thick, smooth_levels=1, close_u=False):
+        # rows: a list of rows of points; quads between them (wrapping round if close_u), thickened and smoothed
+        bm = bmesh.new()
+        vs = [[bm.verts.new(p) for p in row] for row in rows]
+        n = len(rows[0])
+        for j in range(len(rows) - 1):
+            for i in range(n if close_u else n - 1):
+                bm.faces.new((vs[j][i], vs[j][(i + 1) % n], vs[j + 1][(i + 1) % n], vs[j + 1][i]))
+        bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+        o = new_obj(name, bm, material)
+        if thick: m = o.modifiers.new("Thickness", "SOLIDIFY"); m.thickness = thick; m.offset = 0
+        if smooth_levels: m = o.modifiers.new("Smooth", "SUBSURF"); m.levels = m.render_levels = smooth_levels
+        return o
+
+    N = 72
+    # crown: six panels, each seam a faint ridge; closed at the top, where the button sits
+    rows = []
+    for j in range(13):
+        f = j / 12 * 0.985
+        rows.append([crown_at((i + 0.5) / N * math.tau, f) + Vector((0, 0, 0)) * 0 for i in range(N)])
+    for j, row in enumerate(rows):  # the seams: every twelfth column stands a hair proud
+        for i in range(N):
+            if i % 12 == 0: row[i] = row[i] + (row[i] - Vector((0, cy, row[i].z))).normalized() * 0.0015 * math.sin(j / 12 * math.pi)
+    crown = grid("Crown", rows, TWEED, 0.006, 0, close_u=True)
+    # cap the top hole and add the button, all one mesh with the crown
+    bm = bmesh.new(); bm.from_mesh(crown.data)
+    ring = [v for v in bm.verts if abs(v.co.z - rows[-1][0].z) < 1e-6]
+    if ring: bmesh.ops.contextual_create(bm, geom=[e for e in bm.edges if all(v in ring for v in e.verts)])
+    bmesh.ops.create_uvsphere(bm, u_segments=16, v_segments=8, radius=0.011, matrix=__import__("mathutils").Matrix.Translation((0, cy, zb + H + 0.004)) @ __import__("mathutils").Matrix.Diagonal((1, 1, 0.55, 1)))
+    bm.to_mesh(crown.data); bm.free()
+    for p in crown.data.polygons: p.use_smooth = True
+
+    # band round the rim
+    band = grid("HatBand", [[rim((i + 0.5) / 96 * math.tau) * 1 + Vector((0, 0, dz)) + Vector((math.cos((i + 0.5) / 96 * math.tau), math.sin((i + 0.5) / 96 * math.tau), 0)) * 0.004
+                             for i in range(96)] for dz in (-0.002, 0.009, 0.02)], BAND, 0.004, 0, close_u=True)
+
+    # the peaks: curved bills front (-Y) and back (+Y), widest in the middle, dipping a little as they go out
+    def peak(name, centre, depth):
+        rows = []
+        for j in range(7):
+            t = j / 6
+            row = []
+            for i in range(25):
+                u = -1 + 2 * i / 24
+                a = centre + u * 1.05
+                out = depth * t * (1 - u * u) ** 0.6  # tapers to nothing at the ends
+                p = rim(a)
+                radial = Vector((math.cos(a) * RX, math.sin(a) * RY, 0)).normalized()
+                row.append(p + radial * (0.003 + out) + Vector((0, 0, -0.003 - 0.016 * (out / depth) ** 2)))
+            rows.append(row)
+        return grid(name, rows, TWEED, 0.006, 0)
+    front = peak("PeakFront", -math.pi / 2, 0.05)
+    back = peak("PeakBack", math.pi / 2, 0.045)
+
+    # ear flaps: folded up each side, lying on the crown, from the band to near the top, where the bow ties them
+    flaps = []
+    for side, label in ((1, "L"), (-1, "R")):
+        centre = 0 if side > 0 else math.pi
+        rows = []
+        for j in range(9):
+            f = 0.06 + j / 8 * 0.78
+            width = 0.62 * (1 - 0.55 * (j / 8) ** 1.5)  # a rounded flap narrowing toward the tie
+            rows.append([crown_at(centre + (-1 + 2 * i / 10) * width, f, grow=0.007) for i in range(11)])
+        flaps.append(grid("Flap_" + label, rows, TWEED, 0.005, 1))
+
+    # the bow on top: a knot and two loops, one mesh
+    bm = bmesh.new()
+    M = __import__("mathutils").Matrix
+    knot_z = zb + H * 0.97 + 0.012
+    bmesh.ops.create_uvsphere(bm, u_segments=12, v_segments=8, radius=0.008, matrix=M.Translation((0, cy, knot_z)) @ M.Diagonal((1.1, 0.9, 0.8, 1)))
+    for sx in (1, -1):
+        bmesh.ops.create_uvsphere(bm, u_segments=12, v_segments=8, radius=0.012,
+            matrix=M.Translation((sx * 0.016, cy, knot_z - 0.001)) @ M.Rotation(sx * 0.35, 4, "Y") @ M.Diagonal((1.5, 0.6, 0.75, 1)))
+    bow = new_obj("Bow", bm, BAND)
+    for p in bow.data.polygons: p.use_smooth = True
+
+    arm = armature("HatRig", [("Hat", h0.copy(), h1.copy(), None)])
+    for o in [crown, band, front, back, bow] + flaps: skin(o, arm, lambda co: [("Hat", 1.0)])
+    save(OUT + "/pigeonHat.blend")
+
+if ONLY in (None, "headband"): headband()
+if ONLY in (None, "hat"): hat()
+print("OUTFITS DONE")

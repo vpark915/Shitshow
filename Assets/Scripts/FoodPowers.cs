@@ -31,11 +31,14 @@ public class FoodPowers : MonoBehaviour
     public float lungeHeight = 0.35f;
 
     [Header("Egg bomb (ice cream)")]
-    [Tooltip("How high the blast throws the pigeon, in metres")]
+    [Tooltip("How high the blast throws the pigeon, in metres (and it gets all its air jumps back)")]
     public float eggJump = 15f;
     [Tooltip("Everyone else within this many metres takes the damage")]
     public float eggRadius = 6f;
+    [Tooltip("Damage at the edge of the blast; it climbs to three times this toward the middle")]
     public float eggDamage = 15f;
+    [Tooltip("People and birds this close to the burst are killed outright (a player takes the full three times Egg Damage instead)")]
+    public float eggKillRadius = 3f;
     [Tooltip("Shot out the pigeon's rear, straight down, as it shoots up; the blast is where it lands (Prefabs/SpottedEgg: the spottedEgg model with a Rigidbody, collider and EggShell)")]
     public GameObject eggModel;
     [Tooltip("How fast the egg shoots down, in m/s")]
@@ -46,6 +49,7 @@ public class FoodPowers : MonoBehaviour
     public Color blastCool = new Color(0.9f, 0.3f, 0.05f);
     [Tooltip("Bits of shell and yolk thrown out with it")]
     public Color shellColor = new Color(1f, 0.85f, 0.35f);
+    [Tooltip("Only if Resources/EggSplat (the fried egg left on the ground) is missing: a flat disc in this")]
     public Material splatMaterial;
     public float splatLife = 10f;
 
@@ -57,6 +61,10 @@ public class FoodPowers : MonoBehaviour
     [Header("Full belly (gyro)")]
     [Range(0, 1)] public float damageScale = 0.5f;
     [Range(0, 1)] public float fullJumpScale = 0.7f;
+    [Tooltip("The pigeon shrinks to this size while full (0.5: half size, a smaller target)")]
+    [Range(0.1f, 1)] public float fullSize = 0.5f;
+    [Tooltip("Seconds to shrink, and to grow back")]
+    public float resizeTime = 0.25f;
 
     [Header("Crowd favourite (pizza)")]
     [Tooltip("Speed multiplier for the person being ridden")]
@@ -72,6 +80,7 @@ public class FoodPowers : MonoBehaviour
     Minimap map;
     Glow glow;
     float until, rideLeft, moveSpeed, sprintSpeed, jumpHeight, rideWalk, rideSprint;
+    Vector3 baseScale;
     int extraJumps;
     string label;
     readonly Dictionary<Ability, int> stock = new Dictionary<Ability, int>();
@@ -90,10 +99,12 @@ public class FoodPowers : MonoBehaviour
         sprintSpeed = controller.SprintSpeed;
         jumpHeight = controller.JumpHeight;
         extraJumps = controller.ExtraJumps;
+        baseScale = transform.localScale;
         if (ride) { rideWalk = ride.walkSpeed; rideSprint = ride.sprintSpeed; }
         controller.Jumped += OnJumped;
         if (health) health.Died += End;
         if (timerText) timerText.enabled = false;
+        SubwayGUI.Back(timerText); // on a subway sign, like the HUD
     }
 
     void OnEnable() { eggAction.Enable(); flockAction.Enable(); }
@@ -175,6 +186,12 @@ public class FoodPowers : MonoBehaviour
     {
         if (Current != Ability.None && Time.time >= until) End();
 
+        // full belly: the whole bird (body, collider, gun) shrinks while it lasts, and grows back after. About its feet,
+        // so it stays on the ground
+        Vector3 size = Current == Ability.FullBelly ? baseScale * fullSize : baseScale;
+        if (transform.localScale != size)
+            transform.localScale = Vector3.MoveTowards(transform.localScale, size, (1 - fullSize) * baseScale.magnitude / resizeTime * Time.deltaTime);
+
         if (Current == Ability.Sprint)
         {
             float m = controller.Grounded ? sprintMultiplier : 1f;
@@ -237,6 +254,7 @@ public class FoodPowers : MonoBehaviour
         Npc mount = ride ? ride.Mount : null;
         if (mount) ride.Dismount();
         controller.Launch(eggJump);
+        controller.RefillJumps(); // a fresh set of air jumps at the top of the blast
         if (!eggModel) { Burst(transform.position, mount); return; }
         GameObject egg = Instantiate(eggModel, transform.position + Vector3.up * 0.2f - transform.forward * 0.15f, Random.rotation);
         foreach (Collider shell in egg.GetComponentsInChildren<Collider>())
@@ -251,16 +269,16 @@ public class FoodPowers : MonoBehaviour
     {
         Blast(at);
         var hit = new HashSet<Health>();
-        foreach (Collider c in Physics.OverlapSphere(at, eggRadius, ~0, QueryTriggerInteraction.Ignore))
+        foreach (Collider c in Physics.OverlapSphere(at, eggRadius, ~0, QueryTriggerInteraction.Collide)) // triggers too: birds in flight
             if (c.GetComponentInParent<Health>() is Health h && h && h != health && (!spare || h.gameObject != spare.gameObject) && hit.Add(h))
             {
                 bool alive = !h.IsDead;
                 if (alive) Weapon.Done(weapon, "egg hit", "egg hit " + Weapon.Kind(h));
-                h.TakeDamage(eggDamage, at);
+                h.TakeDamage(EggDamageAt(Vector3.Distance(at, c.ClosestPoint(at)), h), at);
                 Weapon.Killed(weapon, h, alive, "egg kill");
             }
         if (Physics.Raycast(at + Vector3.up * 0.3f, Vector3.down, out RaycastHit floor, 3f, ~(1 << gameObject.layer), QueryTriggerInteraction.Ignore))
-            Splat(floor.point);
+            Splat(floor.point, floor.normal);
     }
 
     // the same quick streaks as blood (Weapon.Spray): a dome of hot sparks, and slower bits of shell and yolk that fall
@@ -276,8 +294,30 @@ public class FoodPowers : MonoBehaviour
         Weapon.Spray("Egg Shell", at, up, shellColor, new Vector2Int(14, 22), new Vector2(4f, 9f), new Vector2(0.3f, 0.6f), new Vector2(0.04f, 0.09f), 3f, 60f);
     }
 
-    void Splat(Vector3 at)
+    // close in, a kill; further out it falls off to eggDamage at the edge. The other player is never one-shot: a
+    // point-blank egg on a bird would end a round in one button
+    float EggDamageAt(float distance, Health h)
     {
+        bool player = h.GetComponent<Weapon>() || h.GetComponentInParent<NetBird>();
+        if (distance <= eggKillRadius && !player) return h.maxHealth * 10; // through Full belly and the like; a bagel still saves you
+        float t = Mathf.InverseLerp(eggKillRadius, eggRadius, distance);
+        return Mathf.Lerp(eggDamage * 3, eggDamage, t);
+    }
+
+    static GameObject splatModel;
+
+    // a fried egg where it burst (Resources/EggSplat, from Blender/Effects/eggSplat; EggSplat drapes it over the
+    // ground, pops it in and shrinks it away), lying on the ground's slope, turned at random, as wide as the blast
+    void Splat(Vector3 at, Vector3 normal)
+    {
+        if (!splatModel) splatModel = Resources.Load<GameObject>("EggSplat");
+        if (splatModel && splatModel.GetComponent<EggSplat>())
+        {
+            GameObject fried = Instantiate(splatModel, at + normal * 0.01f, Quaternion.FromToRotation(Vector3.up, normal) * Quaternion.Euler(0, Random.Range(0f, 360f), 0));
+            fried.name = "Egg Splat";
+            fried.GetComponent<EggSplat>().Splat(eggRadius * Random.Range(0.9f, 1.15f), splatLife, gameObject.layer);
+            return;
+        }
         GameObject look = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
         Destroy(look.GetComponent<Collider>());
         look.name = "Egg Splat";
