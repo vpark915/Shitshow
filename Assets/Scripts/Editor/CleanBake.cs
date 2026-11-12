@@ -102,8 +102,9 @@ static class CleanBake
         Debug.Log("Clean Daylight Bake: lighting reset" + (sun ? "" : " (no sun found)") + ", old bake cleared, new bake started");
     }
 
-    // Tools > Wash Square > Cheaper Shadows (no bake needed): realtime sun shadows out to 80 m in 3 cascades, baked
-    // (shadowmask) beyond; 150 m in 4 cascades drew every object a second time and cost ~3 ms of CPU a frame. And the
+    // Tools > Wash Square > Cheaper Shadows (no bake needed): realtime sun shadows out to 60 m in 2 cascades, baked
+    // (shadowmask) beyond; 150 m in 4 cascades drew every object a second time and cost ~3 ms of CPU a frame, and 70 m
+    // still cost ~5 ms of GPU. And the
     // small props stop casting: benches, lamps, bins, bikes and the fountain's spray were ~1,000 of the 3,750 draws a frame
     // ponytail: their baked shadows go too (the bake skips non-casters); turn a prefab's back on if its shadow is missed
     static readonly string[] Shadowless = { "Assets/Prefabs/ParkBench.prefab", "Assets/Prefabs/CitiBike.prefab", "Assets/Prefabs/TrashCan.prefab" };
@@ -112,10 +113,10 @@ static class CleanBake
     static void Shadows()
     {
         var urp = new SerializedObject(GraphicsSettings.currentRenderPipeline);
-        urp.FindProperty("m_ShadowDistance").floatValue = 80f;
-        urp.FindProperty("m_ShadowCascadeCount").intValue = 3;
+        urp.FindProperty("m_ShadowDistance").floatValue = 60f;
+        urp.FindProperty("m_ShadowCascadeCount").intValue = 2;
         urp.FindProperty("m_Cascade3Split").vector2Value = new Vector2(0.1f, 0.35f);
-        urp.FindProperty("m_MainLightShadowmapResolution").intValue = 4096;
+        urp.FindProperty("m_MainLightShadowmapResolution").intValue = 2048;
         urp.ApplyModifiedPropertiesWithoutUndo();
 
         int props = 0;

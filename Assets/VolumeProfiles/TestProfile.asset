@@ -1,5 +1,51 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!114 &-7354711074028736147
+MonoBehaviour:
+  m_ObjectHideFlags: 3
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6bd486065ce11414fa40e631affc4900, type: 3}
+  m_Name: ProbeVolumesOptions
+  m_EditorClassIdentifier: Unity.RenderPipelines.Core.Runtime::UnityEngine.Rendering.ProbeVolumesOptions
+  active: 1
+  normalBias:
+    m_OverrideState: 1
+    m_Value: 0.33
+  viewBias:
+    m_OverrideState: 1
+    m_Value: 0.25
+  scaleBiasWithMinProbeDistance:
+    m_OverrideState: 0
+    m_Value: 0
+  samplingNoise:
+    m_OverrideState: 0
+    m_Value: 0.1
+  animateSamplingNoise:
+    m_OverrideState: 0
+    m_Value: 1
+  leakReductionMode:
+    m_OverrideState: 1
+    m_Value: 2
+  minValidDotProductValue:
+    m_OverrideState: 1
+    m_Value: 0.1
+  occlusionOnlyReflectionNormalization:
+    m_OverrideState: 0
+    m_Value: 1
+  intensityMultiplier:
+    m_OverrideState: 0
+    m_Value: 1
+  skyOcclusionIntensityMultiplier:
+    m_OverrideState: 0
+    m_Value: 1
+  worldOffset:
+    m_OverrideState: 0
+    m_Value: {x: 0, y: 0, z: 0}
 --- !u!114 &-5562492165127768362
 MonoBehaviour:
   m_ObjectHideFlags: 3
@@ -15,10 +61,10 @@ MonoBehaviour:
   active: 1
   postExposure:
     m_OverrideState: 1
-    m_Value: -0.53
+    m_Value: -0.3
   contrast:
     m_OverrideState: 1
-    m_Value: 0
+    m_Value: 8
   colorFilter:
     m_OverrideState: 1
     m_Value: {r: 1, g: 1, b: 1, a: 1}
@@ -27,7 +73,7 @@ MonoBehaviour:
     m_Value: 0
   saturation:
     m_OverrideState: 1
-    m_Value: 9
+    m_Value: 13
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -51,6 +97,7 @@ MonoBehaviour:
   - {fileID: 8852102559942126101}
   - {fileID: 1568756277872421108}
   - {fileID: 6583334499346598986}
+  - {fileID: -7354711074028736147}
 --- !u!114 &1568756277872421108
 MonoBehaviour:
   m_ObjectHideFlags: 3
@@ -75,13 +122,13 @@ MonoBehaviour:
     m_Value: 0
   Fadeout:
     m_OverrideState: 1
-    m_Value: 70.4
+    m_Value: 95.1
   Intensity:
     m_OverrideState: 1
-    m_Value: 2.37
+    m_Value: 1.79
   InjectionPoint:
-    m_OverrideState: 0
-    m_Value: 1
+    m_OverrideState: 1
+    m_Value: 2
   ReconstructNormals:
     m_OverrideState: 0
     m_Value: 0
@@ -108,32 +155,32 @@ MonoBehaviour:
     m_OverrideState: 0
     m_Value: 0
   DirectLightingOcclusion:
-    m_OverrideState: 0
-    m_Value: 0
+    m_OverrideState: 1
+    m_Value: 0.15
   DebugModeGTAO:
     m_OverrideState: 0
     m_Value: 0
   GTAOResolution:
     m_OverrideState: 1
-    m_Value: 1
+    m_Value: 0
   GTAOThickness:
-    m_OverrideState: 0
-    m_Value: 0.2
+    m_OverrideState: 1
+    m_Value: 0.25
   GTAOWorldSpaceRadius:
     m_OverrideState: 1
-    m_Value: 1.5
+    m_Value: 0.6
   GTAOScreenSpaceRadius:
-    m_OverrideState: 0
-    m_Value: 25
+    m_OverrideState: 1
+    m_Value: 40
   GTAOSliceCount:
-    m_OverrideState: 0
-    m_Value: 2
+    m_OverrideState: 1
+    m_Value: 3
   GTAOStepCount:
-    m_OverrideState: 0
+    m_OverrideState: 1
     m_Value: 16
   GTAOTracingMode:
-    m_OverrideState: 0
-    m_Value: 0
+    m_OverrideState: 1
+    m_Value: 1
   GTAODepthFormat:
     m_OverrideState: 0
     m_Value: 0
@@ -141,13 +188,13 @@ MonoBehaviour:
     m_OverrideState: 0
     m_Value: 0
   GTAOUseAttenuation:
-    m_OverrideState: 0
+    m_OverrideState: 1
     m_Value: 1
   GTAODenoising:
-    m_OverrideState: 0
+    m_OverrideState: 1
     m_Value: 3
   GTAOSampleCountTemporal:
-    m_OverrideState: 0
+    m_OverrideState: 1
     m_Value: 8
   GTAOUseSimpleRejection:
     m_OverrideState: 0
@@ -159,7 +206,7 @@ MonoBehaviour:
     m_OverrideState: 0
     m_Value: 0
   GTAOUseNormalWeightingTemporal:
-    m_OverrideState: 0
+    m_OverrideState: 1
     m_Value: 1
   GTAOSpatialFilterType:
     m_OverrideState: 0
@@ -309,13 +356,13 @@ MonoBehaviour:
     m_Value: 1
   threshold:
     m_OverrideState: 1
-    m_Value: 1.01
+    m_Value: 0.78
   intensity:
     m_OverrideState: 1
-    m_Value: 0.44
+    m_Value: 0.3
   scatter:
     m_OverrideState: 1
-    m_Value: 0.091
+    m_Value: 0.17
   clamp:
     m_OverrideState: 1
     m_Value: 65472
@@ -353,7 +400,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c01700fd266d6914ababb731e09af2eb, type: 3}
   m_Name: DepthOfField
   m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.DepthOfField
-  active: 1
+  active: 0
   mode:
     m_OverrideState: 1
     m_Value: 1
@@ -399,7 +446,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 899c54efeace73346a0a16faa3afe726, type: 3}
   m_Name: Vignette
   m_EditorClassIdentifier: 
-  active: 0
+  active: 1
   color:
     m_OverrideState: 0
     m_Value: {r: 0, g: 0, b: 0, a: 1}
@@ -429,14 +476,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.LiftGammaGain
   active: 1
   lift:
-    m_OverrideState: 0
-    m_Value: {x: 0.93269235, y: 0.95192313, z: 1, w: -0.0063897762}
+    m_OverrideState: 1
+    m_Value: {x: 0.97087383, y: 0.97087383, z: 1, w: 0.02}
   gamma:
-    m_OverrideState: 0
-    m_Value: {x: 1, y: 1, z: 1, w: 0}
+    m_OverrideState: 1
+    m_Value: {x: 1, y: 1, z: 1, w: 0.03}
   gain:
-    m_OverrideState: 0
-    m_Value: {x: 1, y: 0.97115386, z: 0.91346157, w: 0}
+    m_OverrideState: 1
+    m_Value: {x: 1, y: 0.98058254, z: 0.9417476, w: 0}
 --- !u!114 &6043248020707744607
 MonoBehaviour:
   m_ObjectHideFlags: 3
@@ -452,13 +499,13 @@ MonoBehaviour:
   active: 1
   distance:
     m_OverrideState: 1
-    m_Value: 199
+    m_Value: 512
   baseHeight:
     m_OverrideState: 1
     m_Value: 0
   maximumHeight:
     m_OverrideState: 1
-    m_Value: 30
+    m_Value: 276.5
   enableGround:
     m_OverrideState: 1
     m_Value: 1
@@ -467,7 +514,7 @@ MonoBehaviour:
     m_Value: -9.67
   density:
     m_OverrideState: 1
-    m_Value: 0.011
+    m_Value: 0.05
   attenuationDistance:
     m_OverrideState: 0
     m_Value: 128
@@ -482,13 +529,13 @@ MonoBehaviour:
     m_Value: 1
   anisotropy:
     m_OverrideState: 1
-    m_Value: 0.734
+    m_Value: 0
   scattering:
     m_OverrideState: 1
-    m_Value: 0.251
+    m_Value: 0.02
   tint:
     m_OverrideState: 1
-    m_Value: {r: 1, g: 1, b: 1, a: 1}
+    m_Value: {r: 0.5896226, g: 1, b: 0.9151734, a: 1}
   enableAdditionalLightsContribution:
     m_OverrideState: 1
     m_Value: 0
@@ -502,8 +549,8 @@ MonoBehaviour:
     m_OverrideState: 1
     m_Value: 1
   renderPassEvent:
-    m_OverrideState: 0
-    m_Value: 550
+    m_OverrideState: 1
+    m_Value: 450
 --- !u!114 &6583334499346598986
 MonoBehaviour:
   m_ObjectHideFlags: 3
@@ -516,16 +563,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 70afe9e12c7a7ed47911bb608a23a8ff, type: 3}
   m_Name: SplitToning
   m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.SplitToning
-  active: 1
+  active: 0
   shadows:
     m_OverrideState: 1
-    m_Value: {r: 0.45, g: 0.5, b: 0.58, a: 1}
+    m_Value: {r: 0.4, g: 0.49, b: 0.62, a: 1}
   highlights:
     m_OverrideState: 1
-    m_Value: {r: 0.53, g: 0.51, b: 0.48, a: 1}
+    m_Value: {r: 0.6, g: 0.52, b: 0.4, a: 1}
   balance:
     m_OverrideState: 1
-    m_Value: 0
+    m_Value: -10
 --- !u!114 &8852102559942126101
 MonoBehaviour:
   m_ObjectHideFlags: 3
@@ -547,7 +594,7 @@ MonoBehaviour:
     m_Value: 0
   intensity:
     m_OverrideState: 1
-    m_Value: 0.061
+    m_Value: 0.2
   clamp:
     m_OverrideState: 1
     m_Value: 0.05

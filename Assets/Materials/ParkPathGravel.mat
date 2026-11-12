@@ -1,0 +1,207 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: ParkPathGravel
+  m_Shader: {fileID: 4800000, guid: 164e3af2d77718a41a7592e14bf2f7d0, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords:
+  - _DETAIL_SCALED
+  - _METALLICSPECGLOSSMAP
+  - _NORMALMAP
+  - _OCCLUSIONMAP
+  - _PARALLAXMAP
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _BaseColorMap:
+        m_Texture: {fileID: 2800000, guid: 5d25eaa3e1d9542e3893a546bfc9000b, type: 3}
+        m_Scale: {x: 0.5, y: 0.5}
+        m_Offset: {x: 0, y: 0}
+    - _BaseMap:
+        m_Texture: {fileID: 2800000, guid: 5d25eaa3e1d9542e3893a546bfc9000b, type: 3}
+        m_Scale: {x: 0.5, y: 0.5}
+        m_Offset: {x: 0, y: 0}
+    - _BumpMap:
+        m_Texture: {fileID: 2800000, guid: 47f068c913a4b471db52fbc86f2c8c81, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _CarveDetailHeight:
+        m_Texture: {fileID: 2800000, guid: 8e6fe1c0acf8a4db689b8522342df789, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _CarveDetailNormal:
+        m_Texture: {fileID: 2800000, guid: 1d5aad2cab025436399378f62107a97b, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _CarvePyramid:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _DetailAlbedoMap:
+        m_Texture: {fileID: 2800000, guid: 2b6a994d58ef04b108afec33fb8e6ecd, type: 3}
+        m_Scale: {x: 0.42857143, y: 0.42857143}
+        m_Offset: {x: 0, y: 0}
+    - _DetailMask:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _DetailNormalMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _DisplacementMap:
+        m_Texture: {fileID: 2800000, guid: 47be68c9f40654deba245049f33b7612, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _EmissionMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _HeightMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MainTex:
+        m_Texture: {fileID: 2800000, guid: 5d25eaa3e1d9542e3893a546bfc9000b, type: 3}
+        m_Scale: {x: 0.5, y: 0.5}
+        m_Offset: {x: 0, y: 0}
+    - _MaskMap:
+        m_Texture: {fileID: 2800000, guid: 8ec96b3fdffcd49c7a3d40d9ab17a952, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MetallicGlossMap:
+        m_Texture: {fileID: 2800000, guid: 7ae1594d28adc4ad38dffa5c7129ff59, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _NormalMap:
+        m_Texture: {fileID: 2800000, guid: 47f068c913a4b471db52fbc86f2c8c81, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _OcclusionMap:
+        m_Texture: {fileID: 2800000, guid: 50aa73db9e16f4084a64ced6c265d9ba, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _ParallaxMap:
+        m_Texture: {fileID: 2800000, guid: 47be68c9f40654deba245049f33b7612, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _RoughnessMap:
+        m_Texture: {fileID: 2800000, guid: f8d5a30e857974957bc5fd50cf145fe6, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _SpecGlossMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - unity_Lightmaps:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - unity_LightmapsInd:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - unity_ShadowMasks:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - _AddPrecomputedVelocity: 0
+    - _AlphaClip: 0
+    - _AlphaToMask: 0
+    - _Blend: 0
+    - _BlendModePreserveSpecular: 1
+    - _BumpScale: 3
+    - _CarveAntiTiling: 0
+    - _CarveAntiTilingCell: 2
+    - _CarveAutoLOD: 0.6
+    - _CarveBlendSharpness: 8
+    - _CarveCasterSteps: 0.5
+    - _CarveCliff: 1
+    - _CarveCliffSlope: 0.8
+    - _CarveCurvature: 1
+    - _CarveCurvatureScale: 1
+    - _CarveDebug: 0
+    - _CarveDepth: 0
+    - _CarveDetail: 1
+    - _CarveDetailDepth: 0.018099999
+    - _CarveDetailNormalScale: 1
+    - _CarveDetailTiling: 3
+    - _CarveFadeEnd: 60
+    - _CarveFadeStart: 25
+    - _CarveMapping: 0
+    - _CarveMaxSteps: 16
+    - _CarveMinSteps: 6
+    - _CarveOcclusion: 1
+    - _CarveOcclusionRadius: 0.04
+    - _CarveRefineSteps: 2
+    - _CarveSelfShadow: 0.64
+    - _CarveShadowSoftness: 3
+    - _CarveShadowSteps: 8
+    - _CarveSilhouette: 0
+    - _CarveSpecOcclusion: 1
+    - _CarveStability: 0
+    - _CarveTracing: 0
+    - _ClearCoatMask: 0
+    - _ClearCoatSmoothness: 0
+    - _Cull: 2
+    - _Cutoff: 0.5
+    - _DetailAlbedoMapScale: 0.724
+    - _DetailNormalMapScale: 1
+    - _Displacement: 0.04
+    - _DisplacementMid: 0.5
+    - _DstBlend: 0
+    - _DstBlendAlpha: 0
+    - _EnvironmentReflections: 1
+    - _GlossMapScale: 0
+    - _Glossiness: 0
+    - _GlossyReflections: 0
+    - _HeightMidLevel: 0.5
+    - _HeightNormalStep: 0.1
+    - _HeightNormals: 0
+    - _HeightStrength: 0
+    - _HeightTile: 2
+    - _Metallic: 0.17
+    - _NormalScale: 2
+    - _OcclusionStrength: 1
+    - _Parallax: 0.04
+    - _ParallaxMax: 0.708
+    - _ParallaxMin: 0.52
+    - _QueueOffset: 0
+    - _ReceiveShadows: 1
+    - _Smoothness: 0.36
+    - _SmoothnessTextureChannel: 0
+    - _SpecularHighlights: 1
+    - _SrcBlend: 1
+    - _SrcBlendAlpha: 1
+    - _SubdivideEdge: 0.25
+    - _Surface: 0
+    - _TessDetail: 0.2
+    - _TessFar: 30
+    - _TessMax: 64
+    - _WorkflowMode: 1
+    - _XRMotionVectorsPass: 1
+    - _ZWrite: 1
+    m_Colors:
+    - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
+    - _Color: {r: 1, g: 1, b: 1, a: 1}
+    - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
+    - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1

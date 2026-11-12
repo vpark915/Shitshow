@@ -16,6 +16,7 @@ public class Npc : MonoBehaviour
     public Kind kind;
     public NpcSpawner spawner;
     [HideInInspector] public bool officer;
+    [HideInInspector] public int model; // which of the spawner's looks (NpcSpawner.Model): online, the other game shows a ridden person by it
     [HideInInspector] public int routeIndex; // joggers: the route point they're heading for
     [HideInInspector] public Vector3 lookAt; // idlers: what they stand facing
 
@@ -179,7 +180,7 @@ public class Npc : MonoBehaviour
         Vector3 away = Vector3.ProjectOnPlane(transform.position - shooter.transform.position, Vector3.up);
         if (officer)
         {
-            if (away.magnitude <= spawner.policeHearing) Chase(shooter);
+            if (away.magnitude <= spawner.policeHearing && !shooter.badge) Chase(shooter);
             return;
         }
         if (away.magnitude > spawner.panicRadius) return;
@@ -213,6 +214,7 @@ public class Npc : MonoBehaviour
         }
         suspect = culprit;
         calmAt = Time.time + spawner.policeAttention;
+        MakeWanted(culprit, spawner.policeAttention); // police after you: you're wanted
     }
 
     // Vehicle: hit by a bike or car. They take the damage and go flying, then get back up (unless it killed them), and
@@ -230,12 +232,23 @@ public class Npc : MonoBehaviour
         return true;
     }
 
-    // Wanted: who the police are hunting and until when. While it lasts, officers after them don't give up when they
-    // lose them; it ends early if they die or go unseen (soft pretzel). The HUD shows it (WeaponHUD).
+    // Wanted: who the police are hunting and until when. Firing a shot (NpcSpawner), an officer coming after you, or
+    // driving off the road (Car) makes you wanted. While it lasts, officers after them don't give up when they lose
+    // them; it ends early if they die or go unseen (soft pretzel). The HUD shows it (WeaponHUD).
     public static Weapon Wanted { get; private set; }
     public static float WantedUntil { get; private set; }
     public static bool IsWanted(Weapon who) => who && Wanted == who && Time.time < WantedUntil;
     public static void Pardon() { Wanted = null; WantedUntil = 0; }
+
+    // wanted for at least `seconds` from now
+    public static void MakeWanted(Weapon culprit, float seconds)
+    {
+        if (!culprit || culprit.PoliceIgnore || seconds <= 0) return;
+        if (!IsWanted(culprit)) Weapon.Done(culprit, "wanted");
+        if (Wanted != culprit) WantedUntil = 0;
+        Wanted = culprit;
+        WantedUntil = Mathf.Max(WantedUntil, Time.time + seconds);
+    }
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     static void Fresh() => Pardon(); // nobody's wanted from the last play
 
@@ -243,14 +256,8 @@ public class Npc : MonoBehaviour
     // wantedFor makes the culprit wanted for that many seconds from now
     public static void Report(Weapon culprit, Vector3 at, float radius, Npc not = null, float wantedFor = 0)
     {
-        if (culprit.unseen) return;
-        if (wantedFor > 0)
-        {
-            if (!IsWanted(culprit)) Weapon.Done(culprit, "wanted");
-            if (Wanted != culprit) WantedUntil = 0;
-            Wanted = culprit;
-            WantedUntil = Mathf.Max(WantedUntil, Time.time + wantedFor);
-        }
+        if (culprit.PoliceIgnore) return;
+        MakeWanted(culprit, wantedFor);
         foreach (Collider near in Physics.OverlapSphere(at, radius, ~0, QueryTriggerInteraction.Ignore))
             if (near.TryGetComponent(out Npc cop) && cop.officer && cop.enabled && cop != not) cop.Chase(culprit);
     }
@@ -315,9 +322,9 @@ public class Npc : MonoBehaviour
         bool wasAiming = aiming;
         aiming = false;
         suspect.TryGetComponent(out Health prey);
-        if ((Time.time > calmAt && !IsWanted(suspect)) || (prey && prey.IsDead) || suspect.unseen)
+        if ((Time.time > calmAt && !IsWanted(suspect)) || (prey && prey.IsDead) || suspect.PoliceIgnore)
         {
-            if (Wanted == suspect && ((prey && prey.IsDead) || suspect.unseen)) Pardon();
+            if (Wanted == suspect && ((prey && prey.IsDead) || suspect.PoliceIgnore)) Pardon();
             GiveUp();
             return;
         }

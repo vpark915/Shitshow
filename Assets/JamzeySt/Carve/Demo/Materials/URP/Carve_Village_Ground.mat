@@ -1,0 +1,248 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Carve_Village_Ground
+  m_Shader: {fileID: 4800000, guid: cba063580135955438cbd20568ca59e2, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords:
+  - _CARVE_LAYERS_L4
+  m_InvalidKeywords:
+  - _CONSERVATIVE_DEPTH_OFFSET
+  - _DEPTHOFFSET_ON
+  - _DISABLE_SSR_TRANSPARENT
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: 2000
+  stringTagMap:
+    MotionVector: User
+  disabledShaderPasses:
+  - TransparentDepthPrepass
+  - TransparentDepthPostpass
+  - TransparentBackface
+  - RayTracingPrepass
+  - MOTIONVECTORS
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _BaseColorMap0:
+        m_Texture: {fileID: 2800000, guid: 0ce0bd818531fed4da5b649d812d9580, type: 3}
+        m_Scale: {x: 0.5, y: 0.5}
+        m_Offset: {x: 0, y: 0}
+    - _BaseColorMap1:
+        m_Texture: {fileID: 2800000, guid: 701794a1736b8e840a2e984669448415, type: 3}
+        m_Scale: {x: 0.5, y: 0.5}
+        m_Offset: {x: 0, y: 0}
+    - _BaseColorMap2:
+        m_Texture: {fileID: 2800000, guid: 7c126aea97130fb4481642f80dbb1fba, type: 3}
+        m_Scale: {x: 0.5, y: 0.5}
+        m_Offset: {x: 0, y: 0}
+    - _BaseColorMap3:
+        m_Texture: {fileID: 2800000, guid: 743eb92ec3580e549ac167d8e21c5745, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _CarvePyramid0:
+        m_Texture: {fileID: 2800000, guid: b35bf684272780c438fd5456ed5ad6f6, type: 2}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _CarvePyramid1:
+        m_Texture: {fileID: 2800000, guid: 6c88aeaa9acde3e4e8d161ffceeaf97e, type: 2}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _CarvePyramid2:
+        m_Texture: {fileID: 2800000, guid: 9cda3860a468d2a49be06063b903e06d, type: 2}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _CarvePyramid3:
+        m_Texture: {fileID: 2800000, guid: 5364aa637f56a9b458bada4b040d9459, type: 2}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _HeightMap0:
+        m_Texture: {fileID: 2800000, guid: 7de5fa5ee30656c439c385e30a50cfc6, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _HeightMap1:
+        m_Texture: {fileID: 2800000, guid: fbe103f829d55e948aa8fbeab54b8a42, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _HeightMap2:
+        m_Texture: {fileID: 2800000, guid: 179c9a9c57be6874eace7d99054a6d7c, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _HeightMap3:
+        m_Texture: {fileID: 2800000, guid: 248ef253b5b41834781c7f252f403650, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _LayerMaskMap:
+        m_Texture: {fileID: 2800000, guid: 06834187239f501419d89b63548555d4, type: 3}
+        m_Scale: {x: 0.004166667, y: 0.004166667}
+        m_Offset: {x: 0, y: 0}
+    - _MaskMap0:
+        m_Texture: {fileID: 2800000, guid: 2997051dab65cb043baa65f9911084fb, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MaskMap1:
+        m_Texture: {fileID: 2800000, guid: 7769501473fbd9949bf5ffdae91401e0, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MaskMap2:
+        m_Texture: {fileID: 2800000, guid: c60ae60f0cb2023439591a527a00fc05, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MaskMap3:
+        m_Texture: {fileID: 2800000, guid: 18e040c0578933f40af4155eb09ba7fe, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _NormalMap0:
+        m_Texture: {fileID: 2800000, guid: c6ac32c5ec1257a408529ca36405d47f, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _NormalMap1:
+        m_Texture: {fileID: 2800000, guid: eae7913441aa07540b9b18b5ba21d0ff, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _NormalMap2:
+        m_Texture: {fileID: 2800000, guid: 89137360d6dc50b458285246a0ff1e28, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _NormalMap3:
+        m_Texture: {fileID: 2800000, guid: ec2d1b628d77d854683814a2a5d1f07c, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - unity_Lightmaps:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - unity_LightmapsInd:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - unity_ShadowMasks:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - _AddPrecomputedVelocity: 0
+    - _AlphaCutoffEnable: 0
+    - _AlphaDstBlend: 0
+    - _AlphaSrcBlend: 1
+    - _BlendMode: 0
+    - _CARVE_LAYERS: 3
+    - _CarveAntiTiling: 0
+    - _CarveAntiTilingCell: 2
+    - _CarveAutoLOD: 2
+    - _CarveBlendSharpness: 8
+    - _CarveCasterSteps: 0.5
+    - _CarveCliff: 1
+    - _CarveCliffSlope: 0.8
+    - _CarveCurvature: 0
+    - _CarveCurvatureScale: 1
+    - _CarveDebug: 0
+    - _CarveDepth: 0.06
+    - _CarveFadeEnd: 12
+    - _CarveFadeStart: 10
+    - _CarveHeightBlend: 1
+    - _CarveLayerBlendSoftness: 0.15
+    - _CarveLayerHeight0: 0.5
+    - _CarveLayerHeight1: 1
+    - _CarveLayerHeight2: 0.45
+    - _CarveLayerHeight3: 0.5
+    - _CarveLayerMaskSource: 0
+    - _CarveLayerMaskUV: 0
+    - _CarveLayerOffset0: 0
+    - _CarveLayerOffset1: 0
+    - _CarveLayerOffset2: 0
+    - _CarveLayerOffset3: 0.1
+    - _CarveMapping: 0
+    - _CarveMaxSteps: 10.3
+    - _CarveMinSteps: 8
+    - _CarveOcclusion: 1
+    - _CarveOcclusionRadius: 0.04
+    - _CarveRefineSteps: 1.39
+    - _CarveSelfShadow: 0.661
+    - _CarveShadowSoftness: 3
+    - _CarveShadowSteps: 8.9
+    - _CarveSilhouette: 0
+    - _CarveSpecOcclusion: 1
+    - _CarveStability: 0
+    - _CarveTracing: 1
+    - _ConservativeDepthOffsetEnable: 1
+    - _Cull: 2
+    - _CullMode: 2
+    - _CullModeForward: 2
+    - _DepthOffsetEnable: 1
+    - _DoubleSidedEnable: 0
+    - _DoubleSidedGIMode: 0
+    - _DoubleSidedNormalMode: 2
+    - _DstBlend: 0
+    - _DstBlend2: 0
+    - _EnableBlendModePreserveSpecularLighting: 1
+    - _EnableFogOnTransparent: 1
+    - _ExcludeFromTUAndAA: 0
+    - _LayerCount: 4
+    - _MaterialID: 1
+    - _MaterialTypeMask: 2
+    - _Metallic0: 1
+    - _Metallic1: 1
+    - _Metallic2: 1
+    - _Metallic3: 1
+    - _NormalScale0: 1
+    - _NormalScale1: 1
+    - _NormalScale2: 1
+    - _NormalScale3: 1
+    - _OpaqueCullMode: 2
+    - _PerPixelSorting: 0
+    - _RayTracing: 0
+    - _ReceivesSSR: 1
+    - _ReceivesSSRTransparent: 0
+    - _RefractionModel: 0
+    - _RenderQueueType: 1
+    - _RequireSplitLighting: 0
+    - _Smoothness0: 1
+    - _Smoothness1: 1
+    - _Smoothness2: 1
+    - _Smoothness3: 1
+    - _SrcBlend: 1
+    - _StencilRef: 0
+    - _StencilRefDepth: 8
+    - _StencilRefDistortionVec: 4
+    - _StencilRefGBuffer: 10
+    - _StencilRefMV: 40
+    - _StencilWriteMask: 6
+    - _StencilWriteMaskDepth: 9
+    - _StencilWriteMaskDistortionVec: 4
+    - _StencilWriteMaskGBuffer: 15
+    - _StencilWriteMaskMV: 41
+    - _SupportDecals: 1
+    - _SurfaceType: 0
+    - _TransmissionEnable: 0
+    - _TransparentBackfaceEnable: 0
+    - _TransparentCullMode: 2
+    - _TransparentDepthPostpassEnable: 0
+    - _TransparentDepthPrepassEnable: 0
+    - _TransparentSortPriority: 0
+    - _TransparentWritingMotionVec: 0
+    - _TransparentZWrite: 0
+    - _UseShadowThreshold: 0
+    - _ZTestDepthEqualForOpaque: 3
+    - _ZTestGBuffer: 4
+    - _ZTestTransparent: 4
+    - _ZWrite: 1
+    m_Colors:
+    - _BaseColor0: {r: 1, g: 1, b: 1, a: 1}
+    - _BaseColor1: {r: 1, g: 1, b: 1, a: 1}
+    - _BaseColor2: {r: 1, g: 1, b: 1, a: 1}
+    - _BaseColor3: {r: 1, g: 1, b: 1, a: 1}
+    - _DoubleSidedConstants: {r: 1, g: 1, b: -1, a: 0}
+    - _EmissionColor: {r: 1, g: 1, b: 1, a: 1}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1

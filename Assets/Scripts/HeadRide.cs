@@ -64,6 +64,21 @@ public class HeadRide : MonoBehaviour
         targetRest = cameraTarget.localPosition;
         distanceRest = follow.CameraDistance;
         shoulderRest = follow.ShoulderOffset;
+        NeverCull(gameObject);
+    }
+
+    // a player's bird is always drawn, however small: its LOD group hid it under 5% of the screen's height, which the
+    // riding camera (pulled back to frame the mount) and a low LOD bias (0.6, Potato's 0.3) reached, so the player
+    // vanished while riding. Its last LOD now runs all the way down instead
+    public static void NeverCull(GameObject bird)
+    {
+        foreach (LODGroup group in bird.GetComponentsInChildren<LODGroup>(true))
+        {
+            LOD[] lods = group.GetLODs();
+            if (lods.Length == 0) continue;
+            lods[^1].screenRelativeTransitionHeight = 0;
+            group.SetLODs(lods);
+        }
     }
 
     void OnEnable() { dismountAction.Enable(); assassinateAction.Enable(); }

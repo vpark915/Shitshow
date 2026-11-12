@@ -45,8 +45,9 @@ static class FrameStats
 
     // A/B: GPU and main thread time with each suspect switched off in turn, everything put back after. Play mode only
     // (scene changes revert on exit; the asset toggles are restored here)
-    static readonly string[] Steps = { "baseline", "SSGI off", "GTAO off", "volumetric fog off", "sun shadows off", "terrain trees + grass off",
-        "post-processing off", "render scale 0.5", "all characters hidden", "baseline again" };
+    static readonly string[] Steps = { "baseline", "HTrace GTAO off", "HTrace SSGI off", "SSAO off", "volumetric fog off", "decals off", "Carve relief flat", "Carve Low preset",
+        "sun shadows off", "terrain trees + grass off", "post-processing off", "render scale 0.5", "all characters hidden", "NPCs paused",
+        "character shadows off", "flock birds hidden", "NPCs past 60 m hidden", "baseline again" };
     static int step, stepFrame;
     static double stepGpu, stepMain;
     static StringBuilder abLog;
@@ -88,6 +89,13 @@ static class FrameStats
     }
 
     static List<Renderer> hidden = new List<Renderer>();
+    static List<SkinnedMeshRenderer> shadowless = new List<SkinnedMeshRenderer>();
+
+    static void Hide(IEnumerable<Renderer> renderers, bool off)
+    {
+        if (off) { hidden = renderers.Where(r => r.enabled).ToList(); foreach (Renderer r in hidden) r.enabled = false; }
+        else foreach (Renderer r in hidden) if (r) r.enabled = true;
+    }
 
     static void Apply(string what, bool off)
     {
@@ -95,9 +103,45 @@ static class FrameStats
         var renderer = (UnityEngine.Rendering.Universal.UniversalRendererData)pipeline.rendererDataList[0];
         switch (what)
         {
-            case "SSGI off": Feature(renderer, "ScreenSpaceGlobalIlluminationURP", off); break;
-            case "GTAO off": Feature(renderer, "GroundTruthAmbientOcclusion", off); break;
+            case "SSAO off": Feature(renderer, "ScreenSpaceAmbientOcclusion", off); break;
+            case "HTrace GTAO off": Feature(renderer, "HTraceAORendererFeature", off); if (off) Shader.DisableKeyword("_SCREEN_SPACE_OCCLUSION"); break;
+            case "HTrace SSGI off": Feature(renderer, "HTraceSSGIRendererFeature", off); break;
             case "volumetric fog off": Feature(renderer, "VolumetricFogRendererFeature", off); break;
+            case "decals off": Feature(renderer, "DecalRendererFeature", off); break;
+            case "Carve relief flat": // no marching at all: what the parallax costs over plain lit surfaces
+                JamzeySt.Carve.CarveGlobals.DepthScale = off ? 0f : 1f; break;
+            case "Carve Low preset":
+                if (off)
+                {
+                    JamzeySt.Carve.CarveGlobals.StepScale = 0.6f; JamzeySt.Carve.CarveGlobals.DistanceScale = 0.5f;
+                    JamzeySt.Carve.CarveGlobals.ShadowStepScale = 0.5f; JamzeySt.Carve.CarveGlobals.ExtrasDistance = 20f;
+                    JamzeySt.Carve.CarveGlobals.Occlusion = 0f; JamzeySt.Carve.CarveGlobals.CliffAndSpecular = 0f;
+                }
+                else GraphicsQuality.CarveLow(); // the game's own (Normal runs on Low)
+                break;
+            case "character shadows off": // the people and birds drawn a second time into the sun's shadow map
+                if (off)
+                {
+                    shadowless = Object.FindObjectsByType<SkinnedMeshRenderer>(FindObjectsSortMode.None).Where(r => r.shadowCastingMode != UnityEngine.Rendering.ShadowCastingMode.Off).ToList();
+                    foreach (var r in shadowless) r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                }
+                else foreach (var r in shadowless) if (r) r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
+                break;
+            case "flock birds hidden":
+                Hide(Object.FindAnyObjectByType<BirdFlocks>().GetComponentsInChildren<SkinnedMeshRenderer>().Cast<Renderer>(), off); break;
+            case "NPCs past 60 m hidden":
+                Vector3 eye = Camera.main.transform.position;
+                Hide(Object.FindObjectsByType<Npc>(FindObjectsSortMode.None).Where(n => Vector3.Distance(n.transform.position, eye) > 60)
+                    .SelectMany(n => n.GetComponentsInChildren<SkinnedMeshRenderer>()).Cast<Renderer>(), off);
+                break;
+            case "NPCs paused": // their scripts, animators and agents: the main thread's share
+                foreach (Npc npc in Object.FindObjectsByType<Npc>(FindObjectsSortMode.None))
+                {
+                    npc.enabled = !off;
+                    if (npc.TryGetComponent(out Animator a)) a.enabled = !off;
+                    if (npc.TryGetComponent(out UnityEngine.AI.NavMeshAgent agent)) agent.enabled = !off;
+                }
+                break;
             case "sun shadows off":
                 RenderSettings.sun.shadows = off ? LightShadows.None : LightShadows.Soft; break;
             case "terrain trees + grass off":
@@ -116,10 +160,17 @@ static class FrameStats
         }
     }
 
+    // off, then back to how it was (a feature that was already off stays off)
+    static readonly Dictionary<string, bool> wasOn = new Dictionary<string, bool>();
+
     static void Feature(UnityEngine.Rendering.Universal.UniversalRendererData renderer, string name, bool off)
     {
         foreach (var feature in renderer.rendererFeatures)
-            if (feature && feature.GetType().Name == name) feature.SetActive(!off);
+        {
+            if (!feature || feature.GetType().Name != name) continue;
+            if (off) { wasOn[name] = feature.isActive; feature.SetActive(false); }
+            else if (wasOn.TryGetValue(name, out bool on)) feature.SetActive(on);
+        }
     }
 
     // which meshes the triangles come from: visible renderers grouped by mesh, and terrain trees by prototype

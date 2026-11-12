@@ -67,6 +67,6 @@ public class Music : MonoBehaviour
     {
         menu.Fade(Open, fade);
         game.Fade(!Open, fade);
-        if (!Open) GameSettings.Showing = false; // the settings sign goes with the menu that opened it
+        if (!Open) GameSettings.Showing = Credits.Showing = false; // the settings and credits signs go with the menu that opened them
     }
 }

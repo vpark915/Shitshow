@@ -121,6 +121,9 @@ public class Weapon : MonoBehaviour
     public bool OutOfAmmo => Ammo == 0 && reloadsLeft == 0 && !IsReloading;
 
     [HideInInspector] public bool unseen; // a food ability (Low profile): people and police pay no attention to its shots
+    [HideInInspector] public bool badge; // HuntMatch: the Pigeon during a round is the detective, so the police leave it be
+    // the police don't go after it or make it wanted
+    public bool PoliceIgnore => unseen || badge;
 
     Camera cam;
     Animator animator;

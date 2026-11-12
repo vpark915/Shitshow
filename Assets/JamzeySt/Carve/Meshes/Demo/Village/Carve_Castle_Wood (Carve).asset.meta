@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 6b7527fb314c84f48b5b19f81d7faa6a
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 4300000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 418204
+  packageName: "Carve \u2013 Silhouette Parallax Occlusion Mapping for HDRP & URP"
+  packageVersion: 1.0.0
+  assetPath: Assets/JamzeySt/Carve/Meshes/Demo/Village/Carve_Castle_Wood (Carve).asset
+  uploadId: 1023298

@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: fc7f63fa7d29a0543b36ad4322e1e485
+TextScriptImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 418204
+  packageName: "Carve \u2013 Silhouette Parallax Occlusion Mapping for HDRP & URP"
+  packageVersion: 1.0.0
+  assetPath: Assets/JamzeySt/Carve/Textures/Samples/WoodPlanks/WoodPlanks.json
+  uploadId: 1023298

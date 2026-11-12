@@ -22,7 +22,7 @@ class BlockoutPostprocessor : AssetPostprocessor
     const float GridCell = 4f; // metres
 
     // bump to force a reimport after changing this file
-    public override uint GetVersion() => 36; // 36 ground relief x2; 35 smoothness x1.05 for sun glints; 34 buildings and benches mesh colliders; 33 rim jets flow; 32 lightmap UVs;24 arch tessellation cut (undone); 26 smoothness, granite, weathering; 27 _Glossiness; 28 parallax; 29 MatteImports; 30 displacement retired, deeper stone, granite parallax; 31 deeper brick
+    public override uint GetVersion() => 37; // 37 Carve on the parallax surfaces; 36 ground relief x2; 35 smoothness x1.05 for sun glints; 34 buildings and benches mesh colliders; 33 rim jets flow; 32 lightmap UVs;24 arch tessellation cut (undone); 26 smoothness, granite, weathering; 27 _Glossiness; 28 parallax; 29 MatteImports; 30 displacement retired, deeper stone, granite parallax; 31 deeper brick
 
     // the meshes are rewritten on import (UVs, GridCut), and the NavMesh bake reads the paths', which needs them readable
     void OnPreprocessModel()
@@ -186,7 +186,7 @@ class BlockoutPostprocessor : AssetPostprocessor
         ["WSP_play_accent"] = ("WSP_play_green_Color", null, 1f, 0.45f, 0, 0),
     };
 
-    // relief: metres of depth by parallax occlusion (Shitshow/Parallax Lit, from the set's <set>_Displacement.jpg):
+    // relief: metres of depth by Carve's parallax (CarveMaps, from the set's <set>_Displacement.jpg):
     // the pebbles, mortar lines and grass get real-looking depth on flat meshes, for a few samples per pixel on screen.
     // 0 for plastic and rubber (nothing to sink); painted metal gets 2 mm so its chips read.
     // Each set's height map black and white points (2nd/98th percentiles, measured in Blender) stretch it to the full depth.
@@ -196,8 +196,20 @@ class BlockoutPostprocessor : AssetPostprocessor
         ["Ground054"] = (0.40f, 0.85f), ["Ground078"] = (0.24f, 0.68f), ["Marble012"] = (0.64f, 0.98f), ["PavingStones046"] = (0.53f, 0.82f),
         ["RoofingTiles013A"] = (0.27f, 0.91f), ["Wood051"] = (0.32f, 0.65f),
         ["PaintedMetal004"] = (0.55f, 0.92f), // no height map in the set: its roughness map inverted (ffmpeg negate), so the chips and scratches sink
+        ["Rock020"] = (0.09f, 0.82f), // relief only (ReliefSet)
     };
-    internal const string ParallaxShader = "Assets/Parallax/ParallaxLit.shader";
+
+    // surfaces whose relief (height and normal maps) comes from another set than their colour and smoothness: the
+    // granite and the arch's marble sets are polished slabs, near flat, so they carve like weathered, dressed stone
+    // instead (ambientCG Rock020, CC0)
+    internal static readonly Dictionary<string, string> ReliefSet = new Dictionary<string, string>
+    {
+        ["WSP_granite"] = "Rock020", ["WSP_marble"] = "Rock020",
+    };
+
+    // Carve surfaces whose repeats showed (the arch's broad faces): each cell of the texture turned at random (Carve's
+    // Anti-Tiling), so the same rocks don't line up across a wall
+    static readonly HashSet<string> AntiTiled = new HashSet<string> { "WSP_marble" };
 
     // Weathering on every listed material: URP Lit's detail map as a large, slightly warm grime layer (x2 detail: 0.5 = no
     // change, darker = dust and soot), from ambientCG's SurfaceImperfections013 stains (made in Blender). Tiled at
@@ -212,13 +224,15 @@ class BlockoutPostprocessor : AssetPostprocessor
     {
         if (!Surfaces.TryGetValue(material.name, out var surface)) return false;
         string set = surface.set == null ? null : surface.set + "_2K-JPG_";
+        string reliefSet = ReliefSet.TryGetValue(material.name, out string rock) ? rock : surface.set;
+        string relief = reliefSet == null ? null : reliefSet + "_2K-JPG_";
         Texture2D color = Load(surface.color ?? set + "Color");
         if (set != null)
         {
-            material.SetTexture("_BumpMap", Load(set + "NormalGL"));
+            material.SetTexture("_BumpMap", Load(relief + "NormalGL"));
             material.SetFloat("_BumpScale", NormalStrength);
             material.EnableKeyword("_NORMALMAP");
-            Texture2D occlusion = Load(set + "AmbientOcclusion"); // not every set has one
+            Texture2D occlusion = Load(relief + "AmbientOcclusion"); // not every set has one
             if (occlusion)
             {
                 material.SetTexture("_OcclusionMap", occlusion);
@@ -241,18 +255,24 @@ class BlockoutPostprocessor : AssetPostprocessor
         material.SetFloat("_Metallic", Mathf.Clamp01(surface.metallic * MetallicScale));
         material.SetFloat("_SmoothnessTextureChannel", 0); // from the metallic map's alpha, not the colour map's
 
-        Texture2D heights;
-        if (surface.relief > 0 && HeightRange.TryGetValue(surface.set ?? "", out var range) && (heights = Load(set + "Displacement")))
+        if (surface.relief > 0 && HeightRange.ContainsKey(reliefSet ?? ""))
         {
-            // Lit's own Height Map slot, but Parallax Lit, whose parallax steps through it (Lit's is a single offset)
-            context.DependsOnArtifact(ParallaxShader);
-            Shader parallax = AssetDatabase.LoadAssetAtPath<Shader>(ParallaxShader);
-            if (parallax) material.shader = parallax; // still Lit (one-step parallax) if the shader isn't there yet
-            material.SetTexture("_ParallaxMap", heights);
-            material.SetFloat("_Parallax", surface.relief * ParallaxStrength / surface.metres); // depth in texture repeats
-            material.SetFloat("_ParallaxMin", range.black);
-            material.SetFloat("_ParallaxMax", range.white);
-            material.EnableKeyword("_PARALLAXMAP");
+            // Carve (CarveMaps) once its maps are made: its height pre-stretched and its mask packed; no weathering layer
+            // (Carve has no detail map). Until then (or if Carve can't load) plain URP Lit, flat, with the grime below
+            Texture2D carveHeight = Load(relief + "CarveHeight", ".png"), carveMask = Load(set + "CarveMask", ".png");
+            context.DependsOnArtifact(CarveMaps.ShaderPath);
+            Shader carve = AssetDatabase.LoadAssetAtPath<Shader>(CarveMaps.ShaderPath);
+            if (carve && carveHeight)
+            {
+                string pyramidPath = CarveMaps.Pyramid(carveHeight);
+                Texture2D pyramid = System.IO.File.Exists(pyramidPath) ? AssetDatabase.LoadAssetAtPath<Texture2D>(pyramidPath) : null;
+                if (pyramid) context.DependsOnArtifact(pyramidPath);
+                CarveMaps.Apply(material, carve, color ? color : material.GetTexture("_BaseMap"), material.GetTextureScale("_BaseMap"),
+                    material.GetTexture("_BumpMap"), NormalStrength, carveMask, Mathf.Clamp01(surface.metallic * MetallicScale),
+                    surface.smoothness * SmoothnessScale * CarveMaps.SmoothnessScale, carveHeight, pyramid, surface.relief * ParallaxStrength);
+                material.SetFloat("_CarveAntiTiling", AntiTiled.Contains(material.name) ? 1 : 0);
+                return true;
+            }
         }
 
         material.SetTexture("_DetailAlbedoMap", Load("WSP_Weathering_DetailX2", ".png"));

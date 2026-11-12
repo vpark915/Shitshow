@@ -1,0 +1,25 @@
+{
+    "name": "JamzeySt.Carve.Demo.InputSystem",
+    "rootNamespace": "JamzeySt.Carve.Demo",
+    "references": [
+        "JamzeySt.Carve.Demo",
+        "Unity.InputSystem"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [
+        "CARVE_INPUT_SYSTEM"
+    ],
+    "versionDefines": [
+        {
+            "name": "com.unity.inputsystem",
+            "expression": "1.0.0",
+            "define": "CARVE_INPUT_SYSTEM"
+        }
+    ],
+    "noEngineReferences": false
+}

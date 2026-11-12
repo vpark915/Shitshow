@@ -24,7 +24,6 @@ MonoBehaviour:
   compactSUVs: 7
   largeSUVs: 6
   minivans: 7
-  trafficCars: 10
   trafficSpeed: 8
   citiBikes: 10
   bikeStations: 4
@@ -34,6 +33,7 @@ MonoBehaviour:
   bagels: 10
   bread: 10
   foodDropChance: 0.3
+  trashCans: 48
   pigeonFlocks: 5
   seagullFlocks: 3
   flockMin: 8

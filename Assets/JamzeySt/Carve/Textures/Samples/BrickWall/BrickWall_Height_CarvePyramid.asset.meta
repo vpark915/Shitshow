@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: fb0f2ad85a09b6b46bb73f4a2a03241a
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 2800000
+  userData: carve-pyramid;v5;src=891c93243ba0eca4192a08ed22414dc7;hash=0068ffa7a4c350ef32e46b8887146037
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 418204
+  packageName: "Carve \u2013 Silhouette Parallax Occlusion Mapping for HDRP & URP"
+  packageVersion: 1.0.0
+  assetPath: Assets/JamzeySt/Carve/Textures/Samples/BrickWall/BrickWall_Height_CarvePyramid.asset
+  uploadId: 1023298

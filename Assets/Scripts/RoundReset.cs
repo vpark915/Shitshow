@@ -10,6 +10,7 @@ using UnityEngine;
 public static class RoundReset
 {
     static readonly Dictionary<Vehicle, (Vector3 at, Quaternion turn)> parked = new();
+    static Vehicle[] order = { };
 
     // where every vehicle stands as the scene starts (HuntMatch.Start), so a round can put them back
     public static void Remember()
@@ -17,7 +18,18 @@ public static class RoundReset
         parked.Clear();
         foreach (Vehicle v in Object.FindObjectsByType<Vehicle>(FindObjectsSortMode.None))
             parked[v] = (v.transform.position, v.transform.rotation);
+        // numbered by where they started, the same in both games (same scene), so a driver can say which one (NetBird)
+        order = new List<Vehicle>(parked.Keys).ToArray();
+        System.Array.Sort(order, (a, b) =>
+        {
+            Vector3 p = parked[a].at, q = parked[b].at;
+            return p.x != q.x ? p.x.CompareTo(q.x) : p.z != q.z ? p.z.CompareTo(q.z) : string.CompareOrdinal(a.name, b.name);
+        });
     }
+
+    // a vehicle's number for the other game, -1 if it isn't one of the scene's; and the vehicle with that number
+    public static int Number(Vehicle v) => System.Array.IndexOf(order, v);
+    public static Vehicle Numbered(int n) => n >= 0 && n < order.Length ? order[n] : null;
 
     // run on the match object; the minimap finds the new police a frame on, once the old crowd is gone
     public static IEnumerator Run()

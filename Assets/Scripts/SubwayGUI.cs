@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-// The menus as NYC subway signs, to match the HUD (WeaponHUD): a black sign under a thin white rule, white Inter, and
+// The menus as NYC subway signs, to match the HUD (WeaponHUD): a black sign under a thin white rule, white Arimo, and
 // every choice a row led by a line bullet numbered 1, 2, 3... in the colour of the subway line that number names.
 // IMGUI, on the 1280x720 canvas the menus were already laid out on: Begin, then Title / Button / Slider / Field / Note, then End.
 // Signs float (a slow sway and bob, like the HUD's idle), pop in when they appear, and a chosen item bursts the whole
@@ -40,7 +40,7 @@ public static class SubwayGUI
 
     const float Pop = 0.05f, Settle = 0.12f, BurstUp = 0.06f, BurstOut = 0.16f, HoverUp = 0.04f, HoverBack = 0.14f;
 
-    public static Font Font => font ? font : font = Resources.Load<Font>("Fonts/Inter-Regular");
+    public static Font Font => font ? font : font = Resources.Load<Font>("Fonts/Arimo-Regular");
 
     static void Styles()
     {
@@ -236,6 +236,33 @@ public static class SubwayGUI
         return value;
     }
 
+    // a setting picked from a list: its name, then the value between a left and a right arrow. Returns -1 for a click on
+    // the left one, 1 for the right one, 0 otherwise; an arrow that can't go further is dimmed and does nothing. It acts
+    // at once, without a burst, so it can be clicked through quickly
+    public static int Stepper(string text, string shown, bool canLeft, bool canRight)
+    {
+        Rect r = GUILayoutUtility.GetRect(0, 44, GUILayout.ExpandWidth(true));
+        GUI.Label(new Rect(r.x, r.y, r.width, r.height), text, sliderLabel);
+        const float side = 236, disc = 32;
+        Rect left = new Rect(r.xMax - side, r.y + (r.height - disc) / 2, disc, disc);
+        Rect right = new Rect(r.xMax - disc, left.y, disc, disc);
+        var value = new GUIStyle(sliderValue) { alignment = TextAnchor.MiddleCenter, fontSize = 16, normal = { textColor = White } };
+        GUI.Label(new Rect(left.xMax, r.y, right.x - left.xMax, r.height), shown, value);
+        int Arrow(Rect at, string glyph, bool enabled, int step)
+        {
+            bool over = enabled && at.Contains(Event.current.mousePosition);
+            Color was = GUI.color;
+            GUI.color = enabled ? (over ? White : Grey) : new Color(1, 1, 1, 0.2f);
+            GUI.DrawTexture(at, circle);
+            GUI.color = was;
+            GUI.Label(at, glyph, new GUIStyle(bullet) { normal = { textColor = Black } });
+            if (!enabled || !GUI.Button(at, GUIContent.none, GUIStyle.none)) return 0;
+            Sfx.Play("menu click");
+            return step;
+        }
+        return Arrow(left, "<", canLeft, -1) + Arrow(right, ">", canRight, 1);
+    }
+
     // a text box: white type over dark grey, underlined in white
     public static string Field(string text, int maxLength, string placeholder = "")
     {
@@ -251,6 +278,31 @@ public static class SubwayGUI
         GUILayout.Space(4);
         GUILayout.Label(text, note);
     }
+
+    // a row of a table on a menu sign (HuntMatch's scoreboard), between Begin and End: a bold name, then one column per
+    // cell, wrapped to fit. header: the column titles, grey and underlined; small: the HUD's smaller type (task lists).
+    // width is the sign's inside width (the sign's minus 36)
+    public static void Row(float width, bool header, bool small, string name, params string[] cells)
+    {
+        Rect r = GUILayoutUtility.GetRect(width, RowHeight(width, header, small, cells), GUILayout.ExpandWidth(true));
+        GUIStyle cell = header ? note : small ? smallBody : body;
+        float column = (width - RowName) / cells.Length;
+        GUI.Label(new Rect(r.x, r.y, RowName, 26), name, header ? note : sliderLabel);
+        for (int i = 0; i < cells.Length; i++)
+            GUI.Label(new Rect(r.x + RowName + i * column, r.y + (header || small ? 0 : 2), column - 8, r.height), cells[i], cell);
+        if (header) Fill(new Rect(r.x, r.yMax - 4, r.width, 1), new Color(1, 1, 1, 0.35f));
+    }
+
+    public static float RowHeight(float width, bool header, bool small, params string[] cells)
+    {
+        Styles();
+        GUIStyle cell = header ? note : small ? smallBody : body;
+        float column = (width - RowName) / cells.Length, tallest = 26;
+        foreach (string text in cells) tallest = Mathf.Max(tallest, cell.CalcHeight(new GUIContent(text), column - 8));
+        return tallest + (header ? 10 : 6);
+    }
+
+    const float RowName = 170;
 
     // a sign with a title and running text, for match info and tutorial steps: no buttons, so no layout area. Keyed by
     // where it sits (not its height, which changes as tasks get done) unless given a key; badge > 0 leads the heading
@@ -326,6 +378,15 @@ public static class SubwayGUI
         text.gameObject.AddComponent<Backing>();
     }
 
+    // how far a prompt's sign reaches past its words on each side
+    public const float PromptPad = 14;
+
+    // raises or lowers a backed text (its height before the pop-in), for a prompt that has to keep clear of other signs
+    public static void Raise(Text text, float y)
+    {
+        if (text && text.TryGetComponent(out Backing backing)) backing.baseAt.y = y;
+    }
+
     // the prompt was acted on: a copy of it bursts away where it stood, and the prompt itself pops back in a moment
     // later if it's still wanted (a cart looked at after buying from it)
     public static void Burst(Text text)
@@ -338,10 +399,10 @@ public static class SubwayGUI
         Text text;
         RectTransform sign;
         Image rule;
-        const float Pad = 14;
+        const float Pad = PromptPad;
 
         Vector3 baseScale;
-        Vector2 baseAt;
+        public Vector2 baseAt;
         string shown; // what it said last frame, digits aside: new words pop it in again
         float appear = -10, hideUntil, burstFrom = -1; // burstFrom >= 0: this is a copy bursting away
 

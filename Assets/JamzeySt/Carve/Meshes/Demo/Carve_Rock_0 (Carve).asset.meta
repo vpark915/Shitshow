@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 7d74afa8ee2d20c42b8adbc44702eb22
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 4300000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 418204
+  packageName: "Carve \u2013 Silhouette Parallax Occlusion Mapping for HDRP & URP"
+  packageVersion: 1.0.0
+  assetPath: Assets/JamzeySt/Carve/Meshes/Demo/Carve_Rock_0 (Carve).asset
+  uploadId: 1023298

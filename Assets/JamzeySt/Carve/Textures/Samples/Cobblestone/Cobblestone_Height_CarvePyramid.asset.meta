@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 6c88aeaa9acde3e4e8d161ffceeaf97e
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 2800000
+  userData: carve-pyramid;v5;src=fbe103f829d55e948aa8fbeab54b8a42;hash=920b324e4972e7961b7fce8cad752076
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 418204
+  packageName: "Carve \u2013 Silhouette Parallax Occlusion Mapping for HDRP & URP"
+  packageVersion: 1.0.0
+  assetPath: Assets/JamzeySt/Carve/Textures/Samples/Cobblestone/Cobblestone_Height_CarvePyramid.asset
+  uploadId: 1023298

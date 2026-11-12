@@ -1,0 +1,31 @@
+{
+    "name": "JamzeySt.Carve.Editor.HDRP",
+    "rootNamespace": "JamzeySt.Carve.Editor.HDRP",
+    "references": [
+        "JamzeySt.Carve.Editor",
+        "JamzeySt.Carve.Runtime",
+        "Unity.RenderPipelines.Core.Editor",
+        "Unity.RenderPipelines.Core.Runtime",
+        "Unity.RenderPipelines.HighDefinition.Editor",
+        "Unity.RenderPipelines.HighDefinition.Runtime"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [
+        "CARVE_HDRP"
+    ],
+    "versionDefines": [
+        {
+            "name": "com.unity.render-pipelines.high-definition",
+            "expression": "17.0.0",
+            "define": "CARVE_HDRP"
+        }
+    ],
+    "noEngineReferences": false
+}

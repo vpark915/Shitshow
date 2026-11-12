@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: c19d622638ed0284c9fbf828fe4bf388
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 2100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 418204
+  packageName: "Carve \u2013 Silhouette Parallax Occlusion Mapping for HDRP & URP"
+  packageVersion: 1.0.0
+  assetPath: Assets/JamzeySt/Carve/Demo/Materials/Carve_CliffRock_TriplanarWorld.mat
+  uploadId: 1023298

@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 7ef6357a63720644eaa5bf1ae7791c5f
+TextScriptImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 418204
+  packageName: "Carve \u2013 Silhouette Parallax Occlusion Mapping for HDRP & URP"
+  packageVersion: 1.0.0
+  assetPath: Assets/JamzeySt/Carve/Textures/Samples/Fieldstone/Fieldstone.json
+  uploadId: 1023298

@@ -13,7 +13,8 @@ using UnityEngine.Serialization;
 // Pigeon (hunter) first, then roles swap.
 // - The Pigeon wins a round by killing the Seagull, or by the clock running out with Seagull tasks unfinished.
 // - The Seagull wins by finishing every task and still being alive at 0:00. A Seagull that hasn't finished them by
-//   then loses the whole match outright, whatever happens in the other round (both do: it's a draw).
+//   then loses the whole match outright, whatever happens in the other round (both do: it's a draw). Each task it
+//   finishes puts Task Bonus (2:00) back on the clock.
 // - A dead Pigeon comes back at its spawn after a few seconds with its status (food) gone; the clock keeps running.
 // - Match: otherwise the faster kill as Pigeon wins.
 // The server keeps the clock and the score; each game watches its own bird for deaths and tasks and reports them.
@@ -21,6 +22,7 @@ using UnityEngine.Serialization;
 // so both games draw the same ones; HuntTasks says how each kind of task is done. A long task (Chain) is several of
 // them in order: only its current step counts, and it's ticked off when the last step is done.
 // The map is the scene: the host's is told to the joining game, which loads it and joins again if it's on another one.
+// After round 2 a scoreboard shows both rounds; a rematch starts once both players accept it.
 // The starting menu also opens the Mechanics Gym, offline practice.
 public class HuntMatch : NetworkBehaviour
 {
@@ -76,9 +78,15 @@ public class HuntMatch : NetworkBehaviour
     static string rejoin;
 
     public float roundLength = 300f;
+    [Tooltip("Seconds added to the clock each time the Seagull finishes a task")]
+    public float taskBonus = 120f;
     [Tooltip("Seconds between the two players being in and the first round, and between rounds")]
     public float breather = 5f;
     public float pigeonRespawn = 3f;
+    [Tooltip("The Seagull's health each round (the Pigeon keeps the rig's own, 100): the hunted one gets more to survive the chase")]
+    public float seagullHealth = 200f;
+    [Tooltip("The Pigeon's walking and running speed each round, times the rig's own (the Seagull keeps the rig's)")]
+    public float pigeonSpeed = 1.3f;
     [Tooltip("Seconds the Pigeon sees exactly where a finished task was done")]
     public float taskPing = 3f;
     public Transform hunterSpawn, huntedSpawn;
@@ -99,6 +107,12 @@ public class HuntMatch : NetworkBehaviour
     // Unfinished a round the Seagull ran out of time on its tasks (below every kill time, so that Pigeon wins the match)
     const float Unfinished = -2;
     readonly NetworkVariable<float> kill1 = new(-1), kill2 = new(-1);
+    // each round's Pigeon deaths, for the scoreboard
+    readonly NetworkVariable<int> deaths1 = new(), deaths2 = new();
+    // how many matches these two have played (a rematch is a new round 1), and who's accepted a rematch: 1 the host, 2 the other
+    readonly NetworkVariable<int> match = new();
+    readonly NetworkVariable<byte> ready = new();
+    float elapsed; // server: seconds into the round (the clock itself goes back up with each task)
 
     public bool Playing => IsSpawned && phase.Value == Phase.Playing;
     public bool Started => IsSpawned && round.Value > 0;
@@ -109,6 +123,7 @@ public class HuntMatch : NetworkBehaviour
     // this game's own bird
     GameObject rig;
     Health health;
+    float pigeonHealth; // the rig's own max health, for the Pigeon and outside rounds
     Weapon weapon;
     FoodPowers powers;
     HeadRide ride;
@@ -138,7 +153,10 @@ public class HuntMatch : NetworkBehaviour
     float respawnAt = -1;
     Vector3 homeAt; // where the bird starts: offline and in the waiting room, a death comes back here
     Quaternion homeTurn;
-    int lastRound;
+    int lastRound, kept; // the match and round last begun, and last kept for the scoreboard (match * 10 + round)
+    // each round's tasks as the scoreboard lists them, kept as the round ends
+    readonly List<(string what, bool done)>[] played = { new(), new() };
+    float bonusUntil; // the clock shows the bonus a task just put on it
 
     void Awake()
     {
@@ -150,6 +168,7 @@ public class HuntMatch : NetworkBehaviour
         rig = powers.gameObject;
         rig.TryGetComponent(out health);
         health.noRestart = true; // a death respawns the bird (RespawnWhenDead, or the round's own respawns): never reload the scene, which brings the menu back
+        pigeonHealth = health.maxHealth;
         homeAt = rig.transform.position;
         homeTurn = rig.transform.rotation;
         rig.TryGetComponent(out weapon);
@@ -157,7 +176,7 @@ public class HuntMatch : NetworkBehaviour
         rig.TryGetComponent(out input);
         rig.TryGetComponent(out moves);
         PieceEater eater = rig.GetComponentInChildren<PieceEater>();
-        var all = new System.Collections.Generic.List<InputAction> { powers.eggAction, powers.flockAction };
+        var all = new System.Collections.Generic.List<InputAction> { powers.eggAction, powers.flockAction, powers.useAction, powers.nextAction };
         if (weapon) all.AddRange(new[] { weapon.fireAction, weapon.reloadAction, weapon.scopeAction });
         if (ride) all.AddRange(new[] { ride.dismountAction, ride.assassinateAction });
         if (eater) all.Add(eater.eatAction);
@@ -200,8 +219,10 @@ public class HuntMatch : NetworkBehaviour
         try
         {
             await SignIn();
+            StampVersion();
             var options = new SessionOptions { MaxPlayers = 2 }.WithRelayNetwork();
             options.SessionProperties["map"] = new SessionProperty(gameObject.scene.name, VisibilityPropertyOptions.Member); // the joining game loads it
+            options.SessionProperties["version"] = new SessionProperty(Application.version, VisibilityPropertyOptions.Member); // the joining game must match it
             session = await MultiplayerService.Instance.CreateSessionAsync(options);
             // the joining game already has the Hunt Gym open: keep it rather than load it again
             NetworkManager.Singleton.SceneManager.SetClientSynchronizationMode(UnityEngine.SceneManagement.LoadSceneMode.Additive);
@@ -219,7 +240,19 @@ public class HuntMatch : NetworkBehaviour
         try
         {
             await SignIn();
+            StampVersion();
             session = await MultiplayerService.Instance.JoinSessionByCodeAsync(typedCode.Trim().ToUpperInvariant());
+            // a different build from the host's: the two games wouldn't agree, so don't play
+            session.Properties.TryGetValue("version", out SessionProperty version);
+            string theirs = version?.Value ?? "older";
+            if (theirs != Application.version)
+            {
+                await session.LeaveAsync();
+                session = null;
+                if (NetworkManager.Singleton) NetworkManager.Singleton.Shutdown();
+                status = "Version mismatch: you have " + Application.version + ", the host has " + theirs + ". Both players need the latest build from itch.io.";
+                return;
+            }
             // the host is on the other map: leave, load it, and join again from there (Start)
             if (session.Properties.TryGetValue("map", out SessionProperty map) && map.Value != gameObject.scene.name && Application.CanStreamedLevelBeLoaded(map.Value))
             {
@@ -236,6 +269,21 @@ public class HuntMatch : NetworkBehaviour
             Online();
         }
         catch (Exception e) { status = "Couldn't join: " + e.Message; Debug.LogException(e); }
+    }
+
+    // Netcode turns away a game whose protocol version differs from the host's, so a build without the check above
+    // (or one that skips it) still can't join a different build; bump the Version in Player Settings for each release
+    static void StampVersion()
+    {
+        if (NetworkManager.Singleton) NetworkManager.Singleton.NetworkConfig.ProtocolVersion = (ushort)(Hash(Application.version) | 1);
+    }
+
+    // a stable string hash (string.GetHashCode differs between runs)
+    static uint Hash(string text)
+    {
+        uint hash = 2166136261;
+        foreach (char c in text) hash = (hash ^ c) * 16777619;
+        return hash ^ (hash >> 16);
     }
 
     static async System.Threading.Tasks.Task SignIn()
@@ -297,16 +345,20 @@ public class HuntMatch : NetworkBehaviour
     void Update()
     {
         if (!menu && Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame) Pause(!paused);
-        bool open = menu || paused;
+        bool open = menu || paused || (IsSpawned && phase.Value == Phase.Over); // the scoreboard's buttons need the cursor
         Music.Open = open;
         // every frame while open: a revive re-enables the gun, and with it its keys
         if (open || wasOpen) Controls(!open);
         wasOpen = open;
         // offline, or online waiting for the other player: nothing's at stake, so a death just respawns
         if (!menu && (!IsSpawned || phase.Value == Phase.Waiting)) RespawnWhenDead();
+        powers.speedScale = Playing && IAmHunter ? pigeonSpeed : 1f;
+        if (weapon) weapon.badge = Playing && IAmHunter; // the detective: the police leave the Pigeon be (off again offline)
         if (!IsSpawned) return;
         if (IsServer) RunClock();
-        if (round.Value != lastRound && phase.Value == Phase.Playing) { lastRound = round.Value; BeginRound(); }
+        int now = match.Value * 10 + round.Value;
+        if (now != lastRound && phase.Value == Phase.Playing) { lastRound = now; BeginRound(); }
+        if (now != kept && round.Value > 0 && phase.Value is Phase.Between or Phase.Over) { kept = now; Keep(); }
         if (Playing) WatchOwnBird();
         // both birds see where the Seagull's unfinished tasks are, so the Pigeon knows where to lie in wait; the Seagull
         // also gets an arrow on screen to the nearest
@@ -316,6 +368,7 @@ public class HuntMatch : NetworkBehaviour
             map.guide = Playing && !IAmHunter;
             map.marked = Playing && IAmHunter; // the Pigeon always sees the Seagull faintly lit and outlined
             if (Playing) Marks();
+            else map.ClearPlaces();
         }
     }
 
@@ -331,6 +384,7 @@ public class HuntMatch : NetworkBehaviour
                 break;
             case Phase.Playing:
                 timeLeft.Value -= Time.deltaTime;
+                elapsed += Time.deltaTime;
                 if (timeLeft.Value <= 0) EndRound(tasksDone.Value == AllTasks ? float.MaxValue : Unfinished);
                 break;
             case Phase.Between:
@@ -339,8 +393,33 @@ public class HuntMatch : NetworkBehaviour
                     StartRound(2, NetworkManager.ConnectedClientsIds[0] == hunter.Value ? NetworkManager.ConnectedClientsIds[1] : NetworkManager.ConnectedClientsIds[0]);
                 else phase.Value = Phase.Over;
                 break;
+            case Phase.Over:
+                if (NetworkManager.ConnectedClientsIds.Count < 2) ready.Value &= 1; // the other player left
+                else if (ready.Value == 3) Rematch();
+                break;
         }
     }
+
+    // both accepted: the same two from round 1 again, the host the Pigeon first
+    void Rematch()
+    {
+        ready.Value = 0;
+        kill1.Value = kill2.Value = -1;
+        deaths1.Value = deaths2.Value = 0;
+        match.Value++;
+        StartRound(1, NetworkManager.ServerClientId);
+    }
+
+    [Rpc(SendTo.Server)]
+    void ReadyRpc(bool on, RpcParams rpc = default)
+    {
+        if (phase.Value != Phase.Over) return;
+        int bit = rpc.Receive.SenderClientId == NetworkManager.ServerClientId ? 1 : 2;
+        ready.Value = (byte)(on ? ready.Value | bit : ready.Value & ~bit);
+    }
+
+    bool IAmReady => (ready.Value & (IsServer ? 1 : 2)) != 0;
+    bool TheyAreReady => (ready.Value & (IsServer ? 2 : 1)) != 0;
 
     void StartRound(int number, ulong hunterId)
     {
@@ -348,6 +427,7 @@ public class HuntMatch : NetworkBehaviour
         tasksDone.Value = 0;
         taskSeed.Value = UnityEngine.Random.Range(1, int.MaxValue);
         timeLeft.Value = roundLength;
+        elapsed = 0;
         round.Value = number;
         phase.Value = Phase.Playing;
     }
@@ -362,7 +442,13 @@ public class HuntMatch : NetworkBehaviour
     }
 
     [Rpc(SendTo.Server)]
-    void SeagullDiedRpc() => EndRound(roundLength - timeLeft.Value);
+    void SeagullDiedRpc() => EndRound(elapsed);
+
+    [Rpc(SendTo.Server)]
+    void PigeonDiedRpc()
+    {
+        if (phase.Value == Phase.Playing) (round.Value == 1 ? deaths1 : deaths2).Value++;
+    }
 
     // the Seagull's game moved a long task on a step: the other game's markers follow it
     [Rpc(SendTo.NotMe)]
@@ -374,16 +460,18 @@ public class HuntMatch : NetworkBehaviour
     [Rpc(SendTo.Server)]
     void TaskDoneRpc(int task)
     {
-        if (phase.Value != Phase.Playing) return;
+        if (phase.Value != Phase.Playing || (tasksDone.Value & 1 << task) != 0) return; // a repeat: no second bonus
         tasksDone.Value |= 1 << task;
+        timeLeft.Value += taskBonus;
         PingRpc();
     }
 
-    // a task was finished: the Pigeon sees exactly where the Seagull is for a moment
+    // a task was finished: the Pigeon sees exactly where the Seagull is for a moment, and both clocks show the bonus
     [Rpc(SendTo.Everyone)]
     void PingRpc()
     {
         if (IAmHunter && map) map.Reveal(taskPing);
+        bonusUntil = Time.time + 3;
     }
 
     // ---- each game looks after its own bird ----
@@ -391,7 +479,9 @@ public class HuntMatch : NetworkBehaviour
     void BeginRound()
     {
         Debug.Log("Hunt round " + round.Value + " begins: I'm the " + (IAmHunter ? "Pigeon" : "Seagull"));
+        if (round.Value == 1) { played[0].Clear(); played[1].Clear(); } // a new match (or a rematch)
         if (ride && ride.Riding) ride.Dismount();
+        health.maxHealth = IAmHunter ? pigeonHealth : seagullHealth;
         health.Revive();
         if (weapon) weapon.Rearm();
         powers.Clear();
@@ -418,6 +508,7 @@ public class HuntMatch : NetworkBehaviour
         if (respawnAt < 0 || Time.time < respawnAt) return;
         respawnAt = -1;
         if (ride && ride.Riding) ride.Dismount();
+        health.maxHealth = pigeonHealth; // out of a round, everyone's a plain pigeon
         health.Revive();
         if (weapon) weapon.Rearm();
         powers.Clear();
@@ -441,7 +532,7 @@ public class HuntMatch : NetworkBehaviour
         if (IAmHunter)
         {
             // a dead Pigeon is back after a moment, at its spawn and with no status; the clock keeps going
-            if (health.IsDead && respawnAt < 0) respawnAt = Time.time + pigeonRespawn;
+            if (health.IsDead && respawnAt < 0) { respawnAt = Time.time + pigeonRespawn; PigeonDiedRpc(); }
             if (respawnAt >= 0 && Time.time >= respawnAt)
             {
                 respawnAt = -1;
@@ -501,6 +592,14 @@ public class HuntMatch : NetworkBehaviour
 
     // ---- this round's tasks ----
 
+    // the round's over: its tasks as they ended, for the scoreboard
+    void Keep()
+    {
+        List<(string what, bool done)> list = played[round.Value - 1];
+        list.Clear();
+        for (int i = 0; i < active.Length; i++) list.Add((active[i].description, Finished(i)));
+    }
+
     bool Finished(int i) => (tasksDone.Value & (1 << i)) != 0;
     // the step task i is on (the task itself unless it's a Chain), and that step's places
     Task Now(int i) => parts[i][step[i]];
@@ -521,10 +620,11 @@ public class HuntMatch : NetworkBehaviour
     }
 
     // each unfinished task's marker on the minimap: the nearest place of its current step not done yet (none if the
-    // step can be done anywhere)
+    // step can be done anywhere); and every such place gets a ring, which bursts green as it drops out (done)
     void Marks()
     {
         if (map.taskSpots.Length != active.Length) map.taskSpots = new Transform[active.Length];
+        map.taskPlaces.Clear();
         Vector3 me = rig.transform.position;
         for (int i = 0; i < active.Length; i++)
         {
@@ -533,6 +633,7 @@ public class HuntMatch : NetworkBehaviour
             foreach (var (thing, _) in Here(i))
             {
                 if (!thing || visited[i].Contains(thing)) continue;
+                if (!Finished(i)) map.taskPlaces.Add(thing);
                 float d = (thing.position - me).sqrMagnitude;
                 if (d < bestDistance) { bestDistance = d; best = thing; }
             }
@@ -745,9 +846,9 @@ public class HuntMatch : NetworkBehaviour
 
         if (menu)
         {
-            var sign = new Rect(20, 20, 420, 488); // title 50, the code box and seven choices 44 each, the status line
+            var sign = new Rect(20, 20, 420, 532); // title 50, the code box and eight choices 44 each, the status line
             SubwayGUI.Begin(sign);
-            SubwayGUI.Title("Pigeon vs Seagull");
+            SubwayGUI.Title("ShitShow");
             if (SubwayGUI.Button("Host a match")) Host();
             typedCode = SubwayGUI.Field(typedCode, 12, "Join code");
             if (SubwayGUI.Button("Join with that code")) Join();
@@ -755,11 +856,13 @@ public class HuntMatch : NetworkBehaviour
             // every mechanic, one station each, offline (GymMenu there comes back here)
             if (SubwayGUI.Button("Tutorial (learn the game)", Application.CanStreamedLevelBeLoaded(TutorialScene))) { Tutorial.Begin(); LoadMap(TutorialScene); }
             if (SubwayGUI.Button("Mechanics Gym (practice)", Application.CanStreamedLevelBeLoaded(Gym))) LoadMap(Gym);
-            if (SubwayGUI.Button("Settings")) GameSettings.Showing = !GameSettings.Showing;
+            if (SubwayGUI.Button("Settings")) { GameSettings.Showing = !GameSettings.Showing; Credits.Showing = false; }
+            if (SubwayGUI.Button("Credits")) { Credits.Showing = !Credits.Showing; GameSettings.Showing = false; }
             if (SubwayGUI.Button("Quit game")) Quit();
             SubwayGUI.Note(status);
             SubwayGUI.End();
             GameSettings.Panel(sign);
+            Credits.Panel(sign);
             return;
         }
         if (paused)
@@ -778,6 +881,7 @@ public class HuntMatch : NetworkBehaviour
         }
         if ((!IsSpawned || phase.Value == Phase.Waiting) && respawnAt > 0) SubwayGUI.Banner(300, "Respawning...");
         if (!IsSpawned) return;
+        if (phase.Value == Phase.Over) { Scoreboard(); return; }
 
         string heading, text;
         switch (phase.Value)
@@ -788,9 +892,10 @@ public class HuntMatch : NetworkBehaviour
                 break;
             case Phase.Playing:
                 int left = active.Length - Bits(tasksDone.Value);
-                heading = "Round " + round.Value + "/2   " + Clock(timeLeft.Value);
-                text = (IAmHunter ? "<b>PIGEON</b>: kill the Seagull. Its tasks (" + left + " left, blue on map):\n" + TaskList()
-                                  : "<b>SEAGULL</b>: finish by 0:00 or lose. Stay alive.\n" + TaskList()).TrimEnd();
+                heading = "Round " + round.Value + "/2   " + Clock(timeLeft.Value)
+                          + (Time.time < bonusUntil ? "   <color=#00933C>+" + Clock(taskBonus) + "</color>" : "");
+                text = (IAmHunter ? "<b>PIGEON</b>: kill the Seagull. Its tasks (" + left + " left, blue on map, each +" + Clock(taskBonus) + "):\n" + TaskList()
+                                  : "<b>SEAGULL</b>: finish by 0:00 or lose; each task adds " + Clock(taskBonus) + ". Stay alive.\n" + TaskList()).TrimEnd();
                 if (IAmHunter && respawnAt >= 0) SubwayGUI.Banner(300, "Respawning...");
                 break;
             case Phase.Between:
@@ -798,14 +903,65 @@ public class HuntMatch : NetworkBehaviour
                 text = Result(round.Value == 1 ? kill1.Value : kill2.Value) + "\nNext round soon; roles swap.";
                 break;
             default:
-                heading = Winner();
-                text = "Round 1: " + Result(kill1.Value) + "\nRound 2: " + Result(kill2.Value);
-                break;
+                return;
         }
         // small, in the corner: it stays up the whole round
         const float boardWidth = 330;
         SubwayGUI.SmallBoard(new Rect(20, 20, boardWidth, 54 + SubwayGUI.SmallBodyHeight(text, boardWidth)), heading, text);
     }
+
+    // the match is over: both rounds side by side, and a rematch both have to accept, or back to the starting menu
+    void Scoreboard()
+    {
+        const float width = 720, inside = width - 36;
+        bool host = IsServer, there = NetBird.Remote;
+        string[] head = { "Round 1", "Round 2" },
+            pigeon = { host ? "You" : "Them", host ? "Them" : "You" },
+            seagull = { pigeon[1], pigeon[0] },
+            result = { Short(kill1.Value), Short(kill2.Value) },
+            done = new string[2], bonus = new string[2], list = new string[2],
+            deaths = { kill1.Value == -1 ? "-" : deaths1.Value.ToString(), kill2.Value == -1 ? "-" : deaths2.Value.ToString() };
+        for (int r = 0; r < 2; r++)
+        {
+            int n = played[r].FindAll(t => t.done).Count;
+            bool ran = (r == 0 ? kill1.Value : kill2.Value) != -1;
+            done[r] = ran ? n + " of " + played[r].Count : "-";
+            bonus[r] = ran ? "+" + Clock(n * taskBonus) : "-";
+            list[r] = "";
+            foreach (var (what, did) in played[r]) list[r] += (did ? "[x] " : "[ ] ") + what + "\n";
+            list[r] = list[r].TrimEnd();
+        }
+
+        string note = !there ? "The other player left."
+            : IAmReady ? "Waiting for the other player to accept..."
+            : TheyAreReady ? "The other player wants a rematch."
+            : "A rematch starts when you both accept.";
+        float height = 20 + 50
+            + SubwayGUI.RowHeight(inside, true, false, head)
+            + 6 * SubwayGUI.RowHeight(inside, false, false, result) // the one-line rows are all as tall as this
+            + SubwayGUI.RowHeight(inside, false, true, list)
+            + 2 * 44 + 4 + 24 + 16;
+        var sign = new Rect((1280 - width) / 2, Mathf.Max(20, (720 - height) / 2), width, height);
+        SubwayGUI.Begin(sign);
+        SubwayGUI.Title(Winner());
+        SubwayGUI.Row(inside, true, false, "", head);
+        SubwayGUI.Row(inside, false, false, "Pigeon", pigeon);
+        SubwayGUI.Row(inside, false, false, "Seagull", seagull);
+        SubwayGUI.Row(inside, false, false, "Result", result);
+        SubwayGUI.Row(inside, false, false, "Tasks done", done);
+        SubwayGUI.Row(inside, false, false, "Clock bonus", bonus);
+        SubwayGUI.Row(inside, false, true, "Seagull tasks", list);
+        SubwayGUI.Row(inside, false, false, "Pigeon deaths", deaths);
+        if (SubwayGUI.Button(IAmReady ? "Cancel rematch" : TheyAreReady ? "Accept rematch" : "Rematch", there)) ReadyRpc(!IAmReady);
+        if (SubwayGUI.Button("Back to main menu")) ToMenu();
+        SubwayGUI.Note(note);
+        SubwayGUI.End();
+    }
+
+    // a round's result, short enough for a scoreboard cell
+    string Short(float killTime) =>
+        killTime == Unfinished ? "Seagull ran out of time" :
+        killTime < 0 ? "-" : killTime == float.MaxValue ? "Seagull got away" : "Killed after " + Clock(killTime);
 
     // leave the match (if online) and start the scene over, which brings the starting menu back
     // ponytail: the other player is just dropped (their game sits waiting); tell them and end the round when that matters

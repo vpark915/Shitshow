@@ -4,10 +4,12 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
-// Put on the pigeon. Eating a food (FoodItem, through PieceEater) does one of two things (design doc section 10, Food):
-// - timed foods give their ability straight away for a set number of seconds; eating another replaces it.
-// - stocked foods go in the pigeon's stash to be used later: ice cream (egg bomb key) and bread (flock key) on a
-//   button, a bagel by itself on the next hit, a pizza by itself the next time the pigeon is riding someone.
+// Put on the pigeon. Eating a food (FoodItem, through PieceEater) puts it in the pigeon's stash, to use when you choose
+// (design doc section 10, Food):
+// - timed foods (hot dog, coffee, burrito, gyro, pretzel) and pizza: the use key uses the picked one, the next-food key
+//   picks another. A timed food gives its ability for a set number of seconds; using another replaces it. Pizza only
+//   goes while riding someone, and its clock only runs then.
+// - ice cream (egg bomb key) and bread (flock key) have keys of their own; a bagel works by itself on the next hit.
 // Dying ends the timed ability; the scene restarts, so the stash goes too.
 public class FoodPowers : MonoBehaviour
 {
@@ -19,6 +21,10 @@ public class FoodPowers : MonoBehaviour
     public int maxStock = 5;
     public InputAction eggAction = new InputAction("Egg bomb", binding: "<Keyboard>/f");
     public InputAction flockAction = new InputAction("Snitch flock", binding: "<Keyboard>/g");
+    [Tooltip("Uses the picked food from the stash")]
+    public InputAction useAction = new InputAction("Use food", binding: "<Keyboard>/x");
+    [Tooltip("Picks the next food in the stash")]
+    public InputAction nextAction = new InputAction("Next food", binding: "<Keyboard>/z");
 
     [Header("Sprint (hot dog)")]
     [Tooltip("Ground speed multiplier; no help in the air")]
@@ -59,8 +65,6 @@ public class FoodPowers : MonoBehaviour
     public float shieldPulse = 3f;
 
     [Header("Full belly (gyro)")]
-    [Range(0, 1)] public float damageScale = 0.5f;
-    [Range(0, 1)] public float fullJumpScale = 0.7f;
     [Tooltip("The pigeon shrinks to this size while full (0.5: half size, a smaller target)")]
     [Range(0.1f, 1)] public float fullSize = 0.5f;
     [Tooltip("Seconds to shrink, and to grow back")]
@@ -80,11 +84,17 @@ public class FoodPowers : MonoBehaviour
     Minimap map;
     Glow glow;
     float until, rideLeft, moveSpeed, sprintSpeed, jumpHeight, rideWalk, rideSprint;
+    // walking and running speed on top of the rig's own (HuntMatch makes the Pigeon faster)
+    [System.NonSerialized] public float speedScale = 1f;
     Vector3 baseScale;
     int extraJumps;
     string label;
+    Ability picked;
     readonly Dictionary<Ability, int> stock = new Dictionary<Ability, int>();
-    readonly Dictionary<Ability, float> stockSeconds = new Dictionary<Ability, float>(); // pizza: ride time, bread: tail time
+    readonly Dictionary<Ability, float> stockSeconds = new Dictionary<Ability, float>(); // how long it lasts (pizza: ride time, bread: tail time)
+    readonly Dictionary<Ability, string> stockLabel = new Dictionary<Ability, string>();
+    // what the use key goes through, in this order
+    static readonly Ability[] Usable = { Ability.Sprint, Ability.JitteryWings, Ability.HotSauceLunge, Ability.FullBelly, Ability.LowProfile, Ability.CrowdFavourite };
 
     void Start()
     {
@@ -107,8 +117,8 @@ public class FoodPowers : MonoBehaviour
         SubwayGUI.Back(timerText); // on a subway sign, like the HUD
     }
 
-    void OnEnable() { eggAction.Enable(); flockAction.Enable(); }
-    void OnDisable() { eggAction.Disable(); flockAction.Disable(); }
+    void OnEnable() { eggAction.Enable(); flockAction.Enable(); useAction.Enable(); nextAction.Enable(); }
+    void OnDisable() { eggAction.Disable(); flockAction.Disable(); useAction.Disable(); nextAction.Disable(); }
 
     public static string Name(Ability a) => a switch
     {
@@ -124,32 +134,56 @@ public class FoodPowers : MonoBehaviour
         _ => "",
     };
 
-    public static bool Stocked(Ability a) => a is Ability.EggBomb or Ability.CrowdFavourite or Ability.BagelShield or Ability.SnitchFlock;
+    // abilities that run for a while once used
+    public static bool Timed(Ability a) => a is Ability.Sprint or Ability.JitteryWings or Ability.HotSauceLunge or Ability.FullBelly or Ability.LowProfile;
 
     // what the eat prompt says about a food
     public static string Describe(FoodItem food) =>
-        Name(food.ability) + (Stocked(food.ability) ? ", keep for later" : ", " + food.seconds + "s");
+        Name(food.ability) + (Timed(food.ability) || food.ability == Ability.CrowdFavourite ? " " + food.seconds + "s" : "") + ", keep for later";
 
+    // eaten: into the stash
     public void Give(Ability ability, float seconds, string food)
     {
-        if (Stocked(ability))
+        if (ability == Ability.BagelShield) { if (health) health.shields = Mathf.Min(health.shields + 1, maxStock); return; }
+        if (ability == Ability.None) return;
+        stock[ability] = Mathf.Min(Count(ability) + 1, maxStock);
+        stockSeconds[ability] = seconds;
+        stockLabel[ability] = food;
+        if (Count(picked) == 0 && System.Array.IndexOf(Usable, ability) >= 0) picked = ability;
+    }
+
+    // the use key: the picked food out of the stash (pizza only while riding)
+    void Use(Ability ability)
+    {
+        if (ability == Ability.CrowdFavourite)
         {
-            if (ability == Ability.BagelShield) { if (health) health.shields = Mathf.Min(health.shields + 1, maxStock); }
-            else { stock[ability] = Mathf.Min(Count(ability) + 1, maxStock); stockSeconds[ability] = seconds; }
-            return;
+            if (!ride || !ride.Mount || !Take(ability)) return;
+            rideLeft += stockSeconds[ability];
         }
-        End();
-        Current = ability;
-        until = Time.time + seconds;
-        label = food;
-        switch (ability)
+        else
         {
-            case Ability.JitteryWings: controller.ExtraJumps = extraJumps + 1; break;
-            case Ability.FullBelly:
-                if (health) health.damageScale = damageScale;
-                controller.JumpHeight = jumpHeight * fullJumpScale;
-                break;
-            case Ability.LowProfile: if (weapon) weapon.unseen = true; break;
+            if (!Take(ability)) return;
+            End();
+            Current = ability;
+            until = Time.time + stockSeconds[ability];
+            label = stockLabel[ability];
+            switch (ability)
+            {
+                case Ability.JitteryWings: controller.ExtraJumps = extraJumps + 1; break;
+                case Ability.LowProfile: if (weapon) weapon.unseen = true; break;
+            }
+        }
+        if (Count(picked) == 0) Next();
+    }
+
+    // pick the next food in the stash the use key can use (none left: stays put)
+    void Next()
+    {
+        int at = System.Array.IndexOf(Usable, picked);
+        for (int i = 1; i <= Usable.Length; i++)
+        {
+            Ability a = Usable[(at + i + Usable.Length) % Usable.Length];
+            if (Count(a) > 0) { picked = a; return; }
         }
     }
 
@@ -174,11 +208,10 @@ public class FoodPowers : MonoBehaviour
     void End()
     {
         Current = Ability.None;
-        controller.MoveSpeed = moveSpeed;
-        controller.SprintSpeed = sprintSpeed;
+        controller.MoveSpeed = moveSpeed * speedScale;
+        controller.SprintSpeed = sprintSpeed * speedScale;
         controller.JumpHeight = jumpHeight;
         controller.ExtraJumps = extraJumps;
-        if (health) health.damageScale = 1f;
         if (weapon) weapon.unseen = false;
     }
 
@@ -192,9 +225,8 @@ public class FoodPowers : MonoBehaviour
         if (transform.localScale != size)
             transform.localScale = Vector3.MoveTowards(transform.localScale, size, (1 - fullSize) * baseScale.magnitude / resizeTime * Time.deltaTime);
 
-        if (Current == Ability.Sprint)
         {
-            float m = controller.Grounded ? sprintMultiplier : 1f;
+            float m = (Current == Ability.Sprint && controller.Grounded ? sprintMultiplier : 1f) * speedScale;
             controller.MoveSpeed = moveSpeed * m;
             controller.SprintSpeed = sprintSpeed * m;
         }
@@ -211,12 +243,14 @@ public class FoodPowers : MonoBehaviour
             map.Reveal(s);
         }
 
-        // pizza: the clock only runs while riding someone, and the next slice starts when one runs out
+        if (!dead && nextAction.WasPressedThisFrame()) Next();
+        if (!dead && useAction.WasPressedThisFrame()) Use(picked);
+
+        // pizza: the clock only runs while riding someone
         if (ride)
         {
             bool riding = ride.Mount;
-            if (riding && rideLeft <= 0 && Take(Ability.CrowdFavourite)) rideLeft = stockSeconds[Ability.CrowdFavourite];
-            if (riding) rideLeft -= Time.deltaTime;
+            if (riding && rideLeft > 0) rideLeft -= Time.deltaTime;
             float m = rideLeft > 0 ? rideSpeedMultiplier : 1f;
             ride.walkSpeed = rideWalk * m;
             ride.sprintSpeed = rideSprint * m;
@@ -234,8 +268,18 @@ public class FoodPowers : MonoBehaviour
         if (Count(Ability.EggBomb) > 0) stash.Add("Egg bomb x" + Count(Ability.EggBomb) + " [" + eggAction.GetBindingDisplayString() + "]");
         if (Count(Ability.SnitchFlock) > 0) stash.Add("Snitch flock x" + Count(Ability.SnitchFlock) + " [" + flockAction.GetBindingDisplayString() + "]");
         if (Count(Ability.BagelShield) > 0) stash.Add("Bagel shield x" + Count(Ability.BagelShield));
-        if (Count(Ability.CrowdFavourite) > 0) stash.Add("Pizza x" + Count(Ability.CrowdFavourite) + " (on mount)");
         if (stash.Count > 0) lines.Add(string.Join("   ", stash));
+        // the use key's foods, the picked one marked
+        var foods = new List<string>();
+        foreach (Ability a in Usable)
+            if (Count(a) > 0)
+            {
+                string food = (stockLabel.TryGetValue(a, out string l) ? l : Name(a)) + " x" + Count(a);
+                foods.Add(a == picked ? "> " + food + " [" + useAction.GetBindingDisplayString() + "]" : food);
+            }
+        if (foods.Count > 0)
+            lines.Add(string.Join("   ", foods) + (foods.Count > 1 ? "   [" + nextAction.GetBindingDisplayString() + "] next" : "")
+                      + (picked == Ability.CrowdFavourite && !(ride && ride.Mount) ? "  (pizza: ride someone first)" : ""));
         timerText.enabled = lines.Count > 0;
         timerText.text = string.Join("\n", lines);
     }
@@ -299,7 +343,7 @@ public class FoodPowers : MonoBehaviour
     float EggDamageAt(float distance, Health h)
     {
         bool player = h.GetComponent<Weapon>() || h.GetComponentInParent<NetBird>();
-        if (distance <= eggKillRadius && !player) return h.maxHealth * 10; // through Full belly and the like; a bagel still saves you
+        if (distance <= eggKillRadius && !player) return h.maxHealth * 10; // a bagel still saves you
         float t = Mathf.InverseLerp(eggKillRadius, eggRadius, distance);
         return Mathf.Lerp(eggDamage * 3, eggDamage, t);
     }

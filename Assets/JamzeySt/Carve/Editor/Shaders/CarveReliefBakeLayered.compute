@@ -1,0 +1,3 @@
+#pragma kernel Bake
+#define CARVE_LAYERED
+#include "CarveReliefBake.hlsl"

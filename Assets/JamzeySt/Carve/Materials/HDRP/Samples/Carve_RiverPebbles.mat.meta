@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: af2e3e46c22c63843ad57263efc99363
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 2100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 418204
+  packageName: "Carve \u2013 Silhouette Parallax Occlusion Mapping for HDRP & URP"
+  packageVersion: 1.0.0
+  assetPath: Assets/JamzeySt/Carve/Materials/HDRP/Samples/Carve_RiverPebbles.mat
+  uploadId: 1023298

@@ -70,7 +70,18 @@ static class PunchyLighting
         volume.minRendererVolumeSize = 1f;
     }
 
-    const float ProbeSpacing = 80f; // metres between reflection probes
+    const float ProbeSpacing = 40f; // metres between reflection probes (80 left most surfaces reflecting a point far off)
+    const float ProbeHeight = 4f;   // metres up the capture is taken from: near what the bird and the people see
+
+    // Tools > Wash Square > Reflection Probes: just the probe grid, without the rest of Punchy Lighting
+    [MenuItem("Tools/Wash Square/Reflection Probes")]
+    static void ProbesOnly()
+    {
+        if (!Area(out Bounds area)) { Debug.LogWarning("Reflection Probes: nothing to cover"); return; }
+        Probes(area);
+        EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
+        Debug.Log("Reflection Probes: " + GameObject.Find("Reflection Probes").transform.childCount + " probes, " + ProbeSpacing + " m apart (Generate Lighting bakes them)");
+    }
 
     // a grid of baked, box-projected reflection probes over everything that renders, so surfaces reflect the
     // buildings, trees and ground around them instead of the sky (Generate Lighting bakes them). Rerunning replaces it.
@@ -89,13 +100,13 @@ static class PunchyLighting
                 var probe = new GameObject("Probe " + x + "," + z).AddComponent<ReflectionProbe>();
                 probe.transform.SetParent(root.transform);
                 Vector3 centre = new Vector3(area.min.x + cell.x * (x + 0.5f), area.min.y + cell.y / 2, area.min.z + cell.z * (z + 0.5f));
-                probe.transform.position = new Vector3(centre.x, area.min.y + 6f, centre.z); // capture from about eye height
+                probe.transform.position = new Vector3(centre.x, area.min.y + ProbeHeight, centre.z); // capture from about eye height
                 probe.center = centre - probe.transform.position;
                 probe.size = cell + Vector3.one * 10f; // overlap so neighbours blend
                 probe.mode = ReflectionProbeMode.Baked;
                 probe.boxProjection = true;
                 probe.blendDistance = 5f;
-                probe.resolution = 128;
+                probe.resolution = 256;
             }
     }
 

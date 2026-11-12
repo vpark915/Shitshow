@@ -198,7 +198,7 @@ public class HuntTasks : ScriptableObject
         Do("Run over cop", "Run over a police officer", "run over officer"),
         Do("Roadkill", "Kill someone with a vehicle", "roadkill"),
         // ---- the police ----
-        Do("Wanted", "Get wanted by the police (drive off the road)", "wanted"),
+        Do("Wanted", "Get wanted by the police (fire a shot, or drive off the road)", "wanted"),
         For(Goal.Wanted, "Fugitive", "Survive 20 s while wanted", 20),
         For(Goal.Wanted, "Most wanted", "Survive 45 s while wanted (it adds up)", 45, inOneGo: false),
         Do("Hit cop", "Shoot 3 police officers", "hit officer", 3),
@@ -226,7 +226,7 @@ public class HuntTasks : ScriptableObject
         Do("Outlaw", "Outlaw: kill 2 people while wanted", "kill", 2, when: When.Wanted),
         Do("Cop while wanted", "Resisting arrest: kill an officer while wanted", "kill officer", when: When.Wanted),
         Do("Last stand", "Last stand: kill someone while badly hurt", "kill", when: When.Hurt),
-        Do("Ghost", "Ghost: kill someone while hidden (eat a soft pretzel first)", "kill", when: When.Hidden),
+        Do("Ghost", "Ghost: kill someone while hidden (use a soft pretzel first)", "kill", when: When.Hidden),
         Do("Silent 3", "Silent but deadly: 3 silent kills from heads", "assassinate", 3),
         Do("Silent guard", "Inside job: silently kill a security guard", "assassinate guard"),
         Do("Rooftop sniper", "Rooftop sniper: kill someone while perched on a rooftop", "kill", at: Rooftops, low: -1, high: 3),

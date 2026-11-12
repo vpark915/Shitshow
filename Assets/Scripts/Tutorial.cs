@@ -62,6 +62,7 @@ public class Tutorial : MonoBehaviour
     void Steps()
     {
         Add("Who's who", "You're the Pigeon: the detective in the deerstalker. In a match you hunt the Seagull, the one in the red headband (round 2, you swap).", 0, () => onStep > 7);
+        Add("The clock", "A round starts at 5:00. The Seagull has to finish its tasks by 0:00, and each one it finishes puts 2:00 back on the clock: more time for it, and more for you to catch it.", 0, () => onStep > 8);
         Add("Look around", "Move the mouse to look around.", 0, () => look > 400);
         Add("Walk", "WASD to walk.", 0, () => Vector3.Distance(player.transform.position, start) > 5);
         Add("Sprint", "Hold Shift while you move to sprint.", 0, () => sprinting > 1.5f);
@@ -74,7 +75,7 @@ public class Tutorial : MonoBehaviour
         Add("Headshot", "Shoot someone in the head: the Headshot sign bursts over your crosshair. Station 16's people stand still for it.", 16, Did("headshot", "headshot kill"));
         Add("Kill", "Kill someone and a Kill sign pops up.", 16, Did("kill"));
         Add("Double kill", "Two kills under 3 s apart: Double kill. Three: Triple kill.", 16, Did("double kill"));
-        Add("Eat", "Look at a food close up and press E. Each food gives a power for a while; the HUD counts it down.", 3, Did("eat"));
+        Add("Eat", "Look at a food close up and press E: it goes in your stash. Press X to use the picked food (Z picks the next); its power lasts a while and the HUD counts it down.", 3, Did("eat"));
         Add("Buy", "Carts and trucks keep food on the counter. Look at it and press E to buy it with your cash.", 4, Did("buy"));
         Add("Chess piece", "Eat a chess piece (E): for 10 s the minimap shows exactly where the Seagull is.", 5, Did("eat chess piece"));
         Add("Drops", "People drop a wallet (cash) when they die, officers a magazine. Walk into one to pick it up.", 6, Did("wallet", "magazine"));
@@ -86,7 +87,7 @@ public class Tutorial : MonoBehaviour
         Add("Citi Bike", "Land on a bike's saddle to ride it. Space hops, Q gets off.", 11, Did("ride bike"));
         Add("Trash can", "Look at a trash can and press E to rummage: food, cash, a magazine, or just trash.", 12, Did("search trash"));
         Add("Take a bath", "Stand in the fountain for 2 s. \"Take a bath\" tasks are done this way.", 13, () => bathing > 2);
-        Add("Wanted", "Fire near people: the police come after whoever fired. Lose them, or eat a soft pretzel so they ignore you.", 14, Did("wanted"));
+        Add("Wanted", "Fire a shot: you're wanted, and police in earshot come after you. Lose them, or use a soft pretzel so they ignore you.", 14, () => Npc.IsWanted(weapon)); // still wanted from earlier shots counts
         Add("Hijack", "Land on the roof of a car that's driving round to take it over.", 15, Did("hijack"));
         Add("Run someone over", "Drive into someone: roadkill. In the park, that gets you wanted.", 15, Did("run over"));
     }

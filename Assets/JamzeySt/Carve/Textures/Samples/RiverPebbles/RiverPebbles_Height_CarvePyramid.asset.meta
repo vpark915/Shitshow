@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 5364aa637f56a9b458bada4b040d9459
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 2800000
+  userData: carve-pyramid;v5;src=248ef253b5b41834781c7f252f403650;hash=4148df571434d1f5180091b9b7116629
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 418204
+  packageName: "Carve \u2013 Silhouette Parallax Occlusion Mapping for HDRP & URP"
+  packageVersion: 1.0.0
+  assetPath: Assets/JamzeySt/Carve/Textures/Samples/RiverPebbles/RiverPebbles_Height_CarvePyramid.asset
+  uploadId: 1023298

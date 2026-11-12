@@ -1,6 +1,6 @@
 # Technical: the visual stack
 
-How Pigeon vs Seagull is drawn, as of November 2026. Values are the live settings in `Assets/Settings` and
+How ShitShow is drawn, as of November 2026. Values are the live settings in `Assets/Settings` and
 `Assets/VolumeProfiles/TestProfile.asset`; the editor tools that produced them are named so they can be rerun.
 
 ## Pipeline
@@ -16,12 +16,14 @@ How Pigeon vs Seagull is drawn, as of November 2026. Values are the live setting
 
 ## Lighting
 
-- **Sun:** one directional light, Mixed, intensity 6.5, soft shadows.
-- **Baked lighting:** lightmaps (3) in Indirect Only mixed mode, so the sun's direct light and shadows stay realtime
-  and the bake supplies bounce light. `Tools > Wash Square > Clean Daylight Bake` rebakes; `Punchy Lighting (open
-  scene)` sets the scene's share of the look (shadow darkness, sky fill, distance haze), and `Daylight Grade`,
-  `Cheaper Shadows` and `Stronger Reflections` tune the shared render assets.
-- **Shadows:** 70 m distance, 2 cascades (split 0.25), 2048 shadow map, soft shadows at the high quality setting,
+- **Sun:** one directional light, Mixed, intensity 4.5, soft shadows. Sky fill (ambient) 1.15, so the shade reads lit rather than absorbed.
+- **Baked lighting** (`Settings/LvlLighting`): GPU lightmapper, 64 direct / 512 indirect / 512 environment samples, 4
+  bounces, OIDN denoising, 5 texels/m at up to 4096 (3 maps), directional, high-quality compression, baked AO (1 m),
+  indirect 1.0, albedo boost 1.2. **Shadowmask** mixed lighting: realtime sun shadows near, baked (with a soft 1° sun)
+  past the realtime distance, where Indirect Only had left the far park unshadowed. Realtime GI (Enlighten) off. The
+  probe volume (APV) bakes sky occlusion and dilates buried probes; 30 baked reflection probes at 256. Rebake with
+  Generate Lighting in the Lighting window (`Clean Daylight Bake` resets much of this to older values).
+- **Shadows:** 45 m distance (was 70: ~5 ms of GPU), 2 cascades (split 0.25), 2048 shadow map, soft shadows at the high quality setting,
   last cascade border fade 0.5. The sun is the only realtime light (additional lights are off, above).
 - **Sky and ambient:** `Skybox/Panoramic` with Poly Haven's *Kloofendal 48d Partly Cloudy* pure-sky HDRI
   (`Tools > Wash Square > HDRI Sky`). The HDRI's sun is clamped (it would otherwise bake in as a second, unblockable
@@ -31,7 +33,7 @@ How Pigeon vs Seagull is drawn, as of November 2026. Values are the live setting
 
 | Feature | State | Notes |
 |---|---|---|
-| Screen Space Ambient Occlusion (URP) | **on** | Interleaved gradient noise, depth + normals, full resolution, after opaques, intensity 1, radius 0.64, falloff 3.16, direct lighting strength 0.41, high samples and blur |
+| Screen Space Ambient Occlusion (URP) | **on** | Interleaved gradient noise, depth + normals, full resolution, after opaques, intensity 3.27, direct lighting strength 0.43, high samples and blur |
 | Volumetric Fog (Cristian Qiu, `com.cqf.urpvolumetricfog`) | **on** | Settings on the volume (below) |
 | Decal | **on** | Grime, leak and moss decals on buildings (`Tools > Wash Square > Make Weathering Decals`, `Assets/Decals`) |
 | HTrace Ambient Occlusion V2 | off | Was the AO; replaced by URP SSAO. Its volume settings are still in the profile |
@@ -48,7 +50,7 @@ Contact shadows were tried (a custom screen-space pass, then a port of keijiro's
 | Override | Values |
 |---|---|
 | Tonemapping | ACES |
-| Color Adjustments | post exposure -0.53, saturation +9 |
+| Color Adjustments | post exposure -0.1, saturation +9 |
 | Split Toning | shadows cool blue-grey, highlights warm |
 | Bloom | threshold 1.01, intensity 0.44, scatter 0.09, warm tint, Gaussian filter |
 | Depth of Field | Gaussian, starts at 537 m: only the far skyline softens |
@@ -61,12 +63,13 @@ Contact shadows were tried (a custom screen-space pass, then a port of keijiro's
 | Shader | Where | Notes |
 |---|---|---|
 | URP Lit | Most of the world | Blender materials are capped to a matte smoothness on import (`MatteImports`) |
-| `Shitshow/Parallax Lit` | Buildings, paths, paving (~800 materials) | URP Lit with parallax occlusion mapping from the height map (`Assets/Parallax`); re-copy Lit and re-apply if URP updates |
-| `Shitshow/Foliage Translucent` | Tree leaves | Leaves lit through from behind; NatureManufacture wind subgraph (`Assets/Foliage`) |
+| URP Lit | Trash cans, the beech trees' far billboards | Trash cans keep emission for `Glow`; billboards are cutout, double-sided |
+| `Carve/URP/Carve Lit` (JamzeySt Carve) | Buildings, ground, road, sidewalk (24 materials) | Silhouette parallax with relief self-shadowing and occlusion. `Tools > Wash Square > Make Carve Maps` bakes each set's stretched height, packed mask (R 1, G AO, A smoothness) and height pyramid, and BlockoutPostprocessor puts Carve on the blockout's parallax materials once they exist. No detail map, so these lost the weathering grime layer. Potato mode uses Carve's Low preset |
+| `Shitshow/Foliage Translucent` | Tree leaves, ground plants (fern, lily of the valley) | Leaves lit through from behind; NatureManufacture wind subgraph (`Assets/Foliage`). A copy of NatureManufacture's Foliage shader, so the plants moved onto it to keep that shader (~1,900 variants) out of the build |
 | NatureManufacture Bark, Cross, Water River | Trunks, ground foliage, fountain water | |
 | Flat Kit Stylized Surface and Water | Pigeon, Seagull, gun, some water | Cel-stepped ramps in `Assets/RampTextures` |
 | `PoliceOutline` (`Resources`) | Officers | A red rim so police read at a distance |
-| URP Terrain Lit | Park lawn | ambientCG Grass004 terrain layer; legacy grass detail and NatureManufacture plant meshes, drawn to 60 m |
+| URP Terrain Lit | Park lawn | ambientCG Grass004 terrain layer; legacy grass detail and NatureManufacture plant meshes, drawn to 35 m at 0.8 density (was 60 m: grass and trees were ~8 ms) |
 
 Texture sets are ambientCG (CC0); `BlockoutPostprocessor` gives each blockout material its ambientCG normal, smoothness
 and stain maps on every reimport of the Washington Square blend.
@@ -88,6 +91,27 @@ and stain maps on every reimport of the Washington Square blend.
   reimporting the clips).
 - **Pickups:** the ammo magazine's textures were missing from its pack and were rebaked in Blender
   (`Models/Pickups/Textures`: `MagBody` and `MagAmmo`, generator `magbake.py.txt`).
+
+## Performance
+
+**Normal** (the game as set up in the assets): HTrace GTAO on (Before Lighting, 0.6 m radius, full resolution) and
+the other renderer features off, no bloom, depth of field or motion blur, sun shadows to 60 m in two cascades fading
+out over the last 20%, grass to 35 m, trees to 250 m (billboards from 30 m with a 10 m cross-fade), LOD bias 1, Carve at
+its Low preset (`GraphicsQuality.CarveLow`). Every LOD group cross-fades (dithered) rather than popping
+(`GraphicsQuality.CrossFade`, at each scene load); benches never cull. People fade out past about 60 m (a one-level LOD
+group each, `CrowdCulling`) and cast shadows to 25 m.
+
+**Potato** (Settings > Graphics, `GraphicsQuality`) is for weak machines: no renderer features, no parallax (Carve flat),
+no sun shadows, no grass, trees half as far, LOD bias halved (so people fade at ~30 m), 75% render scale, no people shadows.
+
+Profiled in the editor (`Tools > Wash Square > Log Feature Costs`, Play mode, offline): ~22 ms GPU and ~18 ms main
+thread a frame. The crowd is the biggest GPU cost (~9 ms: every person is a skinned mesh, unbatched, drawn about five
+times a frame), then grass and trees, Carve, sun shadows and the volumetric fog (~3-7 ms each).
+
+- `CrowdCulling` (starts itself): people past 25 m cast no shadow and people past 100 m aren't drawn, per camera as it
+  renders (`forceRenderingOff`, so `Npc` keeps control of `enabled`). Halved in Potato.
+- Carve relief fades out between 25 and 60 m but is cheap per pixel: 6-16 steps, 2 refine, 8 shadow steps, Auto LOD 0.6, 1024 height maps (`CarveMaps.Performance`). SSAO falls off at 150 m (was 4.6) and HTrace GTAO fades out at 150 m (was 65.5).
+- SSAO at half resolution; shadows 45 m; grass 35 m at 0.8 density, tree billboards from 20 m, 30 full trees.
 
 ## Effects
 
@@ -185,9 +209,16 @@ and stain maps on every reimport of the Washington Square blend.
 
 ## Known loose ends
 
-- `TestProfile` saturation is at +9 and post exposure at -0.53, adjusted by hand. Whites (the egg, the sidewalks)
+- `TestProfile` saturation is at +9 and post exposure at -0.1, adjusted by hand. **Don't run Clean Daylight Bake** to rebake: it resets the sun, sky, grade and bake settings to its own older values; use Generate Lighting in the Lighting window. Whites (the egg, the sidewalks)
   run bright in full sun.
-- `Assets/ContactShadows-master` is a whole unused Unity project inside Assets: safe to delete.
+- **`Archive/`** (outside Assets, so Unity ignores it; still in git) holds what no scene, prefab, Resources folder, render
+  pipeline or script used: ContactShadows-master, Assets/Fonts, ~360 MB of unplaced NatureManufacture models and
+  textures, FlatKit's demo content, unused materials, sounds and Starter Assets samples. Each file kept its `.meta`, so
+  moving one back to the same path under Assets restores it with its references. Shader include files and the probe
+  volume's `.bytes` data aren't tracked as dependencies, so they were kept. `Shitshow/Parallax Lit` (the old parallax
+  shader, `Archive/Parallax`) is there too: Carve replaced it.
+- The beech trees' far "Cross" billboards are on URP Lit (cutout, double-sided, tinted by their old Healthy Color), not
+  NatureManufacture's Cross shader, which was ~5,200 variants of the build's shader compile.
 - Traffic cars don't stop for the signals yet.
 - With the NPC knee capped at straight, the stance leg can look a little stiff; uncap a clip by pointing the
   controller back at its original if it reads worse.

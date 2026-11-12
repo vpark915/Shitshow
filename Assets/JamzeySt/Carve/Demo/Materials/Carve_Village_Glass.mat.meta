@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: f48a7775ee5bc7d419ac327e14c99c61
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 2100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 418204
+  packageName: "Carve \u2013 Silhouette Parallax Occlusion Mapping for HDRP & URP"
+  packageVersion: 1.0.0
+  assetPath: Assets/JamzeySt/Carve/Demo/Materials/Carve_Village_Glass.mat
+  uploadId: 1023298

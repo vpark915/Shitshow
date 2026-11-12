@@ -22,7 +22,7 @@ public static class ParkGenerator
     const float OpenLawn = 8f;          // lawn this many metres or more from a path is left open: grass only
     const float TrunkThicken = 1.3f;    // big trees are widened by this much (trunk and crown) without getting taller
     const int GrassMin = 4, GrassMax = 7; // grass tufts per detail cell (1024 across the terrain), in thinner and lusher patches; Unity caps a cell at 16
-    const float GrassDistance = 80f;     // metres from the camera that grass is drawn
+    const float GrassDistance = 35f;     // metres from the camera that grass is drawn (profiled: 60 m of grass and trees was ~8 ms)
     const float GrassFade = 20f;        // the shade plants fade out over the last this-many metres of that distance
     // the grass tufts' tint (times Textures/LawnBlades.png, already green), lush and thinner patches: mown-lawn green
     static readonly Color GrassHealthy = new Color(0.4f, 0.58f, 0.3f), GrassDry = new Color(0.47f, 0.56f, 0.28f); // brighter went neon lime in the sun
@@ -314,10 +314,11 @@ public static class ParkGenerator
         go.isStatic = true;
         Terrain terrain = go.GetComponent<Terrain>();
         terrain.drawInstanced = true;
-        terrain.treeDistance = 300f; // profiled: trees out to 600 m cost ~1,900 draw calls a frame
-        terrain.treeBillboardDistance = 30f; // full trees nearer than this, flat billboards beyond
+        terrain.treeDistance = 250f; // profiled: trees out to 600 m cost ~1,900 draw calls a frame
+        terrain.treeBillboardDistance = 30f;
+        terrain.treeCrossFadeLength = 10f; // full trees blend into billboards // full trees nearer than this, flat billboards beyond
         terrain.detailObjectDistance = GrassDistance;
-        terrain.detailObjectDensity = 1f;
+        terrain.detailObjectDensity = 0.8f;
         terrain.heightmapPixelError = 3f;
         terrain.basemapDistance = 300f;
         data.RefreshPrototypes(); // or the editor keeps drawing the old grass colours and texture

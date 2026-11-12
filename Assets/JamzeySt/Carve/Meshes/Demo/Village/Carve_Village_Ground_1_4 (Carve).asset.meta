@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: d613cc9a3195eb64c9e0d906e77aee77
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 4300000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 418204
+  packageName: "Carve \u2013 Silhouette Parallax Occlusion Mapping for HDRP & URP"
+  packageVersion: 1.0.0
+  assetPath: Assets/JamzeySt/Carve/Meshes/Demo/Village/Carve_Village_Ground_1_4 (Carve).asset
+  uploadId: 1023298

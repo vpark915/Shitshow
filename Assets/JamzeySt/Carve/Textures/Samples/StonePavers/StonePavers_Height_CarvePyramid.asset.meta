@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: d0dc8bcb4d890464e9cc1f42fe60b2e8
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 2800000
+  userData: carve-pyramid;v5;src=519d7283a155bcb45a8509b7285ec4a3;hash=7521ed1f2e762c93f2f181b84ddf085c
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 418204
+  packageName: "Carve \u2013 Silhouette Parallax Occlusion Mapping for HDRP & URP"
+  packageVersion: 1.0.0
+  assetPath: Assets/JamzeySt/Carve/Textures/Samples/StonePavers/StonePavers_Height_CarvePyramid.asset
+  uploadId: 1023298

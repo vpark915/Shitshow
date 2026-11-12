@@ -76,7 +76,7 @@ public class NpcSpawner : MonoBehaviour
     [Tooltip("They keep closing in while shooting until they're this close, then stand their ground")]
     public float policeShootingDistance = 10f;
     [Tooltip("Seconds after the last shot they heard before they holster and go back to work")]
-    public float policeAttention = 12f;
+    public float policeAttention = 12f; // also how long a shot (or an officer coming after you) makes you wanted
     public float policeFireInterval = 0.7f;
     [Tooltip("How far a shot can stray, in degrees. A pigeon is a small target, so this is most of the difficulty")]
     public float policeSpread = 1.2f;
@@ -116,6 +116,11 @@ public class NpcSpawner : MonoBehaviour
     float[] tableBusyUntil;
     readonly List<Vector3> roamPoints = new List<Vector3>();
     Vector3 anchor;
+
+    // any shot makes the shooter wanted, police in earshot or not
+    void OnEnable() => Weapon.Fired += Fired;
+    void OnDisable() => Weapon.Fired -= Fired;
+    void Fired(Weapon shooter) => Npc.MakeWanted(shooter, policeAttention);
 
     void Start()
     {
@@ -225,7 +230,8 @@ public class NpcSpawner : MonoBehaviour
     Npc Spawn(Npc.Kind kind, GameObject[] models, Vector3 position, float speed)
     {
         position = Clear(position);
-        GameObject person = Instantiate(models[Random.Range(0, models.Length)], position, Quaternion.Euler(0, Random.Range(0f, 360f), 0), transform);
+        int pick = Random.Range(0, models.Length);
+        GameObject person = Instantiate(models[pick], position, Quaternion.Euler(0, Random.Range(0f, 360f), 0), transform);
         var animator = person.GetComponent<Animator>();
         animator.runtimeAnimatorController = controller;
         animator.applyRootMotion = false;
@@ -253,9 +259,14 @@ public class NpcSpawner : MonoBehaviour
         var npc = person.AddComponent<Npc>();
         npc.kind = kind;
         npc.officer = models == police;
+        npc.model = npc.officer ? civilians.Length + pick : pick;
         npc.spawner = this;
         return npc;
     }
+
+    // a person's look by its Model number (civilians, then police; the same in every game), null if there's no such one
+    public GameObject Model(int number) =>
+        number < 0 ? null : number < civilians.Length ? civilians[number] : number - civilians.Length < police.Length ? police[number - civilians.Length] : null;
 
     static bool Dressed(GameObject model)
     {

@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: f7b515db26b65204ca4b6ca158dc53c6
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 4300000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 418204
+  packageName: "Carve \u2013 Silhouette Parallax Occlusion Mapping for HDRP & URP"
+  packageVersion: 1.0.0
+  assetPath: Assets/JamzeySt/Carve/Meshes/Demo/Village/Carve_House_B_Shutter (Carve).asset
+  uploadId: 1023298

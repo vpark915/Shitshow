@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: e9590f4781024004cae3fe8c97d3d689
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 2800000
+  userData: carve-pyramid;v5;src=2b6bd79acae37e142a3e150469214456;hash=8f5685b3e01afaa771c76055177df949
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 418204
+  packageName: "Carve \u2013 Silhouette Parallax Occlusion Mapping for HDRP & URP"
+  packageVersion: 1.0.0
+  assetPath: Assets/JamzeySt/Carve/Textures/Samples/Fieldstone/Fieldstone_Height_CarvePyramid.asset
+  uploadId: 1023298

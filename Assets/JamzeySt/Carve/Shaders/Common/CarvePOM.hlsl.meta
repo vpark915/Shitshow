@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 87721f8a8ab14631aa6e7bc7035302db
+ShaderIncludeImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 418204
+  packageName: "Carve \u2013 Silhouette Parallax Occlusion Mapping for HDRP & URP"
+  packageVersion: 1.0.0
+  assetPath: Assets/JamzeySt/Carve/Shaders/Common/CarvePOM.hlsl
+  uploadId: 1023298

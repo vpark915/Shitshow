@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 35d29ec390c3f1f4292862d885374d31
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 2800000
+  userData: carve-pyramid;v5;src=4bd706c3f36aeab4e8033de11b3597c1;hash=46f9b2b1ae5aa60fe577b62b74d812a7
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 418204
+  packageName: "Carve \u2013 Silhouette Parallax Occlusion Mapping for HDRP & URP"
+  packageVersion: 1.0.0
+  assetPath: Assets/JamzeySt/Carve/Textures/Samples/RoofTiles/RoofTiles_Height_CarvePyramid.asset
+  uploadId: 1023298

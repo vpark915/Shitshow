@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: ae42f0950e756954b83715ae3c7cf845
+TextScriptImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 418204
+  packageName: "Carve \u2013 Silhouette Parallax Occlusion Mapping for HDRP & URP"
+  packageVersion: 1.0.0
+  assetPath: Assets/JamzeySt/Carve/Textures/Samples/StonePavers/StonePavers.json
+  uploadId: 1023298

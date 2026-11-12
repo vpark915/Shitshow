@@ -12,28 +12,28 @@ LightingSettings:
   m_EnableRealtimeLightmaps: 0
   m_RealtimeEnvironmentLighting: 1
   m_BounceScale: 1
-  m_AlbedoBoost: 1
-  m_IndirectOutputScale: 1.6
-  m_UsingShadowmask: 0
+  m_AlbedoBoost: 1.2
+  m_IndirectOutputScale: 1
+  m_UsingShadowmask: 1
   m_BakeBackend: 2
   m_LightmapMaxSize: 4096
   m_LightmapSizeFixed: 0
   m_UseMipmapLimits: 1
   m_BakeResolution: 5
   m_Padding: 4
-  m_LightmapCompression: 2
+  m_LightmapCompression: 3
   m_LightmapPackingMode: 0
   m_LightmapPackingMethod: 1
   m_XAtlasPackingAttempts: 16384
   m_XAtlasBruteForce: 0
   m_XAtlasBlockAlign: 0
   m_XAtlasRepackUnderutilizedLightmaps: 1
-  m_AO: 0
+  m_AO: 1
   m_AOMaxDistance: 1
   m_CompAOExponent: 1
   m_CompAOExponentDirect: 0
   m_ExtractAO: 0
-  m_MixedBakeMode: 0
+  m_MixedBakeMode: 2
   m_LightmapsBakeMode: 1
   m_FilterMode: 1
   m_LightmapParameters: {fileID: 111300000, guid: c6b24ec26b2a64f6685b3ddcc310eeab, type: 2}
@@ -50,7 +50,7 @@ LightingSettings:
   m_PVREnvironmentSampleCount: 512
   m_PVREnvironmentReferencePointCount: 2048
   m_LightProbeSampleCountMultiplier: 1
-  m_PVRBounces: 5
+  m_PVRBounces: 4
   m_PVRMinBounces: 0
   m_PVREnvironmentImportanceSampling: 1
   m_PVRFilteringMode: 1

@@ -1,6 +1,6 @@
 # Credits: outside resources
 
-Everything in Pigeon vs Seagull that came from outside the project. Where a license isn't certain it says **check**:
+Everything in ShitShow that came from outside the project. Where a license isn't certain it says **check**:
 look it up before shipping.
 
 ## Engine and Unity packages
@@ -29,20 +29,20 @@ look it up before shipping.
 |---|---|---|---|
 | Flat Kit | Dustyroom | `Assets/FlatKit` | Stylized surface and water shaders. Asset Store license |
 | HTrace: Screen Space Global Illumination | IPGames | `Assets/HTraceSSGI` | Installed, currently off |
-| HTrace: Ambient Occlusion V2 | IPGames | `Packages/dev.ipgames.htrace-ao-v2` | Installed, currently off (URP SSAO in use) |
+| HTrace: Ambient Occlusion V2 | IPGames | `Packages/dev.ipgames.htrace-ao-v2` | In use: active on PC_Renderer, alongside URP SSAO |
 | AERO: Volumetric Fog and Mist; VFX Toolkit | Mirza Beig | `Assets/Mirza` | AERO renderer feature off; demo scripts present |
 | Forest Environment Dynamic Nature, Foliage/Object/Water shaders, NatureManufacture Wind | NatureManufacture | `Assets/NatureManufacture Assets` | Trees, ferns, plants, bark and cross shaders, river water, wind. Our `Shitshow/Foliage Translucent` shader is built on their wind subgraph |
 | Low Poly Nature Bundle | LMHPOLY | `Assets/LMHPOLY` | Vegetation |
 | Recreation park | Tolik_Cola | `Assets/Tolik_Cola` | Benches and park props |
-| Quirky Series (Ultimate Pack Vol.1, Mega Packs 1 and 4) | Omabuarts Studio (**check**) | `Assets/Quirky Series` | Pigeon and Seagull animals |
-| Low Poly Guns | **check** publisher | `Assets/Low Poly Guns` | The pigeon's gun |
-| Toon Muzzleflash Pack | **check** publisher | `Assets/Toon Muzzleflash Pack` | Muzzle flashes |
+| Quirky Series (Pigeon and Seagull packs; folder Ultimate Pack Vol.1) | Omabuarts Studio | `Assets/Quirky Series` | Pigeon and Seagull animals. Asset Store EULA |
+| Low Poly Guns | **check** publisher: probably Hanusiak (Asset Store "Low Poly Guns Asset", 105979), not confirmed from the files | `Assets/Low Poly Guns` | The pigeon's gun (pistol3) |
+| Toon Muzzleflash Pack | Infima Games | `Assets/Toon Muzzleflash Pack` | Muzzle flashes. Asset Store EULA |
 | Procedural Skybox 2.0 Lite | **check** publisher | `Assets/Procedural Skybox 2.0 Lite` | Earlier sky; replaced by the HDRI |
 | God ray pack (VolumetricLightScattering) | **check** publisher | `Assets/god-ray-pack` | Ported to render graph; currently off |
 | Quick Outline | Chris Nolet | `Assets/QuickOutline` | Object outlines. MIT (**check**) |
-| Prefab Brush | **check** publisher | `Assets/Prefab Brush` | Editor tool for placing props |
-| PSX characters (Characters_psx, Characters_psx_01, Extras) | **check** author | `Assets/Blender/PSXCHARACTERS` | NPC people and police |
-| PSX Mega Pack (pistol magazine, `pistol_mp_1_mag_loaded`) | **check** author | `Assets/Models/Pickups` | Ammo pickup. Its textures weren't included; ours are rebaked in Blender (`Models/Pickups/Textures`) |
+| Prefab Brush | Archie Andrews | `Assets/Prefab Brush` | Editor tool for placing props |
+| PSX characters ("Paquete de modelos psx 3": Characters_psx, Characters_psx_01, Extras) | Elbolilloduro, elbolilloduro.itch.io | `Assets/Blender/PSXCHARACTERS` | NPC people and police. Models CC0; some bundled textures are from Textures.com, which may not be redistributed on their own |
+| PSX Mega Pack (pistol magazine, `pistol_mp_1_mag_loaded`) | Pizza Doggy, pizzadoggy.itch.io (credit appreciated, not required; its license forbids using the assets, or images of them, as generative-AI input or training data) | `Assets/Models/Pickups` | Ammo pickup. Its textures weren't included; ours are rebaked in Blender (`Models/Pickups/Textures`) |
 
 ## Animation
 
@@ -55,9 +55,9 @@ look it up before shipping.
 
 | What | From | License |
 |---|---|---|
-| Asphalt031, Bricks109A, Concrete025, Concrete034, Concrete047A, Concrete048, Fabric030, Granite002A, Granite003A, Grass004, Gravel023, Ground054, Ground078, Marble012, Metal009, Metal027, Metal029, Metal054A, PaintedMetal002, PaintedMetal004, PavingStones046, Plastic012A, RoofingTiles013A, Rubber004, Wood051, SurfaceImperfections013 | ambientCG | CC0 |
-| asphalt_02 | Poly Haven | CC0 |
-| Kloofendal 48d Partly Cloudy (Pure Sky) HDRI | Poly Haven (Greg Zaal) | CC0 |
+| Asphalt031, Bricks109A, Concrete025, Concrete031, Concrete034, Concrete047A, Concrete048, Fabric030, Granite002A, Granite003A, Grass004, Gravel023, Ground054, Ground078, Marble012, Metal009, Metal027, Metal029, Metal054A, PaintedMetal002, PaintedMetal004, PavingStones046, Plastic012A, Rock020, RoofingTiles013A, Rubber004, Wood051, SurfaceImperfections013 | ambientCG | CC0 |
+| asphalt_02 | Rob Tuytel, Poly Haven | CC0 |
+| Kloofendal 48d Partly Cloudy (Pure Sky) HDRI | Greg Zaal (original), Jarod Guest (sky edits), Poly Haven | CC0 |
 
 ## Sounds
 
@@ -75,15 +75,23 @@ All in `Assets/Sounds`, trimmed so each starts on its first sample. Attribution 
 | Footsteps dirt gravel (NPC footsteps, cut into 8 steps) | freesound_community (Pixabay, 6823) | Pixabay Content License |
 | Running on dirt road (player footsteps, cut into 8 steps) | spinopel (Pixabay, 345729) | Pixabay Content License |
 | Park (park ambience, made into a seamless loop) | freesound_community (Pixabay, 6026) | Pixabay Content License |
+| Music and menu sounds: fastparkjazz.wav, in_game_chase.wav, loudSaxA.wav, sidestick.wav, jazzydrums (open hi-hat, vintage snare, low tom) | **check** source | Shipped in the game; not yet credited in-game |
 
 ## Fonts
 
 | What | From | Used for | License |
 |---|---|---|---|
-| Inter (`Assets/Resources/Fonts/Inter-Regular.ttf`, `-Bold.ttf`, the 24pt cuts; full family in `Assets/Fonts/Inter`) | Rasmus Andersson | HUD, menus, prompts, minimap, gym panels; the HUD's number glyphs (`Resources/SubwayHUD/glyph_*.png`) are rendered from its Bold | SIL Open Font License (`Inter-License.txt`) |
+| Arimo (`Assets/Resources/Fonts/Arimo-Regular.ttf`, `-Bold.ttf`; full family in `Assets/TextMesh Pro/Fonts/Arimo,DM_Sans/Arimo`) | Steve Matteson | All in-game text: HUD, menus, prompts, minimap, gym panels, loading screen | SIL Open Font License (`Arimo-License.txt`) |
+| Inter (`Assets/Resources/Fonts/Inter-Regular.ttf`, `-Bold.ttf`, the 24pt cuts; full family in `Assets/Fonts/Inter`) | Rasmus Andersson | Replaced by Arimo; the HUD's number glyphs (`Resources/SubwayHUD/glyph_*.png`) are still rendered from its Bold | SIL Open Font License (`Inter-License.txt`) |
 | TeX Gyre Heros (`Assets/Fonts/TeXGyreHeros-Regular.otf`, `-Bold.otf`; full family in `Assets/Fonts/TeX-Gyre-Heros`) | GUST e-foundry | No longer used (replaced by Inter); still in the project | GUST Font License, free to embed (`TeXGyreHeros-License.txt`) |
-| Overpass | Red Hat (Delve Withrington), based on Highway Gothic | Street sign and gym blade art (baked into PNGs; the font file isn't in the project) | SIL Open Font License |
+| Overpass | Delve Withrington, Dave Bailey and Thomas Jockin (Delve Fonts) for Red Hat, based on Highway Gothic | Street sign and gym blade art (baked into PNGs; the font file isn't in the project) | SIL Open Font License |
 | Libre Caslon Text | Pablo Impallari | "Greenwich Village Historic District" band on the brown blades (baked into PNGs) | SIL Open Font License |
+
+## Store page
+
+| What | From | Used for | License |
+|---|---|---|---|
+| Rolling green hills under a bright blue sky | Photo by [Jonathan Rathgeb](https://unsplash.com/@jonathan_rthg?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText) on [Unsplash](https://unsplash.com/photos/rolling-green-hills-under-a-bright-blue-sky-qq2BAvQgp4Q?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText) | Game capsule art | Unsplash License |
 
 ## Reference material
 

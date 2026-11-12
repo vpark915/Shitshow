@@ -21,32 +21,47 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: Asphalt02
-  m_Shader: {fileID: 4800000, guid: 7e36ca5d593c74b4c8559cb430939542, type: 3}
+  m_Shader: {fileID: 4800000, guid: 164e3af2d77718a41a7592e14bf2f7d0, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
-  m_ValidKeywords:
+  m_ValidKeywords: []
+  m_InvalidKeywords:
   - _DETAIL_MULX2
   - _METALLICSPECGLOSSMAP
   - _NORMALMAP
   - _PARALLAXMAP
-  m_InvalidKeywords: []
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
   m_CustomRenderQueue: -1
-  stringTagMap:
-    RenderType: Opaque
+  stringTagMap: {}
   disabledShaderPasses: []
   m_LockedProperties: 
   m_SavedProperties:
     serializedVersion: 3
     m_TexEnvs:
+    - _BaseColorMap:
+        m_Texture: {fileID: 2800000, guid: 54acc005308f141db9bd7ac8bf865a0d, type: 3}
+        m_Scale: {x: 0.5, y: 0.5}
+        m_Offset: {x: 0, y: 0}
     - _BaseMap:
         m_Texture: {fileID: 2800000, guid: 54acc005308f141db9bd7ac8bf865a0d, type: 3}
         m_Scale: {x: 0.5, y: 0.5}
         m_Offset: {x: 0, y: 0}
     - _BumpMap:
         m_Texture: {fileID: 2800000, guid: ecca8a89c629a446998651c91b3b8574, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _CarveDetailHeight:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _CarveDetailNormal:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _CarvePyramid:
+        m_Texture: {fileID: 2800000, guid: 4794e2d19ff0446238e718fbbd1c5281, type: 2}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _DetailAlbedoMap:
@@ -70,15 +85,23 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _HeightMap:
-        m_Texture: {fileID: 0}
+        m_Texture: {fileID: 2800000, guid: 2aa7e9479bde34229be01fdd42c3674e, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MainTex:
         m_Texture: {fileID: 2800000, guid: 54acc005308f141db9bd7ac8bf865a0d, type: 3}
         m_Scale: {x: 0.5, y: 0.5}
         m_Offset: {x: 0, y: 0}
+    - _MaskMap:
+        m_Texture: {fileID: 2800000, guid: 73bd690d8ffe14a7286732e6214b22b7, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     - _MetallicGlossMap:
         m_Texture: {fileID: 2800000, guid: fd8bb2e58019247b3bfbddb2b54aaf5a, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _NormalMap:
+        m_Texture: {fileID: 2800000, guid: ecca8a89c629a446998651c91b3b8574, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _OcclusionMap:
@@ -117,6 +140,36 @@ Material:
     - _Blend: 0
     - _BlendModePreserveSpecular: 1
     - _BumpScale: 1
+    - _CarveAntiTiling: 0
+    - _CarveAntiTilingCell: 2
+    - _CarveAutoLOD: 0.6
+    - _CarveBlendSharpness: 8
+    - _CarveCasterSteps: 0.5
+    - _CarveCliff: 1
+    - _CarveCliffSlope: 0.8
+    - _CarveCurvature: 1
+    - _CarveCurvatureScale: 1
+    - _CarveDebug: 0
+    - _CarveDepth: 0.07200283
+    - _CarveDetail: 0
+    - _CarveDetailDepth: 0.004
+    - _CarveDetailNormalScale: 1
+    - _CarveDetailTiling: 4
+    - _CarveFadeEnd: 60
+    - _CarveFadeStart: 25
+    - _CarveMapping: 0
+    - _CarveMaxSteps: 16
+    - _CarveMinSteps: 6
+    - _CarveOcclusion: 1
+    - _CarveOcclusionRadius: 0.04
+    - _CarveRefineSteps: 2
+    - _CarveSelfShadow: 1
+    - _CarveShadowSoftness: 3
+    - _CarveShadowSteps: 8
+    - _CarveSilhouette: 0
+    - _CarveSpecOcclusion: 1
+    - _CarveStability: 0
+    - _CarveTracing: 1
     - _ClearCoatMask: 0
     - _ClearCoatSmoothness: 0
     - _Cull: 2
@@ -136,14 +189,15 @@ Material:
     - _HeightNormals: 0
     - _HeightStrength: 0
     - _HeightTile: 2
-    - _Metallic: 0
+    - _Metallic: 1
+    - _NormalScale: 1
     - _OcclusionStrength: 1
-    - _Parallax: 0.035
+    - _Parallax: 0.012
     - _ParallaxMax: 0.83
     - _ParallaxMin: 0.568
     - _QueueOffset: 0
     - _ReceiveShadows: 1
-    - _Smoothness: 0.65
+    - _Smoothness: 0.45499998
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1
     - _SrcBlend: 1

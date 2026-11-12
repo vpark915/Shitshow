@@ -32,7 +32,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a1614fc811f8f184697d9bee70ab9fe5, type: 3}
   m_Name: Decal
   m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.DecalRendererFeature
-  m_Active: 1
+  m_Active: 0
   m_Settings:
     technique: 2
     maxDrawDistance: 60
@@ -69,12 +69,10 @@ MonoBehaviour:
   - {fileID: 7833122117494664109}
   - {fileID: -8652487809783254875}
   - {fileID: 7095028761235743110}
-  - {fileID: 5172839406172839415}
   - {fileID: 3501078370398156476}
-  - {fileID: 4417306204921835521}
   - {fileID: -5892571760887733824}
   - {fileID: 7599437447948126470}
-  m_RendererFeatureMap: ad6b866f10d7b46ca5b0780a2e30ec8786e1a238119b7662f71d1375089ec947bcb662763a54963001b07ee8966c4d3dc0e1c922346139ae06c9bf6918a07669
+  m_RendererFeatureMap: ad6b866f10d7b46ca5b0780a2e30ec8786e1a238119b7662bcb662763a549630c0e1c922346139ae06c9bf6918a07669
   m_UseNativeRenderPass: 1
   xrSystemData: {fileID: 0}
   postProcessData: {fileID: 11400000, guid: 41439944d30ece34e96484bdb6645b55, type: 2}
@@ -118,48 +116,6 @@ MonoBehaviour:
   m_Active: 1
   downsampleDepthShader: {fileID: 4800000, guid: cffeaeec0396a2c4dad475266cc8dfeb, type: 3}
   volumetricFogShader: {fileID: 4800000, guid: 08f816187f9af0244a95556ee0cab83f, type: 3}
---- !u!114 &4417306204921835521
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 343a32aa482041346936d193b3986b51, type: 3}
-  m_Name: GroundTruthAmbientOcclusion
-  m_EditorClassIdentifier: 
-  m_Active: 0
-  m_Shader: {fileID: 4800000, guid: d9d196ed72cf0a547a1a65cf7fc9f895, type: 3}
-  m_Settings:
-    Downsample: 1
-    AfterOpaque: 1
-    Source: 0
-    NormalSamples: 0
-    Intensity: 0.48
-    DirectLightingStrength: 1
-    Radius: 2.27
-    SampleCount: 2
---- !u!114 &5172839406172839415
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6589f404cc28f584494b80a94d9e1e36, type: 3}
-  m_Name: God Rays
-  m_EditorClassIdentifier: Assembly-CSharp::Plugins.VolumetricLightScattering.Runtime.VolumetricLightScattering
-  m_Active: 0
-  Quality:
-    ResolutionScale: 0.5
-    Intensity: 0.5
-    BlurWidth: 0.85
-    SunRadius: 1.6
-  shader: {fileID: 4800000, guid: 82a814139b194907bd485497d7a3bf22, type: 3}
 --- !u!114 &7095028761235743110
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -241,17 +197,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f62c9c65cf3354c93be831c8bc075510, type: 3}
   m_Name: ScreenSpaceAmbientOcclusion
   m_EditorClassIdentifier: 
-  m_Active: 1
+  m_Active: 0
   m_Settings:
     AOMethod: 1
-    Downsample: 0
+    Downsample: 1
     AfterOpaque: 1
     Source: 1
     NormalSamples: 1
-    Intensity: 3.27
-    DirectLightingStrength: 0.43
+    Intensity: 1
+    DirectLightingStrength: 0.2
     Radius: 0.06
     Samples: 0
     BlurQuality: 0
-    Falloff: 4.6
+    Falloff: 150
     SampleCount: -1

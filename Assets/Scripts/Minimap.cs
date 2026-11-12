@@ -11,7 +11,9 @@ using UnityEngine.UI;
 // once they leave it, so the map says roughly where they are but never exactly. When it's off the map, an arrow on the
 // map's edge points to it. The Seagull's unfinished tasks are blue diamonds (HuntMatch moves each to where its current
 // step can be done), with a blue arrow on the map's edge for one off the map; while guiding (the Seagull), a big blue
-// arrow at the top of the screen points to the nearest and says how far. Put this on the HUD canvas.
+// arrow at the top of the screen points to the nearest and says how far. Every place that matters to a task's current
+// step gets a hovering yellow ring, which bursts green once it's done. Landmarks (the arch, fountain, chess tables) are
+// pixel icons hovering over their spot. Put this on the HUD canvas.
 public class Minimap : MonoBehaviour
 {
     [Header("Map")]
@@ -59,6 +61,35 @@ public class Minimap : MonoBehaviour
     public bool marked;
     public Color markGlow = new Color(0.35f, 0.12f, 0.05f), markOutline = new Color(1f, 0.45f, 0.25f, 0.8f);
     public float markWidth = 2f;
+    [Tooltip("Places that matter to the tasks' current steps (filled by HuntMatch each frame): a hovering ring each; one that drops out bursts green")]
+    public readonly HashSet<Transform> taskPlaces = new HashSet<Transform>();
+    public Color placeColor = new Color(1f, 0.85f, 0.1f);
+    public Color placeDoneColor = new Color(0.25f, 1f, 0.35f);
+    public float placeSize = 34f;
+    [Tooltip("Seconds a done place's green burst lasts")]
+    public float burstTime = 0.7f;
+
+    [Header("Landmarks")]
+    [Tooltip("A pixel icon on the map for each. Icon: a picture in Resources/MinimapIcons. At: its scene objects, named as tasks name them (alternatives split by |, \"ChessTables/\" for each child); one icon over each bunch of them (Bunch metres apart at most)")]
+    public Landmark[] landmarks =
+    {
+        new Landmark { icon = "wsp_arch", at = "WSP_Arch|Arch" },
+        new Landmark { icon = "wsp_fountain", at = "WSP_Fountain|Fountain" },
+        new Landmark { icon = "wsp_chess", at = "ChessTables/|WSP_Prop_ChessTable" },
+    };
+    public float iconSize = 30f;
+    [Tooltip("Metres: landmark objects closer than this share one icon (the two corners of chess tables get one each)")]
+    public float bunch = 30f;
+    [Tooltip("Pixels the icons and rings bob up and down")]
+    public float hover = 3f;
+    public float hoverSpeed = 2.5f;
+
+    [System.Serializable]
+    public class Landmark
+    {
+        public string icon;
+        public string at;
+    }
 
     Texture picture;
     Sprite circle;
@@ -73,6 +104,11 @@ public class Minimap : MonoBehaviour
     RectTransform guideArrow;
     Text guideText;
     readonly List<(Npc cop, RectTransform dot)> police = new List<(Npc, RectTransform)>();
+    readonly List<(Vector3 at, RectTransform icon)> icons = new List<(Vector3, RectTransform)>();
+    readonly Dictionary<Transform, RectTransform> rings = new Dictionary<Transform, RectTransform>();
+    readonly List<(RectTransform ring, float start)> bursts = new List<(RectTransform, float)>();
+    readonly List<Transform> gone = new List<Transform>();
+    Sprite ring;
 
     // before anyone's Start, so the crowd and the birds aren't in the picture
     void Awake() => picture = bakedPicture ? bakedPicture : Photograph();
@@ -80,6 +116,7 @@ public class Minimap : MonoBehaviour
     IEnumerator Start()
     {
         circle = MakeCircle();
+        ring = MakeRing();
         scale = size / 2 / range;
 
         RectTransform frame = Make("Minimap", transform, Vector2.one * size, new Color(0.1f, 0.1f, 0.1f, 0.8f), null);
@@ -92,6 +129,7 @@ public class Minimap : MonoBehaviour
         if (vendors) // they never move, so placed once
             foreach (Transform vendor in vendors)
                 Make("Food", world, Vector2.one * dotSize, vendorColor, null).anchoredPosition = OnMap(vendor.position);
+        Landmarks();
         zone = Make("Target", world, Vector2.one * targetRadius * 2 * scale, targetColor, circle);
         exact = Make("Target Exact", world, Vector2.one * dotSize * 1.6f, revealColor, circle);
         Make("You", frame, Vector2.one * dotSize, Color.white, circle);
@@ -150,6 +188,8 @@ public class Minimap : MonoBehaviour
             if (d < nearestDistance) { nearestDistance = d; nearest = taskSpots[i]; }
         }
         Guide(nearest, nearestDistance);
+        foreach ((Vector3 at, RectTransform icon) in icons) Hover(icon, at);
+        Rings();
 
         foreach ((Npc cop, RectTransform dot) in police)
         {
@@ -202,6 +242,113 @@ public class Minimap : MonoBehaviour
 
     RectTransform Frame() => (RectTransform)pivot.parent;
 
+    // an icon over each landmark found in the scene
+    void Landmarks()
+    {
+        Transform[] scene = FindObjectsByType<Transform>(FindObjectsSortMode.None);
+        foreach (Landmark landmark in landmarks)
+        {
+            var picture = Resources.Load<Texture2D>("MinimapIcons/" + landmark.icon);
+            if (!picture) continue;
+            picture.filterMode = FilterMode.Point; // pixel art stays pixels
+            var sprite = Sprite.Create(picture, new Rect(0, 0, picture.width, picture.height), Vector2.one * 0.5f);
+            foreach (Vector3 at in Middles(landmark.at, scene))
+            {
+                RectTransform icon = Hovering(landmark.icon, sprite, Color.white, iconSize);
+                icon.GetChild(0).gameObject.AddComponent<Shadow>().effectDistance = new Vector2(1.5f, -1.5f);
+                icons.Add((at, icon));
+            }
+        }
+    }
+
+    // the middle of each bunch of what `at` names (only the outermost of nested matches), by what's drawn
+    List<Vector3> Middles(string at, Transform[] scene)
+    {
+        var found = new List<Transform>();
+        foreach (string one in at.Split('|'))
+            foreach (Transform t in scene)
+            {
+                if (one.EndsWith("/")) { if (t.name == one.TrimEnd('/')) foreach (Transform child in t) found.Add(child); }
+                else if (one != "" && t.name.StartsWith(one)) found.Add(t);
+            }
+        found.RemoveAll(t => !t.gameObject.activeInHierarchy || found.Exists(other => other != t && t.IsChildOf(other)));
+        var bunches = new List<Bounds>();
+        foreach (Transform t in found)
+        {
+            Bounds box = new Bounds(t.position, Vector3.zero);
+            bool drawn = false;
+            foreach (Renderer r in t.GetComponentsInChildren<Renderer>())
+                if (drawn) box.Encapsulate(r.bounds); else { box = r.bounds; drawn = true; }
+            int near = bunches.FindIndex(b => Flat(b.center - box.center).magnitude < bunch);
+            if (near < 0) { bunches.Add(box); continue; }
+            Bounds grown = bunches[near];
+            grown.Encapsulate(box);
+            bunches[near] = grown;
+        }
+        return bunches.ConvertAll(b => b.center);
+    }
+
+    // a ring per task place; one that's dropped out of Task Places (done) bursts green and goes
+    void Rings()
+    {
+        foreach (Transform place in taskPlaces)
+            if (place && !rings.ContainsKey(place)) rings[place] = Hovering("Task Place", ring, placeColor, placeSize);
+        gone.Clear();
+        foreach (var (place, mark) in rings) if (!place || !taskPlaces.Contains(place)) gone.Add(place);
+        foreach (Transform place in gone)
+        {
+            RectTransform mark = rings[place];
+            rings.Remove(place);
+            if (!place) { Destroy(mark.gameObject); continue; } // gone from the scene, not done
+            Make("Flash", mark.GetChild(0), Vector2.one * placeSize * 0.8f, placeDoneColor, circle);
+            bursts.Add((mark, Time.time));
+        }
+        float pulse = 1 + 0.08f * Mathf.Sin(Time.time * hoverSpeed * 2);
+        foreach (var (place, mark) in rings)
+        {
+            Hover(mark, place.position);
+            mark.GetChild(0).localScale = Vector3.one * pulse;
+        }
+        for (int i = bursts.Count - 1; i >= 0; i--)
+        {
+            (RectTransform mark, float start) = bursts[i];
+            float t = (Time.time - start) / burstTime;
+            if (t >= 1 || !mark) { if (mark) Destroy(mark.gameObject); bursts.RemoveAt(i); continue; }
+            mark.rotation = transform.rotation;
+            Transform picture = mark.GetChild(0);
+            picture.localScale = Vector3.one * (1 + 1.6f * Mathf.Sqrt(t)); // pops out fast, then slows
+            Color c = placeDoneColor;
+            c.a = 1 - t;
+            picture.GetComponent<Image>().color = c;
+            c.a = (1 - t) * 0.6f;
+            picture.GetChild(0).GetComponent<Image>().color = c;
+        }
+    }
+
+    // drop every task ring at once, with no burst (a new round, or the round's over)
+    public void ClearPlaces()
+    {
+        taskPlaces.Clear();
+        foreach (RectTransform mark in rings.Values) if (mark) Destroy(mark.gameObject);
+        rings.Clear();
+    }
+
+    // a holder at a spot on the map that stays upright on screen, with its picture inside bobbing up and down
+    RectTransform Hovering(string name, Sprite sprite, Color color, float pixels)
+    {
+        RectTransform holder = Make(name, world, Vector2.zero, null, null);
+        Make("Picture", holder, Vector2.one * pixels, color, sprite);
+        return holder;
+    }
+
+    void Hover(RectTransform holder, Vector3 at)
+    {
+        holder.anchoredPosition = OnMap(at);
+        holder.rotation = transform.rotation;
+        float phase = (at.x + at.z) * 0.37f; // not all in step
+        ((RectTransform)holder.GetChild(0)).anchoredPosition = Vector2.up * Mathf.Sin(Time.time * hoverSpeed + phase) * hover;
+    }
+
     // `arrow` on the map's edge pointing at `mark` (on the map picture) if that's off the map; false if it's on it
     bool Edge(RectTransform mark, RectTransform arrow)
     {
@@ -241,6 +388,7 @@ public class Minimap : MonoBehaviour
     {
         revealUntil = 0;
         zonePlaced = false;
+        ClearPlaces();
     }
 
     // the outline takes the target's renderers as it's added, so a target that changes its looks (NetBird) removes it
@@ -298,6 +446,21 @@ public class Minimap : MonoBehaviour
             image.raycastTarget = false;
         }
         return rect;
+    }
+
+    // a soft-edged white ring for task places
+    static Sprite MakeRing()
+    {
+        const int n = 64;
+        var tex = new Texture2D(n, n, TextureFormat.RGBA32, false);
+        for (int y = 0; y < n; y++)
+            for (int x = 0; x < n; x++)
+            {
+                float d = Vector2.Distance(new Vector2(x + 0.5f, y + 0.5f), Vector2.one * n / 2) / (n / 2);
+                tex.SetPixel(x, y, new Color(1, 1, 1, Mathf.Clamp01((0.12f - Mathf.Abs(d - 0.82f)) * n / 2)));
+            }
+        tex.Apply();
+        return Sprite.Create(tex, new Rect(0, 0, n, n), Vector2.one * 0.5f);
     }
 
     // a soft-edged white disc for dots and the target circle

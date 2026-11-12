@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 13e2054f3f6d4fc4e93ec5ef9f07add4
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 2800000
+  userData: carve-pyramid;v5;src=e4fcb5532650c41489cb0af54768e741;hash=002f7588e1ae4800d427ccc70e90c429
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 418204
+  packageName: "Carve \u2013 Silhouette Parallax Occlusion Mapping for HDRP & URP"
+  packageVersion: 1.0.0
+  assetPath: Assets/JamzeySt/Carve/Textures/Samples/CliffRock/CliffRock_Height_CarvePyramid.asset
+  uploadId: 1023298

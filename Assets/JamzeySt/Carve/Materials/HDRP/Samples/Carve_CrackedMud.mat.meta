@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: efe91fa110c2f4b4aaf13a018ed8a64b
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 2100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 418204
+  packageName: "Carve \u2013 Silhouette Parallax Occlusion Mapping for HDRP & URP"
+  packageVersion: 1.0.0
+  assetPath: Assets/JamzeySt/Carve/Materials/HDRP/Samples/Carve_CrackedMud.mat
+  uploadId: 1023298

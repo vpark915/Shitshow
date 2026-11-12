@@ -89,7 +89,7 @@ public static class StreetFurniture
         quad.GetComponent<Renderer>().sharedMaterial = material;
     }
 
-    // the white DOT panel with words on it (Inter, black, sized to fit), for the gym and tutorial
+    // the white DOT panel with words on it (Arimo, black, sized to fit), for the gym and tutorial
     public static Transform Panel(Transform parent, Vector3 position, Quaternion rotation, float height, string words)
     {
         Transform sign = Sign("plate_info_panel", parent, position, rotation, height);

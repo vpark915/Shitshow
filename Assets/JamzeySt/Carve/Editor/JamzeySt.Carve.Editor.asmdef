@@ -1,0 +1,20 @@
+{
+    "name": "JamzeySt.Carve.Editor",
+    "rootNamespace": "JamzeySt.Carve.Editor",
+    "references": [
+        "JamzeySt.Carve.Runtime",
+        "Unity.RenderPipelines.Core.Editor",
+        "Unity.RenderPipelines.Core.Runtime"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

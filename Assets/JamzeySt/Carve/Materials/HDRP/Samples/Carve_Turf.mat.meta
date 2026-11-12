@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 6156cc4a6fa751a4184c8c755dfd87ad
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 2100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 418204
+  packageName: "Carve \u2013 Silhouette Parallax Occlusion Mapping for HDRP & URP"
+  packageVersion: 1.0.0
+  assetPath: Assets/JamzeySt/Carve/Materials/HDRP/Samples/Carve_Turf.mat
+  uploadId: 1023298

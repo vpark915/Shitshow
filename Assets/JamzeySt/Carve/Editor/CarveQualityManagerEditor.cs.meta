@@ -1,0 +1,9 @@
+fileFormatVersion: 2
+guid: d02226bf0661b8c43ae95694f273ad2c
+AssetOrigin:
+  serializedVersion: 1
+  productId: 418204
+  packageName: "Carve \u2013 Silhouette Parallax Occlusion Mapping for HDRP & URP"
+  packageVersion: 1.0.0
+  assetPath: Assets/JamzeySt/Carve/Editor/CarveQualityManagerEditor.cs
+  uploadId: 1023298

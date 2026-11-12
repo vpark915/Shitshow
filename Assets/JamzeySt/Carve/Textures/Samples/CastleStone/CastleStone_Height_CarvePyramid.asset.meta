@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: f30c0b0cc8cae094398f93ae6cd6214a
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 2800000
+  userData: carve-pyramid;v5;src=767204ade8c55aa40a67a64c417f864f;hash=d698fb22e066641bc87a2632a584033d
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 418204
+  packageName: "Carve \u2013 Silhouette Parallax Occlusion Mapping for HDRP & URP"
+  packageVersion: 1.0.0
+  assetPath: Assets/JamzeySt/Carve/Textures/Samples/CastleStone/CastleStone_Height_CarvePyramid.asset
+  uploadId: 1023298

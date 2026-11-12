@@ -19,7 +19,6 @@ public class Health : MonoBehaviour
     [Tooltip("Radius of the head, metres; 0 works it out from the body's height (12% of it)")]
     public float headRadius;
 
-    [HideInInspector] public float damageScale = 1f; // under 1 while a food ability (Full belly) softens hits
     [HideInInspector] public int shields; // bagels (FoodPowers): each one soaks up a whole hit
     [HideInInspector] public bool noRestart; // HuntMatch: the match revives the player instead of reloading the scene
     // online: this is the other player's bird (NetBird), so hits are sent to their game instead of landing here
@@ -64,7 +63,7 @@ public class Health : MonoBehaviour
         if (forward != null) { Glow.On(this).Flash(hitFlash, flashTime); forward(amount, from); return; }
         if (shields > 0) { shields--; Glow.On(this).Flash(blockedFlash, flashTime); return; }
         Glow.On(this).Flash(hitFlash, flashTime);
-        damageTaken += amount * damageScale;
+        damageTaken += amount;
         Hurt?.Invoke(from);
         if (!IsDead) return;
         RagdollToggle ragdoll = GetComponentInChildren<RagdollToggle>();

@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: c1f2a538b05ff4548932f0297ddd41b6
+TextScriptImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 418204
+  packageName: "Carve \u2013 Silhouette Parallax Occlusion Mapping for HDRP & URP"
+  packageVersion: 1.0.0
+  assetPath: Assets/JamzeySt/Carve/Textures/Samples/CastleStone/CastleStone.json
+  uploadId: 1023298

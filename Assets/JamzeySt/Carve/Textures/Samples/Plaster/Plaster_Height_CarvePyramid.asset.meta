@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: c65f87cca6281c945b5ff31c69e44490
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 2800000
+  userData: carve-pyramid;v5;src=18b36a63d4cbfda4f86a2732d526b665;hash=74d1a6174cc68a410504d23ab2a3eb53
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 418204
+  packageName: "Carve \u2013 Silhouette Parallax Occlusion Mapping for HDRP & URP"
+  packageVersion: 1.0.0
+  assetPath: Assets/JamzeySt/Carve/Textures/Samples/Plaster/Plaster_Height_CarvePyramid.asset
+  uploadId: 1023298

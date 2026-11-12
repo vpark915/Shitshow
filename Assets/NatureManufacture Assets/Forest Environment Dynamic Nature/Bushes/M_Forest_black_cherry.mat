@@ -136,11 +136,11 @@ Material:
     m_Ints: []
     m_Floats:
     - _AORemapMax: 1
-    - _AORemapMin: 0.021356113
+    - _AORemapMin: 0.35
     - _ATDistance: 1
     - _AlbedoAffectEmissive: 0
     - _AlphaClip: 1
-    - _AlphaCutoff: 0.45
+    - _AlphaCutoff: 0.5
     - _AlphaCutoffEnable: 1
     - _AlphaCutoffPostpass: 0.5
     - _AlphaCutoffPrepass: 0.5
@@ -242,9 +242,9 @@ Material:
     - _ShiverDirectionality: 1
     - _ShiverDrag: 0.03
     - _Smoothness: 1
-    - _SmoothnessRemapMax: 0.45
-    - _SmoothnessRemapMin: 0.1
-    - _Specular: 0.3
+    - _SmoothnessRemapMax: 0.72
+    - _SmoothnessRemapMin: 0.2
+    - _Specular: 0.6
     - _SpecularAAScreenSpaceVariance: 0.1
     - _SpecularAAThreshold: 0.2
     - _SrcBlend: 1
@@ -269,8 +269,8 @@ Material:
     - _TexWorldScaleEmissive: 1
     - _Thickness: 0
     - _ThicknessMultiplier: 1
-    - _TranslucencyPower: 4
-    - _TranslucencyStrength: 1.6
+    - _TranslucencyPower: 2.5
+    - _TranslucencyStrength: 3.2
     - _TransmissionEnable: 1
     - _TransparentBackfaceEnable: 0
     - _TransparentCullMode: 2
@@ -302,11 +302,11 @@ Material:
     - _Color: {r: 0.9339623, g: 0.9339623, b: 0.9339623, a: 1}
     - _DiffusionProfileAsset: {r: -1.8019567e-30, g: 2.8583547e+22, b: 2.0825967e+12, a: 8.838735e-11}
     - _DoubleSidedConstants: {r: 1, g: 1, b: -1, a: 0}
-    - _DryColor: {r: 0.759, g: 0.828, b: 0.48299998, a: 1}
+    - _DryColor: {r: 0.87285, g: 0.9522, b: 0.55544996, a: 1.15}
     - _EmissionColor: {r: 1, g: 1, b: 1, a: 1}
     - _EmissiveColor: {r: 0, g: 0, b: 0, a: 1}
     - _EmissiveColorLDR: {r: 0, g: 0, b: 0, a: 1}
-    - _HealthyColor: {r: 0.667, g: 0.851, b: 0.46, a: 1}
+    - _HealthyColor: {r: 0.7670499, g: 0.97865, b: 0.5289999, a: 1.15}
     - _InvPrimScale: {r: 1, g: 1, b: 0, a: 0}
     - _IridescenceThicknessRemap: {r: 0, g: 1, b: 0, a: 0}
     - _NewNormal: {r: 0, g: 0, b: 0, a: 0}

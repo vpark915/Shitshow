@@ -5,7 +5,8 @@ using UnityEngine.AI;
 // Tools > Wash Square > Build Trash Can Prefab: makes Prefabs/TrashCan from Blender/Props/trashCan.blend (an NYC wire
 // litter basket, its bin bag and a pile of trash), standing on y = 0, with the park's surface treatment
 // (BlockoutPostprocessor's, and its strength knobs): the can's own colour maps plus the ambientCG sets' normal,
-// smoothness and height maps under Parallax Lit, and the weathering grime layer, saved as Materials/TrashCan/*.mat.
+// smoothness maps under URP Lit (no parallax: on something this small it didn't read, and URP Lit keeps the emission Glow
+// lights a looked-at can with), and the weathering grime layer, saved as Materials/TrashCan/*.mat.
 // Also lightmap UVs, a box to look at and bump into, a carved NavMesh hole so people walk round it, and TrashCan
 // stocking any of the food prefabs. Run it again after changing the .blend.
 public static class TrashCanPrefab
@@ -75,19 +76,19 @@ public static class TrashCanPrefab
         Debug.Log("TrashCanPrefab: made " + Prefab + " (" + all.size.ToString("F2") + " m, " + foods.Count + " foods it can hold)");
     }
 
-    // the .blend material `name` remade as a Parallax Lit .mat, or null if it isn't one of Surfaces
+    // the .blend material `name` remade as a URP Lit .mat, or null if it isn't one of Surfaces
     static Material Surface(string name)
     {
         int i = System.Array.FindIndex(Surfaces, s => s.name == name);
         if (i < 0) return null;
-        var (_, set, folder, smoothness, relief) = Surfaces[i];
+        var (_, set, folder, smoothness, _) = Surfaces[i]; // (relief unused since parallax went)
         string prefix = folder + set + "_2K-JPG_";
         if (!AssetDatabase.IsValidFolder(Materials.TrimEnd('/'))) AssetDatabase.CreateFolder("Assets/Materials", "TrashCan");
         string path = Materials + name + ".mat";
         var material = AssetDatabase.LoadAssetAtPath<Material>(path);
-        Shader parallax = AssetDatabase.LoadAssetAtPath<Shader>(BlockoutPostprocessor.ParallaxShader);
-        if (!material) { material = new Material(parallax); AssetDatabase.CreateAsset(material, path); }
-        material.shader = parallax;
+        Shader lit = Shader.Find("Universal Render Pipeline/Lit");
+        if (!material) { material = new Material(lit); AssetDatabase.CreateAsset(material, path); }
+        material.shader = lit;
 
         material.SetTexture("_BaseMap", Load(Colours + name + "_Color.jpg"));
         material.SetColor("_BaseColor", Color.white);
@@ -103,16 +104,8 @@ public static class TrashCanPrefab
         material.SetFloat("_Smoothness", smoothness * BlockoutPostprocessor.SmoothnessScale);
         material.SetFloat("_Metallic", 0); // painted, paper, plastic
 
-        Texture2D heights = Load(prefix + "Displacement.jpg");
-        if (relief > 0 && heights && BlockoutPostprocessor.HeightRange.TryGetValue(set, out var range))
-        {
-            material.SetTexture("_ParallaxMap", heights);
-            material.SetFloat("_Parallax", relief * BlockoutPostprocessor.ParallaxStrength); // UVs in metres: depth in metres
-            material.SetFloat("_ParallaxMin", range.black);
-            material.SetFloat("_ParallaxMax", range.white);
-            material.EnableKeyword("_PARALLAXMAP");
-        }
-        else material.DisableKeyword("_PARALLAXMAP");
+        material.SetTexture("_ParallaxMap", null);
+        material.DisableKeyword("_PARALLAXMAP");
 
         // the park's grime, smaller (a can is under a metre: the park's 7 m stains would be one flat tint)
         material.SetTexture("_DetailAlbedoMap", Load(BlockoutPostprocessor.Textures + "WSP_Weathering_DetailX2.png"));

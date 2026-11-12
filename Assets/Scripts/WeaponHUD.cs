@@ -4,7 +4,7 @@ using UnityEngine.UI;
 
 // The HUD as NYC subway signs (made in Figma, file "Subway Signage"; exports in Resources/SubwayHUD): every number is a
 // row of line bullets. Ammo and jumps bottom right, health and cash top right, and while the police hunt this bird an NYPD
-// sign top left. Each digit takes the colour of the real subway line it names (4 is green like the 4/5/6). Firing kicks the signs, a headshot bursts the Headshot sign over the crosshair
+// sign bottom middle. Each digit takes the colour of the real subway line it names (4 is green like the 4/5/6). Firing kicks the signs, a headshot bursts the Headshot sign over the crosshair
 // (a kill bursts a Kill sign there instead, in the same style), and when nothing's going
 // on the signs sway a little so the HUD never sits dead still.
 // The scene's old Text fields are kept for their font and for the ride prompt; the number texts are hidden.
@@ -97,7 +97,7 @@ public class WeaponHUD : MonoBehaviour
         life = new Sign(canvas, new Vector2(1, 1), Black, White, font, bulletSize);
         jumps = new Sign(canvas, new Vector2(1, 0), Black, White, font, bulletSize);
         cash = new Sign(canvas, new Vector2(1, 1), Black, White, font, bulletSize);
-        wanted = new Sign(canvas, new Vector2(0, 1), Navy, Gold, font, bulletSize, Resources.Load<Texture2D>("SubwayHUD/nypd_patch"));
+        wanted = new Sign(canvas, new Vector2(0.5f, 0), Navy, Gold, font, bulletSize, Resources.Load<Texture2D>("SubwayHUD/nypd_patch")); // bottom middle, where it's seen
         wanted.separator = Gold;
         signs = new[] { ammo, life, jumps, cash, wanted };
         life.root.gameObject.SetActive(health);
@@ -183,6 +183,8 @@ public class WeaponHUD : MonoBehaviour
         }
         life.home.x = -32 - cash.root.rect.width - 12;
         jumps.home.y = 32 + ammo.root.rect.height + 12;
+        // the ride prompt stacks above jumps (its sign reaches the text's padding below the words)
+        SubwayGUI.Raise(rideText, jumps.home.y + jumps.root.rect.height + 12 + SubwayGUI.PromptPad);
 
         float idle = Mathf.Clamp01((Time.time - lastShot - idleAfter) / 1f); // eases in over a second
         for (int i = 0; i < signs.Length; i++) signs[i].Animate(idle, swayAngle, i * 1.7f);
@@ -233,7 +235,8 @@ public class WeaponHUD : MonoBehaviour
             this.size = size;
             root = Make("Subway Sign", canvas, typeof(Image), typeof(VerticalLayoutGroup), typeof(ContentSizeFitter));
             root.anchorMin = root.anchorMax = root.pivot = corner;
-            root.anchoredPosition = home = new Vector2(corner.x == 0 ? 32 : -32, corner.y == 0 ? 32 : -32);
+            // 32 in from the corner's edges; centred along an edge for a middle anchor
+            root.anchoredPosition = home = new Vector2(corner.x == 0 ? 32 : corner.x == 1 ? -32 : 0, corner.y == 0 ? 32 : corner.y == 1 ? -32 : 0);
             Image back = root.GetComponent<Image>();
             back.color = bar;
             back.raycastTarget = false;

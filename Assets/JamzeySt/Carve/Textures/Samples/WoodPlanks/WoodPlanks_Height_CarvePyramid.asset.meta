@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 8d138fe74b641584590559bd7dd8a969
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 2800000
+  userData: carve-pyramid;v5;src=744f8b10b4509804dae42acc6ddc6cec;hash=ae130cd7caa49fb9dfba6f76ec8237cd
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 418204
+  packageName: "Carve \u2013 Silhouette Parallax Occlusion Mapping for HDRP & URP"
+  packageVersion: 1.0.0
+  assetPath: Assets/JamzeySt/Carve/Textures/Samples/WoodPlanks/WoodPlanks_Height_CarvePyramid.asset
+  uploadId: 1023298

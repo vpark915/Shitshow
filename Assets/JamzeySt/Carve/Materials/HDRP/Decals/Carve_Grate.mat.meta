@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 92958e00260a1bd4baf74414671a5631
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 2100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 418204
+  packageName: "Carve \u2013 Silhouette Parallax Occlusion Mapping for HDRP & URP"
+  packageVersion: 1.0.0
+  assetPath: Assets/JamzeySt/Carve/Materials/HDRP/Decals/Carve_Grate.mat
+  uploadId: 1023298
